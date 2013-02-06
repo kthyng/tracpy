@@ -97,15 +97,17 @@ kmt = KM ! Why are these separate? I think kmt is used in calc_dxyz as an array 
 !      call fancyTimer('advection','start')
 ntracLoop: do ntrac=1,ntractot  
 
-    ! Counter for interations for each drifter. In the source, this was read in but I am not sure why.
+    ! Counter for sub-interations for each drifter. In the source, this was read in but I am not sure why.
     niter = 0
     ! model dataset time step of trajectory. Initialize to the incoming time step for all drifters.
     ts = 0 !t1
-    ! Initialize drifter parameters for this drifter
-    x0 = xstart(ntrac)
-    y0 = ystart(ntrac)
-    z0 = zstart(ntrac)
-    tt = t0
+    ! Initialize drifter parameters for this drifter (x0,y0,x0 will be updated from these at the start of the loop)
+    x1 = xstart(ntrac)
+    y1 = ystart(ntrac)
+    z1 = zstart(ntrac)
+    tt = 0.d0 !time of trajectory in seconds... start at zero for this test case
+    ts = 0.d0 ! model dataset time step of trajectory... start at zero for this test case
+    tss = 0.d0
 !         subvol =  trj(ntrac,5)
 !         t0     =  trj(ntrac,7)
     ib = istart(ntrac)
@@ -148,6 +150,7 @@ ntracLoop: do ntrac=1,ntractot
         !==============================================!
 
         dsmin=dtmin/dxyz
+        print *,'dsmin=',dsmin,' dtmin=',dtmin,' dxyz=',dxyz
 
         ! ! === calculate the turbulent velocities ===
         ! #ifdef turb
@@ -164,9 +167,10 @@ ntracLoop: do ntrac=1,ntractot
         !             call cross(3,ia,ja,ka,z0,dsu,dsd,rr) ! vertical ! Start with 2D drifters
         ds=dmin1(dse,dsw,dsn,dss,dsmin)
         !             ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
-
+        print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
 
         call calc_time(ds,dsmin,dt,dtmin,tss,tseas,ts,tt,dxyz,dstep,iter,rbg,rb,dsc) 
+        print *,'After calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dt=',dt,' dtmin=',dtmin
 
         ! === calculate the new positions ===
         ! === of the trajectory           ===    
@@ -190,11 +194,23 @@ ntracLoop: do ntrac=1,ntractot
         !               endif
         !            enddo LBTLOOP
 
+! This is the normal stopping routine for the loop. I am going to do a shorter one
+!         ! === stop trajectory if the choosen time or ===
+!         ! === water mass properties are exceeded     ===
+!         if(tt-t0.gt.timax) then
+!         !               nexit(NEND)=nexit(NEND)+1
+!             xend(ntrac) = x1
+!             yend(ntrac) = y1
+!             zend(ntrac) = z1
+!             exit niterLoop
+!         endif
 
-        ! === stop trajectory if the choosen time or ===
-        ! === water mass properties are exceeded     ===
-        if(tt-t0.gt.timax) then
-        !               nexit(NEND)=nexit(NEND)+1
+
+        print *, 'x0[',niter,']=', x0, ' y0[',niter,']=',y0
+        print *, 'x1[',niter,']=', x1, ' y1[',niter,']=',y1
+
+
+        if(niter .gt. 0) then
             xend(ntrac) = x1
             yend(ntrac) = y1
             zend(ntrac) = z1

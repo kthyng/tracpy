@@ -22,6 +22,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
     ! === of the trajectory           ===    
 !     scrivi=.false.
     if(ds==dse) then ! eastward grid-cell exit 
+        print *,'dse'
 !        scrivi=.false. ! flag for when to write to file I think
         uu=(rbg*uflux(ia,ja,ka,nsp)+rb*uflux(ia ,ja,ka,nsm))*ff
         if(uu.gt.0.d0) then
@@ -33,6 +34,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM)
         
     else if(ds==dsw) then ! westward grid-cell exit
+        print *,'dsw'
 !        scrivi=.false.
         uu=(rbg*uflux(iam,ja,ka,nsp)+rb*uflux(iam,ja,ka,nsm))*ff
         if(uu.lt.0.d0) then
@@ -44,6 +46,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
 !       scrivi=.true.      
 
     else if(ds==dsn) then ! northward grid-cell exit
+        print *,'dsn'
 !        scrivi=.false.
         uu=(rbg*vflux(ia,ja,ka,nsp)+rb*vflux(ia,ja,ka,nsm))*ff
         if(uu.gt.0.d0) then
@@ -54,6 +57,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vertical position
 
     else if(ds==dss) then ! southward grid-cell exit
+        print *,'dss'
        
 !        scrivi=.false.
         uu=(rbg*vflux(ia,ja-1,ka,nsp)+rb*vflux(ia,ja-1,ka,nsm))*ff
@@ -101,6 +105,8 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
 !        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr)
 
     else if( ds==dsc .or. ds==dsmin) then  
+        print *,'ds=',ds,' dsc=',dsc,' dsmin=',dsmin
+
        ! shortest time is the time-steping 
 !        scrivi=.true.
        ! If there is no spatial solution, 
