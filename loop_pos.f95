@@ -105,7 +105,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
 !        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr)
 
     else if( ds==dsc .or. ds==dsmin) then  
-        print *,'ds=',ds,' dsc=',dsc,' dsmin=',dsmin
+!         print *,'ds=',ds,' dsc=',dsc,' dsmin=',dsmin
 
        ! shortest time is the time-steping 
 !        scrivi=.true.

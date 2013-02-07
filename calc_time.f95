@@ -31,7 +31,7 @@ real(kind=8), intent(out) :: dt,rbg,rb,dsc
     ! Don't allow particle to move more than between the model outputs
     if(ds == dsmin) then ! transform ds to dt in seconds
         dt=dtmin  ! this makes dt more accurate
-    print *,'ds=',ds,' dsmin=',dsmin
+!     print *,'ds=',ds,' dsmin=',dsmin
     else
         dt=ds*dxyz 
     endif
@@ -42,7 +42,7 @@ real(kind=8), intent(out) :: dt,rbg,rb,dsc
     ! === if time step makes the integration ===
     ! === exceed the time when fiedls change ===
     if(tss+dt/tseas*dble(iter).ge.dble(iter)) then
-        print *,'dt=',dt,' tseas=',tseas,' dtmin=',dtmin,' ds=',ds,' dxyz=',dxyz
+!         print *,'dt=',dt,' tseas=',tseas,' dtmin=',dtmin,' ds=',ds,' dxyz=',dxyz
         dt=dble(idint(ts)+1)*tseas-tt
         tt=dble(idint(ts)+1)*tseas
         ts=dble(idint(ts)+1)

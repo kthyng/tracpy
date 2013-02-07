@@ -126,15 +126,15 @@ ka = [1]#,1]
 xstart = [132.1]#,525.2]
 ystart = [57.2]#,40.3]
 # xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
-zstart = [0]#,0]
+zstart = [1]#,0]
 
 t1 = t[0]
-tseas = 4*3600 # 4 hours between outputs NOT ITERATING BETWEEN OUTPUTS YET
+tseas = 4*3600 # 4 hours between outputs 
 hs = op.resize(zeta,1) # sea surface height in meters
 dz = np.diff(z4,axis=1)[0,:,0,0] # just take one dz column for now
 
 # Initialize parameters
-Dt = 10 # Number of steps to do between model outputs
+nsteps = 10 # Number of steps to do between model outputs
 
 # Loop through iterations between the two model outputs
 
@@ -178,24 +178,33 @@ KM=u.shape[1] # 30
 # Loop over model outputs
 
 
-xend = np.ones((Dt,len(ia)))*np.nan
-yend = np.ones((Dt,len(ia)))*np.nan
-zend = np.ones((Dt,len(ia)))*np.nan
+xend = np.ones((nsteps,len(ia)))*np.nan
+yend = np.ones((nsteps,len(ia)))*np.nan
+zend = np.ones((nsteps,len(ia)))*np.nan
 ufluxinterp = uflux
 vfluxinterp = vflux
+hsinterp = hs
 # Loop over iterations between model outputs
-for i in xrange(Dt):
+for i in xrange(nsteps):
 	#  flux fields at starting time for this step
 	if i != 0:
 		ufluxinterp[:,:,:,0] = ufluxinterp[:,:,:,1]
 		vfluxinterp[:,:,:,0] = vfluxinterp[:,:,:,1]
-	pdb.set_trace()
+		hsinterp[:,:,0] = hsinterp[:,:,1]
+		xstart = xend[i-1]
+		ystart = yend[i-1]
+		zstart = zend[i-1]
+		ia = int(xend[i-1])
+		ja = int(yend[i-1])
+		ka = int(zend[i-1])
+	# pdb.set_trace()
 	# Linearly interpolate uflux and vflux to step between model outputs, field at ending time for this step
-	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*tseas/Dt
-	vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*tseas/Dt
+	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*((i+1)*tseas/nsteps)
+	vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*((i+1)*tseas/nsteps)
+	hsinterp[:,:,1] = hs[:,:,0] + (hs[:,:,1]-hs[:,:,0])*((i+1)*tseas/nsteps)
 
 	# Find drifter locations
-	xend[i],yend[i],zend[i] = tracmass.step(xstart,ystart,zstart,t1,ia,ja,ka,tseas,ufluxinterp,vfluxinterp,ff,hs,dz.data,dxdy)
+	xend[i],yend[i],zend[i] = tracmass.step(xstart,ystart,zstart,t1,ia,ja,ka,tseas,ufluxinterp,vfluxinterp,ff,hsinterp,dz.data,dxdy)
 
 
 # Recreate Cartesian particle locations from their index-relative locations

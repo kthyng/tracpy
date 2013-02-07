@@ -150,7 +150,7 @@ ntracLoop: do ntrac=1,ntractot
         !==============================================!
 
         dsmin=dtmin/dxyz
-        print *,'dsmin=',dsmin,' dtmin=',dtmin,' dxyz=',dxyz
+!         print *,'dsmin=',dsmin,' dtmin=',dtmin,' dxyz=',dxyz
 
         ! ! === calculate the turbulent velocities ===
         ! #ifdef turb
@@ -167,10 +167,10 @@ ntracLoop: do ntrac=1,ntractot
         !             call cross(3,ia,ja,ka,z0,dsu,dsd,rr) ! vertical ! Start with 2D drifters
         ds=dmin1(dse,dsw,dsn,dss,dsmin)
         !             ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
-        print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
+!         print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
 
         call calc_time(ds,dsmin,dt,dtmin,tss,tseas,ts,tt,dxyz,dstep,iter,rbg,rb,dsc) 
-        print *,'After calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dt=',dt,' dtmin=',dtmin
+!         print *,'After calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dt=',dt,' dtmin=',dtmin
 
         ! === calculate the new positions ===
         ! === of the trajectory           ===    
@@ -206,8 +206,8 @@ ntracLoop: do ntrac=1,ntractot
 !         endif
 
 
-        print *, 'x0[',niter,']=', x0, ' y0[',niter,']=',y0
-        print *, 'x1[',niter,']=', x1, ' y1[',niter,']=',y1
+!         print *, 'x0[',niter,']=', x0, ' y0[',niter,']=',y0
+!         print *, 'x1[',niter,']=', x1, ' y1[',niter,']=',y1
 
 
         if(niter .gt. 0) then

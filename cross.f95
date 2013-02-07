@@ -45,7 +45,7 @@ real(kind=8),   intent(out)  :: sp,sn
         if(im.eq.0) im=IMT
         uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
         um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
-        print *,'in cross: uu=',uu,' um=',um
+!         print *,'in cross: uu=',uu,' um=',um
 ! #ifdef turb   
 !       if(r0.ne.dble(ii)) then
 !         uu=uu+upr(1,2)  
@@ -62,7 +62,7 @@ real(kind=8),   intent(out)  :: sp,sn
         ii=ja
         uu=(rg*vflux(ia,ja  ,ka,nsp)+rr*vflux(ia,ja  ,ka,nsm))*ff
         um=(rg*vflux(ia,ja-1,ka,nsp)+rr*vflux(ia,ja-1,ka,nsm))*ff
-        print *,'in cross: vu=',uu,' vm=',um
+!         print *,'in cross: vu=',uu,' vm=',um
 ! #ifdef turb    
 !       if(r0.ne.dble(ja  )) then
 !         uu=uu+upr(3,2)  
@@ -136,7 +136,7 @@ real(kind=8),   intent(out)  :: sp,sn
 
     if(sn.le.0.d0) sn=UNDEF
 
-    print *,'in cross: sp=',sp,' sn=',sn,' r0=',r0,' ii=',ii,' ba=',ba
+!     print *,'in cross: sp=',sp,' sn=',sn,' r0=',r0,' ii=',ii,' ba=',ba
 
     return
 end subroutine cross
