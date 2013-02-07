@@ -30,6 +30,7 @@ ff = 1 # forward
 it = 0
 # Read in ROMS model output velocity fields
 nc = netCDF.Dataset('/Users/kthyng/Documents/research/postdoc/ocean_his_0150.nc')
+# nc = netCDF.Dataset('http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0001.nc?u[0:1][0:1:29][1:1:189][0:1:669]')
 # Read in at time index it and it+1 and all depth levels
 # Also only read in actual cells not ghost cells
 u = nc.variables['u'][it:it+2,:,1:-1,:] 
@@ -87,6 +88,7 @@ uflux = u*dyu*dz4
 ### Set up z array on u grid for calculating v fluxes
 # Want h only within domain in x direction (no ghost cells) and interpolated onto cell
 # walls in y direction
+# should be able to clean these up with array broadcasting
 h = op.resize(grid.variables['h'][:,1:-1],0)
 # Get zeta. Same as with h (but there is a time dimension first)
 zeta = op.resize(nc.variables['zeta'][it:it+2,:,1:-1],1) # [t,k,j,i]
@@ -116,11 +118,15 @@ nc.close()
 grid.close()
 
 # Initialize seed locations
-ia = [132,525]
-ja = [57,40]
-ka = [1,1]
-x1, y1 = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
-z1 = [0,0]
+ia = [132]#,525]
+ja = [57]#,40]
+ka = [1]#,1]
+# Need to input x,y as relative to their grid box. Let's assume they are at 
+# some position relative to a grid node
+xstart = [132.1]#,525.2]
+ystart = [57.2]#,40.3]
+# xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
+zstart = [0]#,0]
 
 t1 = t[0]
 tseas = 4*3600 # 4 hours between outputs NOT ITERATING BETWEEN OUTPUTS YET
@@ -128,7 +134,7 @@ hs = op.resize(zeta,1) # sea surface height in meters
 dz = np.diff(z4,axis=1)[0,:,0,0] # just take one dz column for now
 
 # Initialize parameters
-
+Dt = 10 # Number of steps to do between model outputs
 
 # Loop through iterations between the two model outputs
 
@@ -168,8 +174,31 @@ KM=u.shape[1] # 30
 # second velocity time. Each drifter may take some number of steps in between, but those
 # are not saved.
 # pdb.set_trace()
-xend,yend,zend = tracmass.step(x1,y1,z1,t1,ia,ja,ka,tseas,uflux,vflux,ff,hs,dz.data,dxdy)
 
+# Loop over model outputs
+
+
+xend = np.ones((Dt,len(ia)))*np.nan
+yend = np.ones((Dt,len(ia)))*np.nan
+zend = np.ones((Dt,len(ia)))*np.nan
+ufluxinterp = uflux
+vfluxinterp = vflux
+# Loop over iterations between model outputs
+for i in xrange(Dt):
+	#  flux fields at starting time for this step
+	if i != 0:
+		ufluxinterp[:,:,:,0] = ufluxinterp[:,:,:,1]
+		vfluxinterp[:,:,:,0] = vfluxinterp[:,:,:,1]
+	pdb.set_trace()
+	# Linearly interpolate uflux and vflux to step between model outputs, field at ending time for this step
+	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*tseas/Dt
+	vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*tseas/Dt
+
+	# Find drifter locations
+	xend[i],yend[i],zend[i] = tracmass.step(xstart,ystart,zstart,t1,ia,ja,ka,tseas,ufluxinterp,vfluxinterp,ff,hs,dz.data,dxdy)
+
+
+# Recreate Cartesian particle locations from their index-relative locations
 
 # if __name__=='__main__':
 # 	run()
