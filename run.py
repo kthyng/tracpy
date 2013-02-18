@@ -5,6 +5,7 @@ import tracmass
 import netCDF4 as netCDF
 from mpl_toolkits.basemap import Basemap
 import pdb
+from matplotlib import delaunay
 
 # To re-compile tracmass fortran code, type "make f2py", which will give 
 # a file tracmass.so, which is the module we import above. Then in ipython, "run run.py"
@@ -48,7 +49,15 @@ h = grid.variables['h'][:]
 lonr = grid.variables['lon_rho'][:]
 latr = grid.variables['lat_rho'][:]
 x, y = basemap(lonr,latr)
-
+lonpsi = grid.variables['lon_psi'][:]
+latpsi = grid.variables['lat_psi'][:]
+xpsi, ypsi = basemap(lonpsi,latpsi)
+X, Y = np.meshgrid(np.arange(latpsi.shape[0]),np.arange(latpsi.shape[1]))
+tri = delaunay.Triangulation(X.flatten(),Y.flatten())
+# Angle on rho grid
+theta = grid.variables['angle'][:]
+# Interpolate theta to be on psi grid
+theta = op.resize(op.resize(theta,0),1)
 
 # WHY DO I HAVE TO CALCULATE THE FLUXES HERE WHEN THE BOX VOLUMES ARE ALSO CALCULATED IN THE CODE?
 # Change velocity fields to fluxes. DO TWO TIME INDICES AT ONCE
@@ -182,8 +191,6 @@ KM=u.shape[1] # 30
 # pdb.set_trace()
 
 # Loop over model outputs
-
-
 xend = np.ones((nsteps,len(ia)))*np.nan
 yend = np.ones((nsteps,len(ia)))*np.nan
 zend = np.ones((nsteps,len(ia)))*np.nan
@@ -203,9 +210,9 @@ for i in xrange(nsteps):
 		xstart = xend[i-1,:]
 		ystart = yend[i-1,:]
 		zstart = zend[i-1,:]
-		ia = np.trunc(xend[i-1,:])
-		ja = np.trunc(yend[i-1,:])
-		ka = np.trunc(zend[i-1,:])
+		ia = xend[i-1,:].astype(int)
+		ja = yend[i-1,:].astype(int)
+		ka = zend[i-1,:].astype(int)
 	# pdb.set_trace()
 	# Linearly interpolate uflux and vflux to step between model outputs, field at ending time for this step
 	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*((i+1.)/nsteps)
@@ -220,6 +227,20 @@ for i in xrange(nsteps):
 t0 = t0 + t0save # add back in base time in seconds
 
 # Recreate Cartesian particle locations from their index-relative locations
+# First interpolate grid angle to drifter locations
+ftheta = tri.nn_interpolator(theta.flatten())
+thetap = ftheta(xend,yend)
+xp = xpsi[yend.astype(int),xend.astype(int)]+(xend*np.cos(thetap) - yend*np.sin(thetap))
+yp = ypsi[yend.astype(int),xend.astype(int)]+(xend*np.sin(thetap) + yend*np.cos(thetap))
+
+# Plot tracks
+basemap.drawcoastlines()
+basemap.fillcontinents('0.8')
+basemap.drawparallels(np.arange(18, 35), dashes=(1, 0), linewidth=0.15, labels=[1, 0, 0, 0])
+basemap.drawmeridians(np.arange(-100, -80), dashes=(1, 0), linewidth=0.15, labels=[0, 0, 0, 1])
+hold('on')
+contour(xr, yr, h, np.hstack(([10,20],np.arange(50,500,50))), colors='lightgrey', linewidths=0.15)
+plot(xp.T,yp.T,'.')
 
 # if __name__=='__main__':
 # 	run()
