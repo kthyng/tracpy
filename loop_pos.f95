@@ -22,7 +22,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
     ! === of the trajectory           ===    
 !     scrivi=.false.
     if(ds==dse) then ! eastward grid-cell exit 
-        print *,'dse'
+!         print *,'dse'
 !        scrivi=.false. ! flag for when to write to file I think
         uu=(rbg*uflux(ia,ja,ka,nsp)+rb*uflux(ia ,ja,ka,nsm))*ff
         if(uu.gt.0.d0) then
@@ -34,7 +34,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM)
         
     else if(ds==dsw) then ! westward grid-cell exit
-        print *,'dsw'
+!         print *,'dsw'
 !        scrivi=.false.
         uu=(rbg*uflux(iam,ja,ka,nsp)+rb*uflux(iam,ja,ka,nsm))*ff
         if(uu.lt.0.d0) then
@@ -46,7 +46,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
 !       scrivi=.true.      
 
     else if(ds==dsn) then ! northward grid-cell exit
-        print *,'dsn'
+!         print *,'dsn'
 !        scrivi=.false.
         uu=(rbg*vflux(ia,ja,ka,nsp)+rb*vflux(ia,ja,ka,nsm))*ff
         if(uu.gt.0.d0) then
@@ -57,7 +57,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vertical position
 
     else if(ds==dss) then ! southward grid-cell exit
-        print *,'dss'
+!         print *,'dss'
        
 !        scrivi=.false.
         uu=(rbg*vflux(ia,ja-1,ka,nsp)+rb*vflux(ia,ja-1,ka,nsm))*ff
@@ -106,6 +106,8 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
 
     else if( ds==dsc .or. ds==dsmin) then  
 !         print *,'ds=',ds,' dsc=',dsc,' dsmin=',dsmin
+!         print *,'other'
+!             print *, 'in other in pos: ib=',ib,' ia=',ia
 
        ! shortest time is the time-steping 
 !        scrivi=.true.
@@ -118,6 +120,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
           
           ! move if atmosphere, freeze if ocean
             ib=ia ; jb=ja ; kb=ka
+!             print *, 'in other in pos: ib=',ib,' ia=',ia
 !          print *,'convergence for ',ib,jb,kb,x0,y0,z0
 !#ifdef ifs
 !          call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr) ! zonal crossing 
@@ -131,9 +134,11 @@ real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
         ! but the shortest cross time is the time step
         endif
 !       else
+! print *,'before: ia=',ia,' x0=',x0,' x1=',x1
         call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! zonal crossing 
         call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! merid. crossing 
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vert. crossing 
+! print *,'after: ia=',ia,' x0=',x0,' x1=',x1
 !       endif
     endif
     

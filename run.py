@@ -83,6 +83,7 @@ dyu = np.diff(op.resize(yu,0),axis=0) # [JMT,IMT+1]
 # uflux is size [2,KM,JMT,IMT+1], where the +1 in the x-direction is because the fluxes
 # are defined at the cell walls in that direction.
 uflux = u*dyu*dz4
+# pdb.set_trace()
 
 # Do for vfluxes
 ### Set up z array on u grid for calculating v fluxes
@@ -118,20 +119,20 @@ nc.close()
 grid.close()
 
 # Initialize seed locations
-ia = [132]#,525]
-ja = [57]#,40]
-ka = [1]#,1]
+ia = [132,525]
+ja = [57,40]
+ka = [1,1]
 # Need to input x,y as relative to their grid box. Let's assume they are at 
 # some position relative to a grid node
-xstart = [132.1]#,525.2]
-ystart = [57.2]#,40.3]
+xstart = [132.1,525.2]
+ystart = [57.2,40.3]
 # xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
-zstart = [1]#,0]
+zstart = [1,1]
 
-t1 = t[0]
+t0save = t[0] # time at start of file in seconds since 1970-01-01, add this on at the end since it is big
 tseas = 4*3600 # 4 hours between outputs 
 hs = op.resize(zeta,1) # sea surface height in meters
-dz = np.diff(z4,axis=1)[0,:,0,0] # just take one dz column for now
+# dz = np.diff(z4,axis=1)[0,:,0,0] # just take one dz column for now
 
 # Initialize parameters
 nsteps = 10 # Number of steps to do between model outputs
@@ -142,21 +143,26 @@ nsteps = 10 # Number of steps to do between model outputs
 
 # dxdy is the horizontal area of the cell walls, so it should be the size of the number of cells only
 # I am calculating it by adding the area of the walls together for each cell
-dxdy = ((dyu[:,1:]+dyu[:,0:-1])*(dxv[1:,:]+dxv[0:-1,:])) # [JMT,IMT]
+dxdy = ((dyu[:,1:]+dyu[:,0:-1])+(dxv[1:,:]+dxv[0:-1,:])) # [JMT,IMT]
+
+# calculate dxyz here
+dxyz = op.resize(dz4,2)*dxdy
 
 # make arrays in same order as is expected in the fortran code
 # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
 uflux = uflux.T
 vflux = vflux.T
-dxdy = dxdy.T
+# dxdy = dxdy.T
+dxyz = dxyz.T
 hs = hs.T
-#pdb.set_trace()
+# pdb.set_trace()
 
 
 # CHANGE ALL ARRAYS TO BE FORTRAN-DIRECTIONED INSTEAD OF PYTHON
 uflux = uflux.copy(order='f') # [2,KM,JMT,IMT+1] (all of these are swapped now due to transposes above)
 vflux = vflux.copy(order='f') #[2,KM,JMT+1,IMT]]
-dxdy = dxdy.copy(order='f') #[JMT,IMT]]
+# dxdy = dxdy.copy(order='f') #[JMT,IMT]]
+dxyz = dxyz.copy(order='f') #[2,KM,JMT,IMT]
 hs = hs.copy(order='f') # [JMT,IMT]
 IMT=dxdy.shape[1] # 669
 JMT=dxdy.shape[0] # 189
@@ -181,31 +187,37 @@ KM=u.shape[1] # 30
 xend = np.ones((nsteps,len(ia)))*np.nan
 yend = np.ones((nsteps,len(ia)))*np.nan
 zend = np.ones((nsteps,len(ia)))*np.nan
-ufluxinterp = uflux
-vfluxinterp = vflux
-hsinterp = hs
+ufluxinterp = uflux.copy()
+vfluxinterp = vflux.copy()
+# hsinterp = hs.copy()
+dxyzinterp = dxyz.copy()
+t0 = np.zeros((nsteps+1,len(ia)))
 # Loop over iterations between model outputs
 for i in xrange(nsteps):
 	#  flux fields at starting time for this step
 	if i != 0:
 		ufluxinterp[:,:,:,0] = ufluxinterp[:,:,:,1]
 		vfluxinterp[:,:,:,0] = vfluxinterp[:,:,:,1]
-		hsinterp[:,:,0] = hsinterp[:,:,1]
-		xstart = xend[i-1]
-		ystart = yend[i-1]
-		zstart = zend[i-1]
-		ia = int(xend[i-1])
-		ja = int(yend[i-1])
-		ka = int(zend[i-1])
+		# hsinterp[:,:,0] = hsinterp[:,:,1]
+		dxyzinterp[:,:,0] = dxyzinterp[:,:,1]
+		xstart = xend[i-1,:]
+		ystart = yend[i-1,:]
+		zstart = zend[i-1,:]
+		ia = np.trunc(xend[i-1,:])
+		ja = np.trunc(yend[i-1,:])
+		ka = np.trunc(zend[i-1,:])
 	# pdb.set_trace()
 	# Linearly interpolate uflux and vflux to step between model outputs, field at ending time for this step
-	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*((i+1)*tseas/nsteps)
-	vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*((i+1)*tseas/nsteps)
-	hsinterp[:,:,1] = hs[:,:,0] + (hs[:,:,1]-hs[:,:,0])*((i+1)*tseas/nsteps)
-
+	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*((i+1.)/nsteps)
+	vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*((i+1.)/nsteps)
+	# hsinterp[:,:,1] = hs[:,:,0] + (hs[:,:,1]-hs[:,:,0])*((i+1.)/nsteps)
+	dxyzinterp[:,:,1] = dxyz[:,:,0] + (dxyz[:,:,1]-dxyz[:,:,0])*((i+1.)/nsteps)
+	# pdb.set_trace()
 	# Find drifter locations
-	xend[i],yend[i],zend[i] = tracmass.step(xstart,ystart,zstart,t1,ia,ja,ka,tseas,ufluxinterp,vfluxinterp,ff,hsinterp,dz.data,dxdy)
+	xend[i,:],yend[i,:],zend[i,:] = tracmass.step(xstart,ystart,zstart,0.,ia,ja,ka,tseas/float(nsteps),ufluxinterp,vfluxinterp,ff,dxyzinterp)#dz.data,dxdy)
+	t0[i+1] = t0[i] + tseas/float(nsteps) # update time in seconds to match drifters
 
+t0 = t0 + t0save # add back in base time in seconds
 
 # Recreate Cartesian particle locations from their index-relative locations
 

@@ -112,6 +112,10 @@ if(um.ne.uu) then
 else
     r1=r0+uu*ds
 endif
+! print *,'r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1
+! print *,'rg=',rg,' uflux=(ia,ja,ka,nsp)=',uflux(ia,ja,ka,nsp),' rr=',rr,' uflux(ia,ja,ka,nsm)=',uflux(ia,ja,ka,nsm)
+! print *,'ia=',ia,' ja=',ja,' ka=',ka
+! print *,' uflux=(im,ja,ka,nsp)=',uflux(im,ja,ka,nsp),' uflux(im,ja,ka,nsm)=',uflux(ia,ja,ka,nsm),' ff=',ff
 !if(abs(um/(uu-um)).gt.1.d10) print *,'possible precision problem?',um/(uu-um),uu,um,ijk,ia,ja,ka,r0,r1,ds,rr
 
 return
