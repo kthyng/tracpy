@@ -28,7 +28,7 @@ implicit none
 ! #endif /*varbottombox*/
 integer,      intent(in)                   :: kmt,ib,jb,kb,KM,JMT,IMT
 ! real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
-real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: dxyzarray
+real(kind=8),   intent(in),     dimension(IMT-1,JMT-1,KM,2)         :: dxyzarray
 ! real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy
 ! real(kind=8),   intent(in),     dimension(KM)                   :: dz
 real(kind=8)                                    :: rg

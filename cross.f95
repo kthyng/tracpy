@@ -29,8 +29,8 @@ subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,ff,KM,JMT,IMT)
     
 IMPLICIT none
 integer, intent(in)     :: ijk,ia,ja,ka,ff,IMT,JMT,KM
-real(kind=8),   intent(in),     dimension(IMT+1,JMT,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
+real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: uflux
+real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
 real(kind=8),   intent(in)  :: r0,rr
 real(kind=8) :: ba,uu,um,rg,vv,vm
 integer  :: ii,im,nsm=1,nsp=2
@@ -101,6 +101,7 @@ real(kind=8),   intent(out)  :: sp,sn
 
 ! east, north or upward crossing
     if(uu.gt.0.d0 .and. r0.ne.dble(ii)) then
+!         print *,'uu=',uu,' r0=',r0,' ii=',ii,' um=',um
         if(um.ne.uu) then
             ba=(r0+dble(-ii+1)) * (uu-um) + um
             if(ba.gt.0.d0) then

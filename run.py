@@ -6,9 +6,23 @@ import netCDF4 as netCDF
 from mpl_toolkits.basemap import Basemap
 import pdb
 from matplotlib import delaunay
+from matplotlib.pyplot import *
+
 
 # To re-compile tracmass fortran code, type "make f2py", which will give 
 # a file tracmass.so, which is the module we import above. Then in ipython, "run run.py"
+
+# Grid notes:
+# With ghost cells, grid sizing is (in ROMS ordering, [j,i]):
+#  psi grid: [JMT,IMT] (this doesn't change)
+#  rho grid: [JMT+1,IMT+1]
+#  u grid: [JMT+1,IMT]
+#  v grid: [JMT,IMT+1]
+# Without ghost cells, which is what I need to use to have full cells, grid sizing is:
+#  psi grid: [JMT,IMT]
+#  rho grid: [JMT-1,IMT-1]
+#  u grid: [JMT-1,IMT]
+#  v grid: [JMT,IMT-1]
 
 # Basemap parameters. These match those in particleTracking_plot.py
 llcrnrlon=-98; llcrnrlat=22.9; urcrnrlon=-87.5; urcrnrlat=30.5; projection='lcc'
@@ -33,11 +47,13 @@ it = 0
 nc = netCDF.Dataset('/Users/kthyng/Documents/research/postdoc/ocean_his_0150.nc')
 # nc = netCDF.Dataset('http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0001.nc?u[0:1][0:1:29][1:1:189][0:1:669]')
 # Read in at time index it and it+1 and all depth levels
-# Also only read in actual cells not ghost cells
+# Also only read in actual cells not ghost cells. Have to use only actual cells
+# in order to have all fully-formed cells (with all walls)
 u = nc.variables['u'][it:it+2,:,1:-1,:] 
 v = nc.variables['v'][it:it+2,:,:,1:-1]
 
 # Read in grid parameters
+# These include ghost cells so don't match u and v correctly
 grid = netCDF.Dataset('/Users/kthyng/Dropbox/python/tamu/hab/grid.nc')
 lonu = grid.variables['lon_u'][:]
 latu = grid.variables['lat_u'][:]
@@ -45,10 +61,10 @@ xu, yu = basemap(lonu,latu)
 lonv = grid.variables['lon_v'][:]
 latv = grid.variables['lat_v'][:]
 xv, yv = basemap(lonv,latv)
-h = grid.variables['h'][:]
+hfull = grid.variables['h'][:]
 lonr = grid.variables['lon_rho'][:]
 latr = grid.variables['lat_rho'][:]
-x, y = basemap(lonr,latr)
+xr, yr = basemap(lonr,latr)
 lonpsi = grid.variables['lon_psi'][:]
 latpsi = grid.variables['lat_psi'][:]
 xpsi, ypsi = basemap(lonpsi,latpsi)
@@ -88,9 +104,9 @@ dz4 = np.diff(z4,axis=1).reshape((u.shape)) # grid cell thickness in z coords
 ###
 # Calculate uflux, dependent on time. Calculating for two time indices at once.
 # Take y's on u grid and interpolate in y, then take difference in y direction
-dyu = np.diff(op.resize(yu,0),axis=0) # [JMT,IMT+1]
-# uflux is size [2,KM,JMT,IMT+1], where the +1 in the x-direction is because the fluxes
-# are defined at the cell walls in that direction.
+# WHAT IS THE BEST WAY TO DO THIS ON A CURVILINEAR GRID?
+dyu = np.diff(op.resize(yu,0),axis=0) # [JMT-1,IMT]
+# uflux is size [2,KM,JMT-1,IMT]
 uflux = u*dyu*dz4
 # pdb.set_trace()
 
@@ -119,24 +135,23 @@ dz4 = np.diff(z4,axis=1).reshape((v.shape)) # grid cell thickness in z coords
 ###
 # Calculate uflux, dependent on time. Calculating for two time indices at once.
 # Take x's on v grid and interpolate in x, then take difference in x direction
-dxv = np.diff(op.resize(xv,1),axis=1) # [JMT+1,IMT]
-# vflux is size [2,KM,JMT+1,IMT], where the +1 in the y-direction is because the fluxes
-# are defined at the cell walls in that direction.
+dxv = np.diff(op.resize(xv,1),axis=1) # [JMT,IMT-1]
+# vflux is size [2,KM,JMT,IMT-1]
 vflux = v*dxv*dz4
 
 nc.close()
 grid.close()
 
 # Initialize seed locations
-ia = [132,525]
-ja = [57,40]
-ka = [1,1]
+ia = [132]#,525]
+ja = [57]#,40]
+ka = [1]#,1]
 # Need to input x,y as relative to their grid box. Let's assume they are at 
 # some position relative to a grid node
-xstart = [132.1,525.2]
-ystart = [57.2,40.3]
+xstart = [132.1]#,525.2]
+ystart = [57.2]#,40.3]
 # xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
-zstart = [1,1]
+zstart = [1]#,1]
 
 t0save = t[0] # time at start of file in seconds since 1970-01-01, add this on at the end since it is big
 tseas = 4*3600 # 4 hours between outputs 
@@ -152,7 +167,7 @@ nsteps = 10 # Number of steps to do between model outputs
 
 # dxdy is the horizontal area of the cell walls, so it should be the size of the number of cells only
 # I am calculating it by adding the area of the walls together for each cell
-dxdy = ((dyu[:,1:]+dyu[:,0:-1])+(dxv[1:,:]+dxv[0:-1,:])) # [JMT,IMT]
+dxdy = ((dyu[:,1:]+dyu[:,0:-1])+(dxv[1:,:]+dxv[0:-1,:])) # [JMT-1,IMT-1]
 
 # calculate dxyz here
 dxyz = op.resize(dz4,2)*dxdy
@@ -168,13 +183,18 @@ hs = hs.T
 
 
 # CHANGE ALL ARRAYS TO BE FORTRAN-DIRECTIONED INSTEAD OF PYTHON
-uflux = uflux.copy(order='f') # [2,KM,JMT,IMT+1] (all of these are swapped now due to transposes above)
-vflux = vflux.copy(order='f') #[2,KM,JMT+1,IMT]]
+uflux = uflux.copy(order='f') # [2,KM,JMT-1,IMT] (all of these are swapped now due to transposes above)
+vflux = vflux.copy(order='f') #[2,KM,JMT,IMT-1]]
 # dxdy = dxdy.copy(order='f') #[JMT,IMT]]
-dxyz = dxyz.copy(order='f') #[2,KM,JMT,IMT]
-hs = hs.copy(order='f') # [JMT,IMT]
-IMT=dxdy.shape[1] # 669
-JMT=dxdy.shape[0] # 189
+dxyz = dxyz.copy(order='f') #[2,KM,JMT-1,IMT-1]
+hs = hs.copy(order='f') # [JMT-1,IMT-1]
+# These are the size of the psi grid, at the corners of the grid boxes.
+# This might need to change to the number of boxes in the future, which will
+# change all of the minus one's. Also would change the default values in the step call.
+IMT=u.shape[3] # 670
+JMT=v.shape[2] # 190
+# IMT=dxdy.shape[1] # 669
+# JMT=dxdy.shape[0] # 189
 KM=u.shape[1] # 30
 
 # Call tracmass subroutine
@@ -206,7 +226,7 @@ for i in xrange(nsteps):
 		ufluxinterp[:,:,:,0] = ufluxinterp[:,:,:,1]
 		vfluxinterp[:,:,:,0] = vfluxinterp[:,:,:,1]
 		# hsinterp[:,:,0] = hsinterp[:,:,1]
-		dxyzinterp[:,:,0] = dxyzinterp[:,:,1]
+		dxyzinterp[:,:,:,0] = dxyzinterp[:,:,:,1]
 		xstart = xend[i-1,:]
 		ystart = yend[i-1,:]
 		zstart = zend[i-1,:]
@@ -218,11 +238,15 @@ for i in xrange(nsteps):
 	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*((i+1.)/nsteps)
 	vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*((i+1.)/nsteps)
 	# hsinterp[:,:,1] = hs[:,:,0] + (hs[:,:,1]-hs[:,:,0])*((i+1.)/nsteps)
-	dxyzinterp[:,:,1] = dxyz[:,:,0] + (dxyz[:,:,1]-dxyz[:,:,0])*((i+1.)/nsteps)
+	dxyzinterp[:,:,:,1] = dxyz[:,:,:,0] + (dxyz[:,:,:,1]-dxyz[:,:,:,0])*((i+1.)/nsteps)
 	# pdb.set_trace()
 	# Find drifter locations
-	xend[i,:],yend[i,:],zend[i,:] = tracmass.step(xstart,ystart,zstart,0.,ia,ja,ka,tseas/float(nsteps),ufluxinterp,vfluxinterp,ff,dxyzinterp)#dz.data,dxdy)
+	# pdb.set_trace()
+	xend[i,:],yend[i,:],zend[i,:],flag = tracmass.step(xstart,ystart,zstart,0.,ia,ja,ka,tseas/float(nsteps),ufluxinterp,vfluxinterp,ff,dxyzinterp)#dz.data,dxdy)
 	t0[i+1] = t0[i] + tseas/float(nsteps) # update time in seconds to match drifters
+	# FOR MORE THAN ONE DRIFTER, CHANGE SO THAT ONLY ACTIVE DRIFTERS ARE SENT TO STEP FUNCTION IN THE FIRST PLACE
+	if flag == 1: # right now flag=1 if drifter has exited domain
+		break
 
 t0 = t0 + t0save # add back in base time in seconds
 
@@ -230,6 +254,7 @@ t0 = t0 + t0save # add back in base time in seconds
 # First interpolate grid angle to drifter locations
 ftheta = tri.nn_interpolator(theta.flatten())
 thetap = ftheta(xend,yend)
+# 
 xp = xpsi[yend.astype(int),xend.astype(int)]+(xend*np.cos(thetap) - yend*np.sin(thetap))
 yp = ypsi[yend.astype(int),xend.astype(int)]+(xend*np.sin(thetap) + yend*np.cos(thetap))
 
@@ -239,8 +264,13 @@ basemap.fillcontinents('0.8')
 basemap.drawparallels(np.arange(18, 35), dashes=(1, 0), linewidth=0.15, labels=[1, 0, 0, 0])
 basemap.drawmeridians(np.arange(-100, -80), dashes=(1, 0), linewidth=0.15, labels=[0, 0, 0, 1])
 hold('on')
-contour(xr, yr, h, np.hstack(([10,20],np.arange(50,500,50))), colors='lightgrey', linewidths=0.15)
-plot(xp.T,yp.T,'.')
+contour(xr, yr, hfull, np.hstack(([10,20],np.arange(50,500,50))), colors='lightgrey', linewidths=0.15)
+plot(xp,yp,'.')
+# Outline numerical domain
+plot(xr[0,:],yr[0,:],'k:')
+#ax1.plot(xr[-1,:],yr[-1,:],'k:')
+plot(xr[:,0],yr[:,0],'k:')
+plot(xr[:,-1],yr[:,-1],'k:')
 
 # if __name__=='__main__':
 # 	run()

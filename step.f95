@@ -1,4 +1,4 @@
-SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas,uflux,vflux,ff,IMT,JMT,KM,dxyzarray,ntractot,xend,yend,zend)
+SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas,uflux,vflux,ff,IMT,JMT,KM,dxyzarray,ntractot,xend,yend,zend,flag)
 
 !!--------------------
 !! Loop to step a numerical drifter forward one dt.
@@ -55,17 +55,19 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas,uflux,vflux,f
 !!   xend       : the new position (coordinate), x
 !!   yend       : the new position (coordinate), y
 !!   zend       : the new position (coordinate), z
+!!   flag       : set to 1 for a drifter if drifter shouldn't be stepped in the future anymore
 !!  
 !!---------------------
 
 implicit none
 
 integer,        intent(in)                                      :: ff, IMT, JMT, KM, ntractot
+integer,        intent(out)                                      :: flag
 real(kind=8),   intent(in),     dimension(ntractot)             :: xstart, ystart, zstart
 real(kind=8),   intent(out),    dimension(ntractot)             :: xend,yend,zend
-real(kind=8),   intent(in),     dimension(IMT+1,JMT,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
-real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: dxyzarray
+real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: uflux
+real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
+real(kind=8),   intent(in),     dimension(IMT-1,JMT-1,KM,2)         :: dxyzarray
 ! real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
 ! real(kind=8),   intent(in),     dimension(KM)                   :: dz
 ! real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy
@@ -76,7 +78,7 @@ real(kind=8)                                                    :: rr, rg, ts, t
                                                                     dsmin, ds, dse,dsw,dsn,dss,dt, &
                                                                     x0,y0,z0,x1,y1,z1,tt,tss,rbg,rb, dsc
 integer                                                         :: ntrac, niter, iter, ia,ja,ka,&
-                                                                    iam,ib,jb,kb,kmt 
+                                                                    iam,ib,jb,kb,kmt
 
 ! Number of drifters input in x0, y0
 ! ntractot = size(xstart) !Sum of x0 entries
@@ -91,6 +93,7 @@ timax = tseas! now in seconds *(1.d0/(24.d0*3600.d0)) ! maximum length of a traj
 iter = 1 ! one iteration since model output is interpolated before sending in here
 
 kmt = KM ! Why are these separate? I think kmt is used in calc_dxyz as an array if they number of cells changes in x,y
+flag = 0
 
 !=======================================================
 !=== Loop over all trajectories and calculate        ===
@@ -167,11 +170,12 @@ ntracLoop: do ntrac=1,ntractot
         ! === calculate the vertical velocity ===
         !             call vertvel(rr,ia,iam,ja,ka) ! Start with 2D drifters
         ! supposed to be inputting nondimensional distances x0,y0 I think
- print *,'ja=',ja,' jb=',jb,x1,y1
+!  print *,'ja=',ja,' jb=',jb,x1,y1
         call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,ff,KM,JMT,IMT) ! zonal
         call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,ff,KM,JMT,IMT) ! meridional
         !             call cross(3,ia,ja,ka,z0,dsu,dsd,rr) ! vertical ! Start with 2D drifters
         ds=dmin1(dse,dsw,dsn,dss,dsmin)
+        print *, 'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,' dsmin=',dsmin
         !             ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
 !         print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
         call calc_time(ds,dsmin,dt,dtmin,tss,tseas,ts,tt,dxyz,dstep,iter,rbg,rb,dsc)
@@ -205,20 +209,12 @@ ntracLoop: do ntrac=1,ntractot
         !                  exit niterLoop                                
         !               endif
         !            enddo LBTLOOP
-
-! This is the normal stopping routine for the loop. I am going to do a shorter one
-        ! === stop trajectory if the choosen time or ===
-        ! === water mass properties are exceeded     ===
-        if(tt-t0.gt.timax) then
-        !               nexit(NEND)=nexit(NEND)+1
-            xend(ntrac) = x1
-            yend(ntrac) = y1
-            zend(ntrac) = z1
-            exit niterLoop
-        endif
+!  print *,'ja=',ja,' jb=',jb,x1,y1
 
         ! Need to add other conditions to this. Checking to see if drifter has exited domain.
         if(x1<=2.d0 .or. x1>=IMT-2.d0 .or. y1<=2.d0 .or. y1>=JMT-2.d0) then
+            print *, 'Stopping trajectory due to domain'
+            print *, 'x1=',x1,' y1=',y1
             if(x1<=2.d0) x1=2.d0
             if(x1>=IMT) x1=dble(IMT)
             if(y1<=2.d0) y1=2.d0
@@ -226,9 +222,25 @@ ntracLoop: do ntrac=1,ntractot
             xend(ntrac) = x1
             yend(ntrac) = y1
             zend(ntrac) = z1
+            flag = 1
 !             print *,'I should exit'
             exit niterLoop
 !             print *,'I did not exit'
+        endif
+
+! This is the normal stopping routine for the loop. I am going to do a shorter one
+        ! === stop trajectory if the choosen time or ===
+        ! === water mass properties are exceeded     ===
+        if(tt-t0.ge.timax) then ! was .gt. in original code
+        !               nexit(NEND)=nexit(NEND)+1
+            print *, 'Stopping trajectory due to time'
+            print *, 'tt=',tt,' t0=',t0,' timax=',timax
+            print *, 'x1=',x1,' y1=',y1
+            xend(ntrac) = x1
+            yend(ntrac) = y1
+            zend(ntrac) = z1
+            flag = 0 ! want to continue drifters if time was the limiting factor here
+            exit niterLoop
         endif
 
 

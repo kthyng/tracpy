@@ -26,8 +26,8 @@ integer :: ii,im,nsm=1,nsp=2
 real(kind=8), intent(in) :: r0,rr
 real(kind=8), intent(out) :: r1
 integer, intent(in) :: ijk,ia,ja,ka,ff,IMT,JMT,KM
-real(kind=8),   intent(in),     dimension(IMT+1,JMT,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT,JMT+1,KM,2)         :: vflux
+real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: uflux
+real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
 
 rg=1.d0-rr
 
@@ -45,6 +45,9 @@ if(ijk.eq.1) then
     if(im.eq.0) im=IMT
     uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff
     um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
+!     print *,'ijk=',ijk,' rg=',rg,' rr=',rr,' ff=',ff
+!     print *,'uflux(ia,ja,ka,nsp)=',uflux(ia,ja,ka,nsp),' uflux(ia,ja,ka,nsm)=',uflux(ia,ja,ka,nsm)
+!     print *,'uflux(ia,ja-1,ka,nsp)=',uflux(ia,ja-1,ka,nsp),' uflux(ia,ja-1,ka,nsm)=',uflux(ia,ja-1,ka,nsm)
 ! #ifdef turb    
 !      if(r0.ne.dble(ii)) then
 !         uu=uu+upr(1,2)  
@@ -63,6 +66,9 @@ else if(ijk.eq.2) then
     ii=ja
     uu=(rg*vflux(ia,ja  ,ka,nsp)+rr*vflux(ia,ja  ,ka,nsm))*ff
     um=(rg*vflux(ia,ja-1,ka,nsp)+rr*vflux(ia,ja-1,ka,nsm))*ff
+!     print *,'ijk=',ijk,' rg=',rg,' rr=',rr,' ff=',ff
+!     print *,'vflux(ia,ja,ka,nsp)=',vflux(ia,ja,ka,nsp),' vflux(ia,ja,ka,nsm)=',vflux(ia,ja,ka,nsm)
+!     print *,'vflux(ia,ja-1,ka,nsp)=',vflux(ia,ja-1,ka,nsp),' vflux(ia,ja-1,ka,nsm)=',vflux(ia,ja-1,ka,nsm)
 ! #ifdef turb    
 !      if(r0.ne.dble(ja  )) then
 !         uu=uu+upr(3,2)  
@@ -109,10 +115,11 @@ endif
 ! in case of um-uu = small; also see subroutine cross
 if(um.ne.uu) then
     r1= (r0+(-dble(ii-1) + um/(uu-um))) * dexp( (uu-um)*ds ) + dble(ii-1) - um/(uu-um)
+print *,'r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1,' dble(ii-1)=',dble(ii-1)
 else
     r1=r0+uu*ds
 endif
-! print *,'r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1
+print *,'ijk=',ijk,' r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1
 ! print *,'rg=',rg,' uflux=(ia,ja,ka,nsp)=',uflux(ia,ja,ka,nsp),' rr=',rr,' uflux(ia,ja,ka,nsm)=',uflux(ia,ja,ka,nsm)
 ! print *,'ia=',ia,' ja=',ja,' ka=',ka
 ! print *,' uflux=(im,ja,ka,nsp)=',uflux(im,ja,ka,nsp),' uflux(im,ja,ka,nsm)=',uflux(ia,ja,ka,nsm),' ff=',ff
