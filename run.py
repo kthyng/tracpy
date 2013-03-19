@@ -11,6 +11,16 @@ from matplotlib.pyplot import *
 
 # To re-compile tracmass fortran code, type "make f2py", which will give 
 # a file tracmass.so, which is the module we import above. Then in ipython, "run run.py"
+# xend,yend,zend are particle locations at next step
+# some variables are not specifically because f2py is hiding them from me:
+#  IMT, JMT, JM, ntractot
+# Look at tracmass.step to see what it is doing and making optional at the end.
+# Do this by importing tracmass and then tracmass.step?
+
+# I am assuming here that the velocity field at two times are being input into tracmass
+# such that the output is the position for the drifters at the time corresponding to the
+# second velocity time. Each drifter may take some number of steps in between, but those
+# are not saved.
 
 # Grid notes:
 # With ghost cells, grid sizing is (in ROMS ordering, [j,i]):
@@ -37,9 +47,20 @@ basemap = Basemap(llcrnrlon=llcrnrlon,
               resolution=resolution,
               area_thresh=area_thresh)
 
-# def run():
-
+# Initialize parameters
+nsteps = 10 # Number of steps to do between model outputs
 ff = 1 # forward
+
+# Need to input x,y as relative to their grid box. Let's assume they are at 
+# some position relative to a grid node
+xstart0 = np.array([[190.2,525.2]])
+ystart0 = np.array([[100,40.3]])
+# xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
+zstart0 = np.array([[1,1]])
+# Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
+ia = np.ceil(xstart0) #[253]#,525]
+ja = np.ceil(ystart0) #[57]#,40]
+ka = np.ceil(zstart0) #[1]#,1]
 
 # Loop through
 it = 0
@@ -62,18 +83,21 @@ lonv = grid.variables['lon_v'][:]
 latv = grid.variables['lat_v'][:]
 xv, yv = basemap(lonv,latv)
 hfull = grid.variables['h'][:]
-lonr = grid.variables['lon_rho'][:]
-latr = grid.variables['lat_rho'][:]
+lonr = grid.variables['lon_rho'][:]#[1:-1,1:-1]
+latr = grid.variables['lat_rho'][:]#[1:-1,1:-1]
 xr, yr = basemap(lonr,latr)
 lonpsi = grid.variables['lon_psi'][:]
 latpsi = grid.variables['lat_psi'][:]
 xpsi, ypsi = basemap(lonpsi,latpsi)
-X, Y = np.meshgrid(np.arange(latpsi.shape[0]),np.arange(latpsi.shape[1]))
+maskr = grid.variables['mask_rho'][:]#[1:-1,1:-1]
+X, Y = np.meshgrid(np.arange(xr.shape[1]),np.arange(yr.shape[0])) # grid in index coordinates, without ghost cells
 tri = delaunay.Triangulation(X.flatten(),Y.flatten())
 # Angle on rho grid
 theta = grid.variables['angle'][:]
 # Interpolate theta to be on psi grid
 theta = op.resize(op.resize(theta,0),1)
+pm = grid.variables['pm'][:] # 1/dx
+pn = grid.variables['pn'][:] # 1/dy
 
 # WHY DO I HAVE TO CALCULATE THE FLUXES HERE WHEN THE BOX VOLUMES ARE ALSO CALCULATED IN THE CODE?
 # Change velocity fields to fluxes. DO TWO TIME INDICES AT ONCE
@@ -103,9 +127,8 @@ del(zeta4,cs4,h4)
 dz4 = np.diff(z4,axis=1).reshape((u.shape)) # grid cell thickness in z coords
 ###
 # Calculate uflux, dependent on time. Calculating for two time indices at once.
-# Take y's on u grid and interpolate in y, then take difference in y direction
-# WHAT IS THE BEST WAY TO DO THIS ON A CURVILINEAR GRID?
-dyu = np.diff(op.resize(yu,0),axis=0) # [JMT-1,IMT]
+# Use pn for dy
+dyu = 1/op.resize(pn[1:-1,:],1) # [JMT-1,IMT]
 # uflux is size [2,KM,JMT-1,IMT]
 uflux = u*dyu*dz4
 # pdb.set_trace()
@@ -134,36 +157,11 @@ del(zeta4,cs4,h4)
 dz4 = np.diff(z4,axis=1).reshape((v.shape)) # grid cell thickness in z coords
 ###
 # Calculate uflux, dependent on time. Calculating for two time indices at once.
-# Take x's on v grid and interpolate in x, then take difference in x direction
-dxv = np.diff(op.resize(xv,1),axis=1) # [JMT,IMT-1]
+# Use pn for dy
+dxv = 1/op.resize(pn[:,1:-1],0) # [JMT,IMT-1]
 # vflux is size [2,KM,JMT,IMT-1]
 vflux = v*dxv*dz4
 
-nc.close()
-grid.close()
-
-# Initialize seed locations
-ia = [132]#,525]
-ja = [57]#,40]
-ka = [1]#,1]
-# Need to input x,y as relative to their grid box. Let's assume they are at 
-# some position relative to a grid node
-xstart = [132.1]#,525.2]
-ystart = [57.2]#,40.3]
-# xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
-zstart = [1]#,1]
-
-t0save = t[0] # time at start of file in seconds since 1970-01-01, add this on at the end since it is big
-tseas = 4*3600 # 4 hours between outputs 
-hs = op.resize(zeta,1) # sea surface height in meters
-# dz = np.diff(z4,axis=1)[0,:,0,0] # just take one dz column for now
-
-# Initialize parameters
-nsteps = 10 # Number of steps to do between model outputs
-
-# Loop through iterations between the two model outputs
-
-# NEED TO CHECK/FIX THE GRID INPUTS LATER. THEY MAY ALL BE SHIFTED, ETC
 
 # dxdy is the horizontal area of the cell walls, so it should be the size of the number of cells only
 # I am calculating it by adding the area of the walls together for each cell
@@ -172,6 +170,14 @@ dxdy = ((dyu[:,1:]+dyu[:,0:-1])+(dxv[1:,:]+dxv[0:-1,:])) # [JMT-1,IMT-1]
 # calculate dxyz here
 dxyz = op.resize(dz4,2)*dxdy
 
+nc.close()
+grid.close()
+
+t0save = t[0] # time at start of file in seconds since 1970-01-01, add this on at the end since it is big
+tseas = 4*3600 # 4 hours between outputs 
+hs = op.resize(zeta,1) # sea surface height in meters
+# dz = np.diff(z4,axis=1)[0,:,0,0] # just take one dz column for now
+
 # make arrays in same order as is expected in the fortran code
 # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
 uflux = uflux.T
@@ -179,10 +185,8 @@ vflux = vflux.T
 # dxdy = dxdy.T
 dxyz = dxyz.T
 hs = hs.T
-# pdb.set_trace()
 
-
-# CHANGE ALL ARRAYS TO BE FORTRAN-DIRECTIONED INSTEAD OF PYTHON
+# change all arrays to be fortran-directioned instead of python
 uflux = uflux.copy(order='f') # [2,KM,JMT-1,IMT] (all of these are swapped now due to transposes above)
 vflux = vflux.copy(order='f') #[2,KM,JMT,IMT-1]]
 # dxdy = dxdy.copy(order='f') #[JMT,IMT]]
@@ -193,33 +197,19 @@ hs = hs.copy(order='f') # [JMT-1,IMT-1]
 # change all of the minus one's. Also would change the default values in the step call.
 IMT=u.shape[3] # 670
 JMT=v.shape[2] # 190
-# IMT=dxdy.shape[1] # 669
-# JMT=dxdy.shape[0] # 189
 KM=u.shape[1] # 30
 
-# Call tracmass subroutine
-# f2py_tracmass()
-# xend,yend,zend are particle locations at next step
-# some variables are not specifically because f2py is hiding them from me:
-#  IMT, JMT, JM, ntractot
-# Look at tracmass.step to see what it is doing and making optional at the end.
-# Do this by importing tracmass and then tracmass.step?
-# I am assuming here that the velocity field at two times are being input into tracmass
-# such that the output is the position for the drifters at the time corresponding to the
-# second velocity time. Each drifter may take some number of steps in between, but those
-# are not saved.
-# pdb.set_trace()
-
 # Loop over model outputs
-xend = np.ones((nsteps,len(ia)))*np.nan
-yend = np.ones((nsteps,len(ia)))*np.nan
-zend = np.ones((nsteps,len(ia)))*np.nan
+xend = np.ones((nsteps,ia.size))*np.nan
+yend = np.ones((nsteps,ia.size))*np.nan
+zend = np.ones((nsteps,ia.size))*np.nan
 ufluxinterp = uflux.copy()
 vfluxinterp = vflux.copy()
 # hsinterp = hs.copy()
 dxyzinterp = dxyz.copy()
-t0 = np.zeros((nsteps+1,len(ia)))
-# Loop over iterations between model outputs
+t0 = np.zeros((nsteps+1))
+flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
+# Loop over iterations between two model outputs
 for i in xrange(nsteps):
 	#  flux fields at starting time for this step
 	if i != 0:
@@ -233,30 +223,50 @@ for i in xrange(nsteps):
 		ia = xend[i-1,:].astype(int)
 		ja = yend[i-1,:].astype(int)
 		ka = zend[i-1,:].astype(int)
+		# mask out drifters that have exited the domain
+		xstart = np.ma.masked_where(flag[:]==1,xstart)
+		ystart = np.ma.masked_where(flag[:]==1,ystart)
+		zstart = np.ma.masked_where(flag[:]==1,zstart)
+		ia = np.ma.masked_where(flag[:]==1,ia)
+		ja = np.ma.masked_where(flag[:]==1,ja)
+		ka = np.ma.masked_where(flag[:]==1,ka)
+		ind = (flag[:] == 0) # indices where the drifters are still inside the domain
+	else: # first loop
+		xstart = xstart0
+		ystart = ystart0
+		zstart = zstart0
+		# TODO: Do a check to make sure all drifter starting locations are within domain
+		ind = (flag[:] == 0) # indices where the drifters are inside the domain to start
 	# pdb.set_trace()
 	# Linearly interpolate uflux and vflux to step between model outputs, field at ending time for this step
 	ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*((i+1.)/nsteps)
 	vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*((i+1.)/nsteps)
 	# hsinterp[:,:,1] = hs[:,:,0] + (hs[:,:,1]-hs[:,:,0])*((i+1.)/nsteps)
 	dxyzinterp[:,:,:,1] = dxyz[:,:,:,0] + (dxyz[:,:,:,1]-dxyz[:,:,:,0])*((i+1.)/nsteps)
-	# pdb.set_trace()
 	# Find drifter locations
 	# pdb.set_trace()
-	xend[i,:],yend[i,:],zend[i,:],flag = tracmass.step(xstart,ystart,zstart,0.,ia,ja,ka,tseas/float(nsteps),ufluxinterp,vfluxinterp,ff,dxyzinterp)#dz.data,dxdy)
-	t0[i+1] = t0[i] + tseas/float(nsteps) # update time in seconds to match drifters
-	# FOR MORE THAN ONE DRIFTER, CHANGE SO THAT ONLY ACTIVE DRIFTERS ARE SENT TO STEP FUNCTION IN THE FIRST PLACE
-	if flag == 1: # right now flag=1 if drifter has exited domain
+	# only send unmasked values to step
+	if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
 		break
+	else:
+		xend[i,ind],yend[i,ind],zend[i,ind],flag[ind] = tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
+													np.ma.compressed(zstart),0.,np.ma.compressed(ia),np.ma.compressed(ja),
+													np.ma.compressed(ka),tseas/float(nsteps),ufluxinterp,
+													vfluxinterp,ff,dxyzinterp)#dz.data,dxdy)
+		t0[i+1] = t0[i] + tseas/float(nsteps) # update time in seconds to match drifters
 
 t0 = t0 + t0save # add back in base time in seconds
 
+xg=np.concatenate((xstart0,xend))
+yg=np.concatenate((ystart0,yend))
+zg=np.concatenate((zstart0,zend))
+
 # Recreate Cartesian particle locations from their index-relative locations
-# First interpolate grid angle to drifter locations
-ftheta = tri.nn_interpolator(theta.flatten())
-thetap = ftheta(xend,yend)
-# 
-xp = xpsi[yend.astype(int),xend.astype(int)]+(xend*np.cos(thetap) - yend*np.sin(thetap))
-yp = ypsi[yend.astype(int),xend.astype(int)]+(xend*np.sin(thetap) + yend*np.cos(thetap))
+# just by interpolating
+fxr = tri.nn_interpolator(xr.flatten())
+fyr = tri.nn_interpolator(yr.flatten())
+xp = fxr(xg,yg)
+yp = fyr(xg,yg)
 
 # Plot tracks
 basemap.drawcoastlines()

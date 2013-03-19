@@ -62,9 +62,9 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas,uflux,vflux,f
 implicit none
 
 integer,        intent(in)                                      :: ff, IMT, JMT, KM, ntractot
-integer,        intent(out)                                      :: flag
 real(kind=8),   intent(in),     dimension(ntractot)             :: xstart, ystart, zstart
 real(kind=8),   intent(out),    dimension(ntractot)             :: xend,yend,zend
+integer,   intent(out),    dimension(ntractot)             :: flag
 real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: uflux
 real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
 real(kind=8),   intent(in),     dimension(IMT-1,JMT-1,KM,2)         :: dxyzarray
@@ -143,7 +143,7 @@ ntracLoop: do ntrac=1,ntractot
         ka = kb
 
         ! Are tracking fields being properly updated between loops?
-! print *,'ib(before)=',ib,' ia=',ia
+print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
         call calc_dxyz(ib,jb,kb,rr,KM,kmt,dxyzarray,dxyz,JMT,IMT)
 
         !==============================================! 
@@ -165,7 +165,7 @@ ntracLoop: do ntrac=1,ntractot
         !   call turbuflux(ia,ja,ka,rr,dt)
         ! #endif /*turb*/
 
-        ! WHAT IS RR VS RBG VS RG? THEY ARE ALL IN VARIOUES SUBROUTINES
+        ! WHAT IS RR VS RBG VS RG? THEY ARE ALL IN VARIOUS SUBROUTINES
 
         ! === calculate the vertical velocity ===
         !             call vertvel(rr,ia,iam,ja,ka) ! Start with 2D drifters
@@ -222,7 +222,7 @@ ntracLoop: do ntrac=1,ntractot
             xend(ntrac) = x1
             yend(ntrac) = y1
             zend(ntrac) = z1
-            flag = 1
+            flag(ntrac) = 1
 !             print *,'I should exit'
             exit niterLoop
 !             print *,'I did not exit'
@@ -239,7 +239,8 @@ ntracLoop: do ntrac=1,ntractot
             xend(ntrac) = x1
             yend(ntrac) = y1
             zend(ntrac) = z1
-            flag = 0 ! want to continue drifters if time was the limiting factor here
+            flag(ntrac) = 0 ! want to continue drifters if time was the limiting factor here
+            print *,'xend=',xend,' flag=',flag
             exit niterLoop
         endif
 
