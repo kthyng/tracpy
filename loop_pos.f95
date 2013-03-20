@@ -22,9 +22,12 @@ real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
     ! === of the trajectory           ===    
 !     scrivi=.false.
     if(ds==dse) then ! eastward grid-cell exit 
-        print *,'dse'
+!         print *,'dse'
 !        scrivi=.false. ! flag for when to write to file I think
         uu=(rbg*uflux(ia,ja,ka,nsp)+rb*uflux(ia ,ja,ka,nsm))*ff
+        ! if the drifter is exiting east and the east transport is positive,
+        ! bump the east index up by one to keep it greater than x
+        ! and change the x1 value to be the value at the west side of the new grid cell
         if(uu.gt.0.d0) then
             ib=ia+1
             if(ib.gt.IMT) ib=ib-IMT ! IMT is a grid parameter
@@ -34,7 +37,7 @@ real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM)
 
     else if(ds==dsw) then ! westward grid-cell exit
-        print *,'dsw'
+!         print *,'dsw'
 !        scrivi=.false.
         uu=(rbg*uflux(iam,ja,ka,nsp)+rb*uflux(iam,ja,ka,nsm))*ff
         if(uu.lt.0.d0) then
@@ -46,7 +49,7 @@ real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
 !       scrivi=.true.      
 
     else if(ds==dsn) then ! northward grid-cell exit
-        print *,'dsn'
+!         print *,'dsn'
 !        scrivi=.false.
         uu=(rbg*vflux(ia,ja,ka,nsp)+rb*vflux(ia,ja,ka,nsm))*ff
         if(uu.gt.0.d0) then
@@ -57,7 +60,7 @@ real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vertical position
 
     else if(ds==dss) then ! southward grid-cell exit
-        print *,'dss'
+!         print *,'dss'
        
 !        scrivi=.false.
         uu=(rbg*vflux(ia,ja-1,ka,nsp)+rb*vflux(ia,ja-1,ka,nsm))*ff
@@ -106,8 +109,8 @@ real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
 
     else if( ds==dsc .or. ds==dsmin) then  
 !         print *,'ds=',ds,' dsc=',dsc,' dsmin=',dsmin
-        print *,'other'
-        print *,'dsc=',dsc,' dsmin=',dsmin,' ds=',ds
+!         print *,'other'
+!         print *,'dsc=',dsc,' dsmin=',dsmin,' ds=',ds
 !             print *, 'in other in pos: ib=',ib,' ia=',ia
 
        ! shortest time is the time-steping 
@@ -142,7 +145,7 @@ real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
 ! print *,'after: ia=',ia,' x0=',x0,' x1=',x1
 !       endif
     endif
-print *,'x1=',x1,' y1=',y1
+! print *,'x1=',x1,' y1=',y1
     
 
 end subroutine pos

@@ -115,11 +115,11 @@ endif
 ! in case of um-uu = small; also see subroutine cross
 if(um.ne.uu) then
     r1= (r0+(-dble(ii-1) + um/(uu-um))) * dexp( (uu-um)*ds ) + dble(ii-1) - um/(uu-um)
-print *,'r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1,' dble(ii-1)=',dble(ii-1)
+! print *,'r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1,' dble(ii-1)=',dble(ii-1)
 else
     r1=r0+uu*ds
 endif
-print *,'ijk=',ijk,' r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1
+! print *,'ijk=',ijk,' r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1
 ! print *,'rg=',rg,' uflux=(ia,ja,ka,nsp)=',uflux(ia,ja,ka,nsp),' rr=',rr,' uflux(ia,ja,ka,nsm)=',uflux(ia,ja,ka,nsm)
 ! print *,'ia=',ia,' ja=',ja,' ka=',ka
 ! print *,' uflux=(im,ja,ka,nsp)=',uflux(im,ja,ka,nsp),' uflux(im,ja,ka,nsm)=',uflux(ia,ja,ka,nsm),' ff=',ff

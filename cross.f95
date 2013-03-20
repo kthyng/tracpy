@@ -103,7 +103,7 @@ real(kind=8),   intent(out)  :: sp,sn
     if(uu.gt.0.d0 .and. r0.ne.dble(ii)) then
 !         print *,'uu=',uu,' r0=',r0,' ii=',ii,' um=',um
         if(um.ne.uu) then
-            ba=(r0+dble(-ii+1)) * (uu-um) + um ! linear interpolation of the transport (Eqn 1.6), so ia-1 should be just under r0, or ia=ceil(xstart0)
+            ba=(r0+dble(-ii+1)) * (uu-um) + um ! linear interpolation of the transport (Eqn 1.6)
             if(ba.gt.0.d0) then
                 sp=( dlog(ba) - dlog(uu) )/(um-uu)  ! -or-  sp=-1.d0/(um-uu)*( dlog(uu) - dlog(ba) )
             else
@@ -137,8 +137,8 @@ real(kind=8),   intent(out)  :: sp,sn
 
     if(sn.le.0.d0) sn=UNDEF
 
-     print *,'in cross: sp=',sp,' sn=',sn,' r0=',r0,' ii=',ii,' ba=',ba
-    print *,'in cross: ijk=',ijk,' sp=',sp,' sn=',sn,' uu=',uu,' um=',um
+!      print *,'in cross: sp=',sp,' sn=',sn,' r0=',r0,' ii=',ii,' ba=',ba
+    print *,'in cross: ijk=',ijk,' sp=',sp,' sn=',sn,' uu=',uu,' um=',um,' ba=',ba,' r0=',r0
 
     return
 end subroutine cross
