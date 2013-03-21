@@ -81,9 +81,11 @@ ia = np.ceil(xstart0) #[253]#,525]
 ja = np.ceil(ystart0) #[57]#,40]
 ka = np.ceil(zstart0) #[1]#,1]
 
+loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+
 # Read in grid parameters
 # These include ghost cells so don't match u and v correctly
-grid = netCDF.Dataset('/Users/kthyng/Dropbox/python/tamu/hab/grid.nc')
+grid = netCDF.Dataset(loc + 'grid.nc')
 lonu = grid.variables['lon_u'][:]
 latu = grid.variables['lat_u'][:]
 xu, yu = basemap(lonu,latu)
@@ -113,7 +115,6 @@ pn = grid.variables['pn'][:] # 1/dy
 hu = op.resize(grid.variables['h'][1:-1,:],1)
 hv = op.resize(grid.variables['h'][:,1:-1],0)
 
-loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
 files = np.sort(glob.glob(loc + 'ocean_his_*.nc')) # sorted list of file names
 filesfull = np.sort(glob.glob(loc + 'ocean_his_*.nc')) #full path of files
 # Find the list of files that cover the desired time period
