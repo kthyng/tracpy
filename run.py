@@ -8,6 +8,7 @@ import pdb
 from matplotlib import delaunay
 from matplotlib.pyplot import *
 import glob
+from datetime import datetime, timedelta
 
 
 # To re-compile tracmass fortran code, type "make f2py", which will give 
@@ -47,13 +48,15 @@ basemap = Basemap(llcrnrlon=llcrnrlon,
               lon_0=lon_0,
               resolution=resolution,
               area_thresh=area_thresh)
+# Units for time conversion with netCDF.num2date and .date2num
+units = 'seconds since 1970-01-01'
 
 # Initialize parameters
 nsteps = 10 # Number of steps to do between model outputs
-ndays = 5 # number of days to track the particles
+ndays = .5 # number of days to track the particles
 ff = 1 # forward
 # Start date
-date = datetime(2009, 9, 1, 0)
+date = datetime(2009, 11, 20, 0)
 # Convert date to number
 date = netCDF.date2num(date,units)
 # Time between outputs
@@ -64,10 +67,10 @@ tseas = 4*3600 # 4 hours between outputs
 
 # Need to input x,y as relative to their grid box. Let's assume they are at 
 # some position relative to a grid node
-xstart0 = np.array([[10,150]])#525.2]])
-ystart0 = np.array([[150,130]])
+xstart0 = np.array([[525.2]])#525.2]])
+ystart0 = np.array([[40.3]])
 # xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
-zstart0 = np.array([[1,1]])
+zstart0 = np.array([[1]])
 # Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
 # # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
 # # want ceil(xstart0+1)
@@ -104,37 +107,38 @@ theta = op.resize(op.resize(theta,0),1)
 pm = grid.variables['pm'][:] # 1/dx
 pn = grid.variables['pn'][:] # 1/dy
 
-# Some grid metrics
-s = nc.variables['s_w'][:] # sigma coords, 31 layers
-cs = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
 # The following are for setting up z array on u (v) grids for calculating u (v) fluxes
 # Want h only within domain in y (x) direction (no ghost cells) and interpolated onto cell
 # walls in x (y) direction
 hu = op.resize(grid.variables['h'][1:-1,:],1)
 hv = op.resize(grid.variables['h'][:,1:-1],0)
 
-files = sort(glob.glob('ocean_his_*.nc')) # sorted list of file names
-
+loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+files = np.sort(glob.glob(loc + 'ocean_his_*.nc')) # sorted list of file names
+filesfull = np.sort(glob.glob(loc + 'ocean_his_*.nc')) #full path of files
 # Find the list of files that cover the desired time period
-for name in files: # Loop through files
-	nctemp = netCDF.Dataset('/home/kthyng/shelf/' + name)
+for i,name in enumerate(files): # Loop through files
+	nctemp = netCDF.Dataset(name)
 	ttemp = nctemp.variables['ocean_time'][:]
 	nctemp.close()
 	# If datenum_in is larger than the first time in the file but smaller
 	# than the last time, then this is the correct file to use to start
-	if datenum_in > ttemp[0] and datenum_in <= ttemp[-1]:
+	if date > ttemp[0] and date <= ttemp[-1]:
 		ifile = i # this is the starting file identifier then
 		break
 # Since the number of indices per file can change, make the process
 # of finding the necessary files a little more general
 # Start by opening two files
 i = 1
-fname = ['/home/kthyng/shelf/' + files[ifile]]
-#pdb.set_trace()
-if ff: #forward - add 2nd file on end
-	fname.append('/home/kthyng/shelf/' + files[ifile+i])
-else: #backward - add previous time file to beginning
-	fname.insert(0,'/home/kthyng/shelf/' + files[ifile-i])
+fname = [files[ifile]]
+
+
+# pdb.set_trace()
+
+# if ff: #forward - add 2nd file on end
+# 	fname.append(files[ifile+i])
+# else: #backward - add previous time file to beginning
+# 	fname.insert(0,files[ifile-i])
 nc = netCDF.MFDataset(fname) # files in fname are in chronological order
 # number of indices included in opened files so far
 ninds = nc.variables['ocean_time'][:].size 
@@ -146,19 +150,19 @@ ilow = date >= dates
 istart = dates[ilow].size - 1
 nc.close()
 # Select indices 
-if tdir:
+if ff:
 	tinds = range(istart,istart+tout) # indices of model outputs desired
 else: # backward in time
 	# have to shift istart since there are now new indices behind since going backward
 	tinds = range(istart,istart-tout,-1)
 # If we need more indices than available in these files, add another
-i = 2
+
 if ff:
 	# if the final index we want is beyond the length of these files,
 	# keep adding files on
 	while tinds[-1] >= len(dates): 
 		# if tdir: #forward - add 2nd file on end
-		fname.append('/home/kthyng/shelf/' + files[ifile+i])
+		fname.append(files[ifile+i])
 		nc = netCDF.MFDataset(fname) # files in fname are in chronological order
 		dates = nc.variables['ocean_time'][:]	
 		ilow = date >= dates
@@ -169,7 +173,7 @@ if ff:
 		i = i + 1
 else: #backwards in time
 	while tinds[-1] < 0:
-		fname.insert(0,'/home/kthyng/shelf/' + files[ifile-i])
+		fname.insert(0,files[ifile-i])
 		nc = netCDF.MFDataset(fname)
 		dates = nc.variables['ocean_time'][:]	
 		ilow = date >= dates
@@ -178,19 +182,51 @@ else: #backwards in time
 		tinds = range(istart,istart-tout,-1)
 		nc.close()
 		i = i + 1
+
+
+# i = 2
+# if ff:
+# 	# if the final index we want is beyond the length of these files,
+# 	# keep adding files on
+# 	while tinds[-1] >= len(dates): 
+# 		# if tdir: #forward - add 2nd file on end
+# 		fname.append(files[ifile+i])
+# 		nc = netCDF.MFDataset(fname) # files in fname are in chronological order
+# 		dates = nc.variables['ocean_time'][:]	
+# 		ilow = date >= dates
+# 		# time index with time value just below datenum_in (relative to file ifile)
+# 		istart = dates[ilow].size - 1
+# 		tinds = range(istart,istart+tout)
+# 		nc.close()
+# 		i = i + 1
+# else: #backwards in time
+# 	while tinds[-1] < 0:
+# 		fname.insert(0,files[ifile-i])
+# 		nc = netCDF.MFDataset(fname)
+# 		dates = nc.variables['ocean_time'][:]	
+# 		ilow = date >= dates
+# 		# time index with time value just below datenum_in (relative to file ifile)
+# 		istart = dates[ilow].size - 1
+# 		tinds = range(istart,istart-tout,-1)
+# 		nc.close()
+# 		i = i + 1
 # model output files together containing all necessary model outputs
 nc = netCDF.MFDataset(fname) # reopen since needed to close things in loop
+# pdb.set_trace()
 dates = nc.variables['ocean_time'][:]	
 t0save = dates[0] # time at start of file in seconds since 1970-01-01, add this on at the end since it is big
+# Some grid metrics
+s = nc.variables['s_w'][:] # sigma coords, 31 layers
+cs = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
 
 # Initialize drifter grid positions and indices
-xend = np.ones(((tinds-1)*nsteps,ia.size))*np.nan
-yend = np.ones(((tinds-1)*nsteps,ia.size))*np.nan
-zend = np.ones(((tinds-1)*nsteps,ia.size))*np.nan
-iend = np.ones(((tinds-1)*nsteps,ia.size))*np.nan
-jend = np.ones(((tinds-1)*nsteps,ia.size))*np.nan
-kend = np.ones(((tinds-1)*nsteps,ia.size))*np.nan
-t0 = np.zeros(((tinds-1)*nsteps+1))
+xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+yend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+zend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+kend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+t0 = np.zeros(((len(tinds))*nsteps+1))
 flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
 j = 0 # index for number of saved steps for drifters
@@ -204,12 +240,12 @@ for tind in tinds:
 		u = nc.variables['u'][tind:tind+2,:,1:-1,:] 
 		v = nc.variables['v'][tind:tind+2,:,:,1:-1]
 		zetau = op.resize(nc.variables['zeta'][tind:tind+2,1:-1,:],2) # [t,j,i]
-		zetav = op.resize(nc.variables['zeta'][tind:tind+2,:,1:-1],2) # [t,j,i]
+		zetav = op.resize(nc.variables['zeta'][tind:tind+2,:,1:-1],1) # [t,j,i]
 	else:
 		u = nc.variables['u'][tind-1:tind-3,:,1:-1,:] 
 		v = nc.variables['v'][tind-1:tind-3,:,:,1:-1]
 		zetau = op.resize(nc.variables['zeta'][tind-1:tind-3,1:-1,:],2) # [t,j,i]
-		zetav = op.resize(nc.variables['zeta'][tind-1:tind-3,:,1:-1],2) # [t,j,i]
+		zetav = op.resize(nc.variables['zeta'][tind-1:tind-3,:,1:-1],1) # [t,j,i]
 
 
 	# WHY DO I HAVE TO CALCULATE THE FLUXES HERE WHEN THE BOX VOLUMES ARE ALSO CALCULATED IN THE CODE?
@@ -258,9 +294,6 @@ for tind in tinds:
 
 	# calculate dxyz here
 	dxyz = op.resize(dz4v,2)*dxdy
-
-	nc.close()
-	grid.close()
 
 	# hs = op.resize(zeta,1) # sea surface height in meters
 	# dz = np.diff(z4,axis=1)[0,:,0,0] # just take one dz column for now
@@ -341,6 +374,9 @@ for tind in tinds:
 			# if i == 8:
 			# 	pdb.set_trace()
 		j = j + 1
+
+nc.close()
+grid.close()
 
 t0 = t0 + t0save # add back in base time in seconds
 

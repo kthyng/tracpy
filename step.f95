@@ -108,8 +108,8 @@ ntracLoop: do ntrac=1,ntractot
 
 !     print *,'ntrac=',ntrac
 
-    ! start track off with no error
-    errCode = 0
+!     ! start track off with no error
+!     errCode = 0
     ! Counter for sub-interations for each drifter. In the source, this was read in but I am not sure why.
     niter = 0
     ! model dataset time step of trajectory. Initialize to the incoming time step for all drifters.
@@ -146,6 +146,8 @@ ntracLoop: do ntrac=1,ntractot
         iam = ia-1
         ja = jb
         ka = kb
+        ! start track off with no error (maybe export these later to keep track of)
+        errCode = 0
 
         ! Are tracking fields being properly updated between loops?
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
@@ -255,6 +257,7 @@ ntracLoop: do ntrac=1,ntractot
             flag(ntrac) = 1 ! want to continue drifters if time was the limiting factor here
         end if
 
+        if (errCode.ne.0) print *,'Error code=',errCode
 
         if (errCode.ne.0) cycle ntracLoop
 
@@ -457,7 +460,10 @@ ntracLoop: do ntrac=1,ntractot
 
 !         call errorCheck('cornerError', errCode)
             ! problems if trajectory is in the exact location of a corner
-         if(x1 == dble(idint(x1)) .and. y1 == dble(idint(y1))) then
+            ! KMT added the second set of conditions
+         if((x1 == dble(idint(x1)) .and. y1 == dble(idint(y1))) .or. &
+            ((abs(x1-dble(idint(x1))) <= 0.001) .and. (abs(y1-dble(idint(y1))) <= 0.001))) then
+            print *,'corner problem'
             !print *,'corner problem',ntrac,x1,x0,y1,y0,ib,jb
             !print *,'ds=',ds,dse,dsw,dsn,dss,dsu,dsd,dsmin
             !stop 34957
