@@ -78,7 +78,7 @@ $(fl21)$(fl22)$(fl23)$(fl24)$(fl25)$(fl26)$(fl27)$(fl28)$(fl29)$(fl30)\
 # vpath %.o tmp
 
 ifeq ($(F95COMPILER),"gfortran")
-	FF_FLAGS         = -m64 -c -x f95-cpp-input -fconvert=big-endian -gdwarf-2 -fbounds-check -cpp
+	FF_FLAGS         = -m64 -c -x f95-cpp-input -fconvert=big-endian -gdwarf-2 -fbounds-check -cpp -fPIC
 	# F90_FLAGS        =-fno-underscoring  
 #	FF               = gfortran $(LIB_DIR) $(INC_DIR) $(F90_FLAGS) $(ORM_FLAGS)
 	# FF               = /sw/bin/gfortran $(LIB_DIR) $(INC_DIR) $(F90_FLAGS) $(ORM_FLAGS)
@@ -91,7 +91,7 @@ endif
 # 	FF               = /Applications/fort/g95/bin/i386-apple-darwin8.11.1-g95 $(LIB_DIR) $(INC_DIR) $(F90_FLAGS) $(ORM_FLAGS)
 # endif
 CC                = gcc -O  $(INC_DIR)
-F2PY 			  = f2py-2.7
+F2PY 			  = f2py2.7
 objects           = pos.o cross.o calc_dxyz.o calc_time.o loop_pos.o
 f2py_source       = step.f95
 MODULENAME		  = tracmass

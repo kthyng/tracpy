@@ -514,7 +514,7 @@ ntracLoop: do ntrac=1,ntractot
         ! Need to add other conditions to this. Checking to see if drifter has exited domain.
         if(x1<=2.d0 .or. x1>=IMT-2.d0 .or. y1<=2.d0 .or. y1>=JMT-2.d0) then
             print *, 'Stopping trajectory due to domain'
-            print *, 'x1=',x1,' y1=',y1
+!             print *, 'x1=',x1,' y1=',y1
             if(x1<=2.d0) x1=2.d0
             if(x1>=IMT) x1=dble(IMT)
             if(y1<=2.d0) y1=2.d0
@@ -537,8 +537,8 @@ ntracLoop: do ntrac=1,ntractot
         if(tt-t0.ge.timax) then ! was .gt. in original code
         !               nexit(NEND)=nexit(NEND)+1
             print *, 'Stopping trajectory due to time'
-            print *, 'tt=',tt,' t0=',t0,' timax=',timax
-            print *, 'x1=',x1,' y1=',y1
+!             print *, 'tt=',tt,' t0=',t0,' timax=',timax
+!             print *, 'x1=',x1,' y1=',y1
             xend(ntrac) = x1
             yend(ntrac) = y1
             zend(ntrac) = z1
@@ -546,7 +546,7 @@ ntracLoop: do ntrac=1,ntractot
             jend(ntrac) = jb
             kend(ntrac) = kb
             flag(ntrac) = 0 ! want to continue drifters if time was the limiting factor here
-            print *,'xend=',xend,' flag=',flag
+!             print *,'xend=',xend,' flag=',flag
             exit niterLoop
         endif
 

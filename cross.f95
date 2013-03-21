@@ -138,7 +138,7 @@ real(kind=8),   intent(out)  :: sp,sn
     if(sn.le.0.d0) sn=UNDEF
 
 !      print *,'in cross: sp=',sp,' sn=',sn,' r0=',r0,' ii=',ii,' ba=',ba
-    print *,'in cross: ijk=',ijk,' sp=',sp,' sn=',sn,' uu=',uu,' um=',um,' ba=',ba,' r0=',r0
+!     print *,'in cross: ijk=',ijk,' sp=',sp,' sn=',sn,' uu=',uu,' um=',um,' ba=',ba,' r0=',r0
 
     return
 end subroutine cross

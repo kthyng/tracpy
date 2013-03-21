@@ -51,37 +51,8 @@ basemap = Basemap(llcrnrlon=llcrnrlon,
 # Units for time conversion with netCDF.num2date and .date2num
 units = 'seconds since 1970-01-01'
 
-# Initialize parameters
-nsteps = 10 # Number of steps to do between model outputs
-ndays = .5 # number of days to track the particles
-ff = 1 # forward
-# Start date
-date = datetime(2009, 11, 20, 0)
-# Convert date to number
-date = netCDF.date2num(date,units)
-# Time between outputs
-Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
-# Number of model outputs to use
-tout = np.int((ndays*(24*3600))/Dt)
-tseas = 4*3600 # 4 hours between outputs 
-
-# Need to input x,y as relative to their grid box. Let's assume they are at 
-# some position relative to a grid node
-xstart0 = np.array([[525.2]])#525.2]])
-ystart0 = np.array([[40.3]])
-# xstart, ystart = basemap(lonr[ja,ia],latr[ja,ia]) # locations in x,y coordiantes
-zstart0 = np.array([[1]])
-# Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
-# # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
-# # want ceil(xstart0+1)
-# ia = np.ceil(xstart0)+(1-(np.ceil(xstart0)-np.floor(xstart0)))
-# ja = np.ceil(ystart0)+(1-(np.ceil(ystart0)-np.floor(ystart0)))
-# ka = np.ceil(zstart0)+(1-(np.ceil(zstart0)-np.floor(zstart0)))
-ia = np.ceil(xstart0) #[253]#,525]
-ja = np.ceil(ystart0) #[57]#,40]
-ka = np.ceil(zstart0) #[1]#,1]
-
-loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+loc = '/home/kthyng/shelf/' # for model outputs
+# loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
 
 # Read in grid parameters
 # These include ghost cells so don't match u and v correctly
@@ -101,19 +72,58 @@ latpsi = grid.variables['lat_psi'][:]
 xpsi, ypsi = basemap(lonpsi,latpsi)
 maskr = grid.variables['mask_rho'][:]#[1:-1,1:-1]
 X, Y = np.meshgrid(np.arange(xr.shape[1]),np.arange(yr.shape[0])) # grid in index coordinates, without ghost cells
+# Triangulation for grid space to curvilinear space
 tri = delaunay.Triangulation(X.flatten(),Y.flatten())
+# Triangulation for curvilinear space to grid space
+tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
 # Angle on rho grid
 theta = grid.variables['angle'][:]
 # Interpolate theta to be on psi grid
 theta = op.resize(op.resize(theta,0),1)
 pm = grid.variables['pm'][:] # 1/dx
 pn = grid.variables['pn'][:] # 1/dy
-
 # The following are for setting up z array on u (v) grids for calculating u (v) fluxes
 # Want h only within domain in y (x) direction (no ghost cells) and interpolated onto cell
 # walls in x (y) direction
 hu = op.resize(grid.variables['h'][1:-1,:],1)
 hv = op.resize(grid.variables['h'][:,1:-1],0)
+
+# Initialize parameters
+nsteps = 10 # Number of steps to do between model outputs
+ndays = 5 # number of days to track the particles
+ff = 1 # forward
+# Start date
+date = datetime(2009, 9, 1, 0)
+# Convert date to number
+date = netCDF.date2num(date,units)
+# Time between outputs
+Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
+# Number of model outputs to use
+tout = np.int((ndays*(24*3600))/Dt)
+tseas = 4*3600 # 4 hours between outputs 
+
+# Need to input x,y as relative to their grid box. Let's assume they are at 
+# some position relative to a grid node
+# xstart0 = np.array([[525.2]])#525.2]])
+# ystart0 = np.array([[40.3]])
+# Read in starting locations from HAB experiment to test
+d = np.load('/home/kthyng/hab/data/exp8/starting_locations.npz')
+x0,y0 = basemap(d['lon0'],d['lat0'])
+# Interpolate to get starting positions in grid space
+fX = tric.nn_interpolator(X.flatten())
+fY = tric.nn_interpolator(Y.flatten())
+xstart0 = fX(x0,y0)
+ystart0 = fY(x0,y0)
+zstart0 = np.ones(xstart0.shape)*(29)
+# Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
+# # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
+# # want ceil(xstart0+1)
+# ia = np.ceil(xstart0)+(1-(np.ceil(xstart0)-np.floor(xstart0)))
+# ja = np.ceil(ystart0)+(1-(np.ceil(ystart0)-np.floor(ystart0)))
+# ka = np.ceil(zstart0)+(1-(np.ceil(zstart0)-np.floor(zstart0)))
+ia = np.ceil(xstart0) #[253]#,525]
+ja = np.ceil(ystart0) #[57]#,40]
+ka = np.ceil(zstart0) #[1]#,1]
 
 files = np.sort(glob.glob(loc + 'ocean_his_*.nc')) # sorted list of file names
 filesfull = np.sort(glob.glob(loc + 'ocean_his_*.nc')) #full path of files
@@ -326,6 +336,7 @@ for tind in tinds:
 	dxyzinterp = dxyz.copy()
 	# Loop over nsteps iterations between two model outputs
 	for i in xrange(nsteps):
+		print j
 		#  flux fields at starting time for this step
 		if j != 0:
 			ufluxinterp[:,:,:,0] = ufluxinterp[:,:,:,1]
@@ -381,9 +392,9 @@ grid.close()
 
 t0 = t0 + t0save # add back in base time in seconds
 
-xg=np.concatenate((xstart0,xend))
-yg=np.concatenate((ystart0,yend))
-zg=np.concatenate((zstart0,zend))
+xg=np.concatenate((xstart0.reshape(1,xstart0.size),xend),axis=0)
+yg=np.concatenate((ystart0.reshape(1,ystart0.size),yend),axis=0)
+zg=np.concatenate((zstart0.reshape(1,zstart0.size),zend),axis=0)
 
 # Recreate Cartesian particle locations from their index-relative locations
 # just by interpolating
@@ -400,7 +411,7 @@ basemap.drawparallels(np.arange(18, 35), dashes=(1, 0), linewidth=0.15, labels=[
 basemap.drawmeridians(np.arange(-100, -80), dashes=(1, 0), linewidth=0.15, labels=[0, 0, 0, 1])
 hold('on')
 contour(xr, yr, hfull, np.hstack(([10,20],np.arange(50,500,50))), colors='lightgrey', linewidths=0.15)
-plot(xp,yp,'.')
+plot(xp[:,0],yp[:,0],'g.')
 # Outline numerical domain
 plot(xr[0,:],yr[0,:],'k:')
 #ax1.plot(xr[-1,:],yr[-1,:],'k:')
