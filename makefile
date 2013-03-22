@@ -91,7 +91,17 @@ endif
 # 	FF               = /Applications/fort/g95/bin/i386-apple-darwin8.11.1-g95 $(LIB_DIR) $(INC_DIR) $(F90_FLAGS) $(ORM_FLAGS)
 # endif
 CC                = gcc -O  $(INC_DIR)
-F2PY 			  = f2py2.7
+
+COMPUTER = $(shell uname -n)
+
+ifeq ($(COMPUTER),rainier)
+	F2PY = f2py-2.7
+else ifeq ($(findstring hafen,$(COMPUTER)),hafen)
+	F2PY = f2py2.7
+else
+	F2PY = f2py
+endif
+
 objects           = pos.o cross.o calc_dxyz.o calc_time.o loop_pos.o
 f2py_source       = step.f95
 MODULENAME		  = tracmass
