@@ -85,12 +85,13 @@ pn = grid.variables['pn'][:] # 1/dy
 # The following are for setting up z array on u (v) grids for calculating u (v) fluxes
 # Want h only within domain in y (x) direction (no ghost cells) and interpolated onto cell
 # walls in x (y) direction
+h = grid.variables['h'][:]
 hu = op.resize(grid.variables['h'][1:-1,:],1)
 hv = op.resize(grid.variables['h'][:,1:-1],0)
 
 # Initialize parameters
 nsteps = 10 # Number of steps to do between model outputs
-ndays = 5 # number of days to track the particles
+ndays = .25 # number of days to track the particles
 ff = 1 # forward
 # Start date
 date = datetime(2009, 9, 1, 0)
@@ -229,6 +230,31 @@ t0save = dates[0] # time at start of file in seconds since 1970-01-01, add this 
 # Some grid metrics
 s = nc.variables['s_w'][:] # sigma coords, 31 layers
 cs = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
+# Basing this on setupgrid.f95 for rutgersNWA example project from Bror
+IMT = h.shape[1] # 671
+JMT = h.shape[0] # 191
+KM = s.shape[0]-1 # 30
+# ROMS ordering. dxv,dyu: [191,674]=[JMT,IMT+3]
+dxv = np.ones((JMT,IMT+3))*np.nan
+dxv[:,:-3] = xr
+dxv[:,0:IMT-2] = dxv[:,1:IMT-1] - dxv[:,0:IMT-2]
+dxv[:,IMT-1:IMT] = dxv[:,IMT-3:IMT-2]
+dyu = np.ones((JMT,IMT+3))*np.nan
+dyu[:,:-3] = yr
+dyu[0:JMT-2,:] = dyu[1:JMT-1,:] - dyu[0:JMT-2,:]
+dyu[JMT-1,:] = dyu[JMT-2,:]
+# Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
+pdb.set_trace()
+# my best guess is that kmt is an array containing the number of vertical
+# grid cells in every (i,j) location. For sigma coords it doesn't change
+# but in other codes it could. Also contains masking information.
+kmt = np.ones((JMT,IMT))*KM
+ind = (maskr[:,1:IMT-1]==1)
+maskr[ind,0:IMT-2] = 1
+ind = (maskr[1:IMT-1,:]==1)
+maskr[0:JMT-2,:] = 1
+ind = (maskr==0)
+kmt[ind] = 0
 
 # Initialize drifter grid positions and indices
 xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
@@ -275,8 +301,8 @@ for tind in tinds:
 	dz4u = np.diff(z4u,axis=1).reshape((u.shape)) # grid cell thickness in z coords
 	# Change velocity fields to fluxes.
 	# Calculate uflux, dependent on time. Calculating for two time indices at once.
-	# Use pn for dy
-	dyu = 1/op.resize(pn[1:-1,:],1) # [JMT-1,IMT]
+	# # Use pn for dy
+	# dyu = 1/op.resize(pn[1:-1,:],1) # [JMT-1,IMT]
 	# uflux is size [2,KM,JMT-1,IMT]
 	uflux = u*dyu*dz4u
 
@@ -294,8 +320,8 @@ for tind in tinds:
 	del(zeta4v,cs4v,h4v)
 	dz4v = np.diff(z4v,axis=1).reshape((v.shape)) # grid cell thickness in z coords
 	# Calculate vflux, dependent on time. Calculating for two time indices at once.
-	# Use pm for dx
-	dxv = 1/op.resize(pm[:,1:-1],0) # [JMT,IMT-1]
+	# # Use pm for dx
+	# dxv = 1/op.resize(pm[:,1:-1],0) # [JMT,IMT-1]
 	# vflux is size [2,KM,JMT,IMT-1]
 	vflux = v*dxv*dz4v
 
@@ -326,9 +352,9 @@ for tind in tinds:
 	# These are the size of the psi grid, at the corners of the grid boxes.
 	# This might need to change to the number of boxes in the future, which will
 	# change all of the minus one's. Also would change the default values in the step call.
-	IMT=u.shape[3] # 670
-	JMT=v.shape[2] # 190
-	KM=u.shape[1] # 30
+	# IMT=u.shape[3] # 670
+	# JMT=v.shape[2] # 190
+	# KM=u.shape[1] # 30
 
 	ufluxinterp = uflux.copy()
 	vfluxinterp = vflux.copy()
