@@ -153,7 +153,7 @@ ntracLoop: do ntrac=1,ntractot
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
 
         call calc_dxyz(ib,jb,kb,rr,KM,kmt,dxyzarray,dxyz,JMT,IMT)
-
+!         call calc_dxyz(ib,jb,kb,rr,KM,kmt,dzt,hs,dxdy,dxyz,JMT,IMT)
         ! I am putting the error checks directly in the loop for convenience
         !         call errorCheck('dxyzError',errCode,dxyz,flag)
         ! Check the grid box volume
