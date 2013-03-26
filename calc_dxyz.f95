@@ -39,6 +39,9 @@ real(kind=8), intent(out)                                    :: dxyz
 
     rg=1.d0-rr
 
+! KMT: Assuming -Dzgrid3D        # Cell depths defined as 3D grid (for sigma)
+! and -Dfreesurface    # Variable bottom box to match actual depth
+
 ! T-box volume in m3
 ! #ifdef zgrid3Dt 
     dxyz=rg*dxyzarray(ib,jb,kb,nsp)+rr*dxyzarray(ib,jb,kb,nsm)
