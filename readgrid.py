@@ -1,5 +1,7 @@
 import netCDF4 as netCDF
 from mpl_toolkits.basemap import Basemap
+import numpy as np
+from matplotlib import delaunay
 
 def readgrid(loc):
     '''
