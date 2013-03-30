@@ -31,6 +31,8 @@ def readgrid(loc):
      xu,yu          U grid zonal (x) and meriodional (y) coordinates [imt,jmt]
      xv,yv          V grid zonal (x) and meriodional (y) coordinates [imt,jmt]
      xpsi,ypsi      Psi grid zonal (x) and meriodional (y) coordinates [imt,jmt]
+     X,Y            Grid index arrays
+     tri,tric       Delaunay triangulations
      Cs_r,sc_r      Vertical grid streching paramters [km-1]
      hc             [scalar]
      h              Depths [imt,jmt]
@@ -93,15 +95,15 @@ def readgrid(loc):
     # Grid sizes
     imt = h.shape[0] # 671
     jmt = h.shape[1] # 191
-    km = sc_r.shape[0]-1 # 30
+    # km = sc_r.shape[0] # 31
+    km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
-
-    # X, Y = np.meshgrid(np.arange(xr.shape[0]),np.arange(yr.shape[1])) # grid in index coordinates, without ghost cells
-    # # Triangulation for grid space to curvilinear space
-    # tri = delaunay.Triangulation(X.flatten(),Y.flatten())
-    # # Triangulation for curvilinear space to grid space
-    # tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
-
+    # Index grid, for interpolation between real and grid space
+    X, Y = np.meshgrid(np.arange(xr.shape[0]),np.arange(yr.shape[1])) # grid in index coordinates, without ghost cells
+    # Triangulation for grid space to curvilinear space
+    tri = delaunay.Triangulation(X.flatten(),Y.flatten())
+    # Triangulation for curvilinear space to grid space
+    tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
 
     # tracmass ordering.
     dxv = xr
@@ -125,9 +127,9 @@ def readgrid(loc):
     # Fill in grid structure
     grid = {'imt':imt,'jmt':jmt,'km':km, 
     	'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
-    	'mask':mask,'kmt':kmt, 
-    	'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi, 
-    	'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi, 
+    	'mask':mask,'kmt':kmt,'tri':tri,'tric':tric,
+    	'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X, 
+    	'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y, 
     	'Cs_r':Cs_r,'sc_r':sc_r,'hc',hc,'h':h, 
         'basemap':basemap}
 
