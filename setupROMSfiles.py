@@ -2,8 +2,9 @@ import netCDF4 as netCDF
 import glob
 import numpy as np
 from datetime import datetime, timedelta
+import pdb
 
-def setupROMSfiles(loc,date,ff):
+def setupROMSfiles(loc,date,ff,tout):
 	'''
 	setupROMSfiles()
 	Kristen Thyng, March 2013
@@ -15,16 +16,21 @@ def setupROMSfiles(loc,date,ff):
 	 loc 	File location
 	 date 	datetime format start date
 	 ff 	Time direction. ff=1 forward, ff=0 backward
+	 tout 	Number of model outputs to use
 
 	Output:
-	 fname 	Names of files to open
+	 nc 	NetCDF object for relevant files
 	 tinds 	Indices of outputs to use from fname files
 	'''
 
 
-	files = np.sort(glob.glob(loc + 'ocean_his_*.nc')) # sorted list of file names
-	filesfull = np.sort(glob.glob(loc + 'ocean_his_*.nc')) #full path of files
+	files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # sorted list of file names
+	# files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
+	# pdb.set_trace()
+	# files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # sorted list of file names
+	# filesfull = np.sort(glob.glob(loc + 'ocean_his_*.nc')) #full path of files
 	# Find the list of files that cover the desired time period
+	# pdb.set_trace()
 	for i,name in enumerate(files): # Loop through files
 		nctemp = netCDF.Dataset(name)
 		ttemp = nctemp.variables['ocean_time'][:]
@@ -38,6 +44,7 @@ def setupROMSfiles(loc,date,ff):
 	# of finding the necessary files a little more general
 	# Start by opening two files
 	i = 1
+	# pdb.set_trace()
 	fname = [files[ifile]]
 
 	# if ff: #forward - add 2nd file on end
@@ -88,4 +95,7 @@ def setupROMSfiles(loc,date,ff):
 			nc.close()
 			i = i + 1
 
-	return fname, tinds
+	# model output files together containing all necessary model outputs
+	nc = netCDF.MFDataset(fname) # reopen since needed to close things in loop
+
+	return nc, tinds

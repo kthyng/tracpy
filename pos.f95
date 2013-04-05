@@ -26,8 +26,8 @@ integer :: ii,im,nsm=1,nsp=2
 real(kind=8), intent(in) :: r0,rr
 real(kind=8), intent(out) :: r1
 integer, intent(in) :: ijk,ia,ja,ka,ff,IMT,JMT,KM
-real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
+real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: uflux
+real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: vflux
 
 rg=1.d0-rr
 

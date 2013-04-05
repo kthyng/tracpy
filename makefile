@@ -40,10 +40,10 @@ F95COMPILER        = "gfortran"
 #  fl15  = -Dexplicit_w     # Use a given vertical velocity.
 #------------------------------------------------------------------------
 #   fl16  = -Dvarbottombox   # Variable bottom box to match actual depth
-#   fl17  = -Dfreesurface    # Variable bottom box to match actual depth
+  # fl17  = -Dfreesurface    # Variable bottom box to match actual depth
 #   fl18  = -Dzvec1D         # Cell depths defined as vector (for z-coord?)
-#  fl18  = -Dzgrid3D        # Cell depths defined as 3D grid (for sigma)
-#  fl18  = -Dzgrid3Dt       # Cell depths 3D and time interp. (for atm)
+ # fl18  = -Dzgrid3D        # Cell depths defined as 3D grid (for sigma)
+ fl18  = -Dzgrid3Dt       # Cell depths 3D and time interp. (for atm)
 #------------------------------------------------------------------------
 #  fl20  = -Dselect         # Select only one trajectory (for debugging)
 #  fl21  = -Dtracer         # Stores a simulated tracer

@@ -1,5 +1,6 @@
-SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas,uflux,vflux,ff,IMT,JMT,KM,dxyzarray,ntractot,xend,yend,zend, &
-                iend,jend,kend,flag)
+SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
+  &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,ntractot,xend,yend,zend, &
+            &iend,jend,kend,flag)
 
 !!--------------------
 !! Loop to step a numerical drifter forward one dt.
@@ -66,12 +67,12 @@ integer,        intent(in)                                      :: ff, IMT, JMT,
 real(kind=8),   intent(in),     dimension(ntractot)             :: xstart, ystart, zstart
 real(kind=8),   intent(out),    dimension(ntractot)             :: xend,yend,zend
 integer,   intent(out),    dimension(ntractot)             :: flag, iend, jend, kend
-real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: vflux
-real(kind=8),   intent(in),     dimension(IMT-1,JMT-1,KM,2)         :: dxyzarray
-! real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
+real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
+real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
+real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: dzt
+real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
 ! real(kind=8),   intent(in),     dimension(KM)                   :: dz
-! real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy
+real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy,kmt
 real(kind=8),   intent(in)                                      :: t0, tseas
 integer,        intent(in),     dimension(ntractot)             :: istart, jstart, kstart
 real(kind=8)                                                    :: rr, rg, ts, timax, &
@@ -79,7 +80,7 @@ real(kind=8)                                                    :: rr, rg, ts, t
                                                                     dsmin, ds, dse,dsw,dsn,dss,dt, &
                                                                     x0,y0,z0,x1,y1,z1,tt,tss,rbg,rb, dsc
 integer                                                         :: ntrac, niter, iter, ia,ja,ka,&
-                                                                    iam,ib,jb,kb,kmt,errCode
+                                                                    iam,ib,jb,kb,errCode
 integer                                         :: nsm=1,nsp=2
 real(kind=8), PARAMETER                         :: UNDEF=1.d20
 
@@ -95,7 +96,7 @@ dtmin = dstep*tseas
 timax = tseas! now in seconds *(1.d0/(24.d0*3600.d0)) ! maximum length of a trajectory in days. Just set to tseas.
 iter = 1 ! one iteration since model output is interpolated before sending in here
 
-kmt = KM ! Why are these separate? I think kmt is used in calc_dxyz as an array if they number of cells changes in x,y
+! kmt = KM ! Why are these separate? I think kmt is used in calc_dxyz as an array if they number of cells changes in x,y
 flag = 0
 
 !=======================================================
@@ -152,7 +153,7 @@ ntracLoop: do ntrac=1,ntractot
         ! Are tracking fields being properly updated between loops?
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
 
-        call calc_dxyz(ib,jb,kb,rr,KM,kmt,dxyzarray,dxyz,JMT,IMT)
+        call calc_dxyz(ib,jb,kb,rr,KM,kmt,dzt,hs,dxdy,dxyz,JMT,IMT)
 !         call calc_dxyz(ib,jb,kb,rr,KM,kmt,dzt,hs,dxdy,dxyz,JMT,IMT)
         ! I am putting the error checks directly in the loop for convenience
         !         call errorCheck('dxyzError',errCode,dxyz,flag)
@@ -344,6 +345,8 @@ ntracLoop: do ntrac=1,ntractot
         ! === calculate the new positions ===
         ! === of the trajectory           ===    
         call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsmin,dsc,ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux)
+        print '(a,f6.2,a,f6.2,a,e6.1,a,f3.1,a,f3.1,a,f3.1)','x0=',x0,' x1=',x1,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb
+        print '(a,f8.1,a,f8.1)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2)
 
         ! === make sure that trajectory ===
         ! === is inside ib,jb,kb box    ===
