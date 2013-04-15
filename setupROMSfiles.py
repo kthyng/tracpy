@@ -62,14 +62,14 @@ def setupROMSfiles(loc,date,ff,tout):
 	istart = dates[ilow].size - 1
 	nc.close()
 	# Select indices 
-	if ff:
+	if ff==1:
 		tinds = range(istart,istart+tout) # indices of model outputs desired
 	else: # backward in time
 		# have to shift istart since there are now new indices behind since going backward
 		tinds = range(istart,istart-tout,-1)
 	# If we need more indices than available in these files, add another
 
-	if ff:
+	if ff==1:
 		# if the final index we want is beyond the length of these files,
 		# keep adding files on
 		while tinds[-1] >= len(dates): 
@@ -97,5 +97,5 @@ def setupROMSfiles(loc,date,ff,tout):
 
 	# model output files together containing all necessary model outputs
 	nc = netCDF.MFDataset(fname) # reopen since needed to close things in loop
-
+	# pdb.set_trace()
 	return nc, tinds

@@ -46,9 +46,9 @@ elif 'hafen.tamu.edu' in os.uname():
 # Initialize parameters
 nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
 ndays = 10 # number of days to track the particles
-ff = 1 # forward
+ff = -1 # 1 forward, -1 backward
 # Start date
-date = datetime(2009,11, 20, 0)
+date = datetime(2009,11, 30, 0)
 # Convert date to number
 date = netCDF.date2num(date,units)
 # Time between outputs
