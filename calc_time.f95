@@ -4,18 +4,18 @@ subroutine calc_time(ds,dsmin,dt,dtmin,tss,tseas,ts,tt,dxyz,dstep,iter,rbg,rb,ds
 ! Inputs/output list here isn't correct
 ! Inputs:
 !  ds
-!  dsmin
-!  dtmin
-!  tseas
+!  dsmin    Iterative time stepping in s/m^3
+!  dtmin    Iterative time stepping in seconds
+!  tseas    Time between model outputs (s)
 !  dxyz
-!  dstep
-!  iter
+!  dstep    Model time step between time interpolation steps between model outputs
+!  iter     Number of interpolations to do between model outputs
 !
 ! Outputs:
-!  dt
-!  tt     
-!  ts
-!  tss
+!  dt       Timestep of trajectory iteration (in seconds)
+!  tt       time in seconds of the trajectory relative to the code start
+!  ts       Time step of time interpolation between model outputs, non-dimensional, has values between 0 and 1
+!  tss      Counter for iterations between model outputs. Counts up to iter I think.
 !  rbg
 !  rb
 !  dsc
@@ -41,27 +41,46 @@ real(kind=8), intent(out) :: dt,rbg,rb,dsc
     endif
     ! === if time step makes the integration ===
     ! === exceed the time when fiedls change ===
-    if(tss+dt/tseas*dble(iter).ge.dble(iter)) then
+    ! This checks if the previous iteration count, tss, plus the new increment of 
+    ! iteration is larger than the total number of iterations, in which case 
+    ! everything is set to its value at the finish of all the iterations
+    if(tss+dt/tseas*dble(iter).ge.dble(iter)) then 
 !         print *,'dt=',dt,' tseas=',tseas,' dtmin=',dtmin,' ds=',ds,' dxyz=',dxyz
+!         print *,'original if in calc_time'
         dt=dble(idint(ts)+1)*tseas-tt
         tt=dble(idint(ts)+1)*tseas
-        ts=dble(idint(ts)+1)
-        tss=dble(iter)
+        ts=dble(idint(ts)+1) ! total number of time steps, but 1 is the biggest if my output looping is outside tracmass
+        tss=dble(iter) ! total number of iterations for iteration counter
+        ds=dt/dxyz
+        dsc=ds
+    ! KMT adding a condition to stop at the time interpolation between model outputs
+    ! trying to find when the trajectory timing is switching from below to above an
+    ! interpolation step in order to stop at time interpolation step and later write
+    elseif(dble(idint(tss))<dble(idint(tss+dt/tseas*dble(iter)))) then
+!         print *,'new elseif in calc_time'
+        tss=dble(idint(tss)+1) ! time interpolation step (should be whole number)
+        ts=tss/dble(iter) ! fractional number of time steps, but 1 is the biggest if my output looping is outside tracmass
+        dt=ts*tseas-tt
+        tt=ts*tseas
         ds=dt/dxyz
         dsc=ds
     else
         tt=tt+dt
         if(dt == dtmin) then ! If the particle is moving the full time of the outputs, step it accordingly
-           ts=ts+dstep
-           tss=tss+1.d0
+           ts=ts+dstep ! step to the next interpolated step between model outputs
+           tss=tss+1.d0 ! add 1 iteration on to iteration counter tss
         else ! Otherwise, step it within the outputs
-           ts =ts +dt/tseas
-           tss=tss+dt/tseas*dble(iter)
+           ts =ts +dt/tseas ! non-dimensional, add in normalized incremental time step
+           tss=tss+dt/tseas*dble(iter) ! add incremental amount of iteration onto iteration counter tss
         !                 tss=tss+dt/dtmin
         endif
     end if
     ! === time interpolation constant ===
-    rbg=dmod(ts,1.d0) 
+    ! KMT change: using the dmod function makes the final rb,rbg values be switched
+    ! in value, so rb=1, rbg=0 when it should be the opposite at the end of a model time step
+    ! However, I am not sure why this would be wrong here, so I want to ask in the future.
+    rbg=ts/1.d0 
+!     rbg=dmod(ts,1.d0) 
     rb =1.d0-rbg
 
 end subroutine calc_time

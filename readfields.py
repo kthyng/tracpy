@@ -47,6 +47,10 @@ def readfields(tind,grid,nc):
 	u = u.T.copy(order='f')
 	v = v.T.copy(order='f')
 	ssh = ssh.T.copy(order='f')
+	# # Flip vertical dimension because in ROMS surface is at k=-1 
+	# # and in tracmass surface is at 1
+	# u = np.flipud(u)
+	# v = np.flipud(v)
 
 	# Copy calculations from rutgersNWA/readfields.f95
 	dzt = np.ones((grid['imt'],grid['jmt'],grid['km']))*np.nan
@@ -69,6 +73,15 @@ def readfields(tind,grid,nc):
 		# pdb.set_trace()
 		uflux1[:,:,k] = u[:,:,k]*dzu[:,:,k]*grid['dyu']
 		vflux1[:,:,k] = v[:,:,k]*dzv[:,:,k]*grid['dxv']
+
+	# Flip vertical dimension because in ROMS surface is at k=-1 
+	# and in tracmass surface is at 1
+	uflux1 = uflux1[:,:,::-1]
+	vflux1 = vflux1[:,:,::-1]
+	dzt = dzt[:,:,::-1]
+	# uflux1 = np.flipud(uflux1)
+	# vflux1 = np.flipud(vflux1)
+	# dzt = np.flipud(dzt)
 
 	return ssh, uflux1, vflux1, dzt
 

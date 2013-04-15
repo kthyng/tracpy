@@ -26,8 +26,8 @@ integer :: ii,im,nsm=1,nsp=2
 real(kind=8), intent(in) :: r0,rr
 real(kind=8), intent(out) :: r1
 integer, intent(in) :: ijk,ia,ja,ka,ff,IMT,JMT,KM
-real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: vflux
+real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
+real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
 
 rg=1.d0-rr
 
@@ -121,8 +121,14 @@ else
 endif
 ! print *,'ijk=',ijk,' r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1
 ! print *,'rg=',rg,' uflux=(ia,ja,ka,nsp)=',uflux(ia,ja,ka,nsp),' rr=',rr,' uflux(ia,ja,ka,nsm)=',uflux(ia,ja,ka,nsm)
-! print *,'ia=',ia,' ja=',ja,' ka=',ka
+! ! print *,'ia=',ia,' ja=',ja,' ka=',ka
 ! print *,' uflux=(im,ja,ka,nsp)=',uflux(im,ja,ka,nsp),' uflux(im,ja,ka,nsm)=',uflux(ia,ja,ka,nsm),' ff=',ff
+
+! print '(a,i1,a,f6.2,a,f6.2,a,e6.1,a,f4.2)','ijk=',ijk,' r0=',r0,' r1=',r1,' ds=',ds,' rr=',rr
+! print '(a,f8.1,a,f8.1)','uu=',uu,' um=',um
+! print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
+! print '(a,f7.1,a,f6.1,a,f5.2,a,f5.2)', 'tt=',tt,' dt=',dt,' ts=',ts,' tss=',tss
+
 !if(abs(um/(uu-um)).gt.1.d10) print *,'possible precision problem?',um/(uu-um),uu,um,ijk,ia,ja,ka,r0,r1,ds,rr
 
 return

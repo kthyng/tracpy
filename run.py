@@ -14,6 +14,7 @@ from readfields import *
 from setupROMSfiles import *
 from readgrid import *
 from mpl_toolkits.basemap import Basemap
+import time
 
 
 '''
@@ -33,7 +34,7 @@ are not saved.
 
      hs 			Two time steps of ssh [imt,jmt,2] (m)
 '''
-
+tic = time.time()
 # Units for time conversion with netCDF.num2date and .date2num
 units = 'seconds since 1970-01-01'
 
@@ -43,8 +44,8 @@ elif 'hafen.tamu.edu' in os.uname():
 	loc = '/home/kthyng/shelf/' # for model outputs
 
 # Initialize parameters
-nsteps = 10 # Number of steps to do between model outputs
-ndays = .25 # number of days to track the particles
+nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
+ndays = 10 # number of days to track the particles
 ff = 1 # forward
 # Start date
 date = datetime(2009,11, 20, 0)
@@ -54,7 +55,10 @@ date = netCDF.date2num(date,units)
 Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
 # Number of model outputs to use
 tout = np.int((ndays*(24*3600))/Dt)
-tseas = 4*3600 # 4 hours between outputs 
+tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
+
+# THINK I NEED THIS STARTED HERE AND THEN UPDATED IN STEP
+# tt = ints*tseas
 
 # Figure out what files will be used for this tracking
 nc,tinds = setupROMSfiles(loc,date,ff,tout)
@@ -69,7 +73,7 @@ grid = readgrid(loc,nc)
 # xstart0 = np.array([[525.2]])#525.2]])
 # ystart0 = np.array([[40.3]])
 # Read in starting locations from HAB experiment to test
-d = np.load(loc + 'hab/data/exp8/starting_locations.npz')
+d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
 # pdb.set_trace()
 x0,y0 = grid['basemap'](d['lon0'],d['lat0'])
 # Interpolate to get starting positions in grid space
@@ -99,7 +103,10 @@ zend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 kend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-t0 = np.zeros(((len(tinds))*nsteps+1))
+ttend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+# t0 = np.zeros(((len(tinds))*nsteps+1))
+t0=0
+t = np.zeros(((len(tinds))*nsteps+1))
 flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
 # Initialize free surface and fluxes
@@ -115,6 +122,7 @@ j = 0 # index for number of saved steps for drifters
 # Loop through model outputs. tinds is in proper order for moving forward
 # or backward in time, I think.
 for tind in tinds:
+	# pdb.set_trace()
 	# Move previous new time step to old time step info
 	hs[:,:,0] = hs[:,:,1]
 	uflux[:,:,:,0] = uflux[:,:,:,1]
@@ -125,70 +133,61 @@ for tind in tinds:
 	hs[:,:,1],uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tind+1,grid,nc)
 	# pdb.set_trace()
 
-	# Loop over nsteps iterations between two model outputs
-	for i in xrange(nsteps):
-		print j
-		#  flux fields at starting time for this step
-		if i != 0:
-			ufluxinterp[:,:,:,0] = ufluxinterp[:,:,:,1]
-			vfluxinterp[:,:,:,0] = vfluxinterp[:,:,:,1]
-			hsinterp[:,:,0] = hsinterp[:,:,1]
-			dztinterp[:,:,0] = dztinterp[:,:,1]
-			# dxyzinterp[:,:,:,0] = dxyzinterp[:,:,:,1]
-			xstart = xend[j-1,:]
-			ystart = yend[j-1,:]
-			zstart = zend[j-1,:]
-			ia = iend[j-1,:]
-			ja = jend[j-1,:]
-			ka = kend[j-1,:]
-			# mask out drifters that have exited the domain
-			xstart = np.ma.masked_where(flag[:]==1,xstart)
-			ystart = np.ma.masked_where(flag[:]==1,ystart)
-			zstart = np.ma.masked_where(flag[:]==1,zstart)
-			ia = np.ma.masked_where(flag[:]==1,ia)
-			ja = np.ma.masked_where(flag[:]==1,ja)
-			ka = np.ma.masked_where(flag[:]==1,ka)
-			ind = (flag[:] == 0) # indices where the drifters are still inside the domain
-		else: # first loop
-			ufluxinterp = uflux.copy()
-			vfluxinterp = vflux.copy()
-			hsinterp = hs.copy()
-			dztinterp = dzt.copy()
-			xstart = xstart0
-			ystart = ystart0
-			zstart = zstart0
-			# TODO: Do a check to make sure all drifter starting locations are within domain
-			ind = (flag[:] == 0) # indices where the drifters are inside the domain to start
+	print j
+	#  flux fields at starting time for this step
+	if j != 0:
+		xstart = xend[j*nsteps-1,:]
+		ystart = yend[j*nsteps-1,:]
+		zstart = zend[j*nsteps-1,:]
+		ia = iend[j*nsteps-1,:]
+		ja = jend[j*nsteps-1,:]
+		ka = kend[j*nsteps-1,:]
+		# mask out drifters that have exited the domain
+		xstart = np.ma.masked_where(flag[:]==1,xstart)
+		ystart = np.ma.masked_where(flag[:]==1,ystart)
+		zstart = np.ma.masked_where(flag[:]==1,zstart)
+		ia = np.ma.masked_where(flag[:]==1,ia)
+		ja = np.ma.masked_where(flag[:]==1,ja)
+		ka = np.ma.masked_where(flag[:]==1,ka)
+		ind = (flag[:] == 0) # indices where the drifters are still inside the domain
+	else: # first loop, j==0
+		xstart = xstart0
+		ystart = ystart0
+		zstart = zstart0
+		# TODO: Do a check to make sure all drifter starting locations are within domain
+		ind = (flag[:] == 0) # indices where the drifters are inside the domain to start
+		# t0[0] = tseas/nsteps # want to start time at the first moved step, will add on initial zero at the end
+
+	# Find drifter locations
+	# pdb.set_trace()
+	# only send unmasked values to step
+	if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
+		break
+	else:
+		xend[j*nsteps:j*nsteps+nsteps,ind],yend[j*nsteps:j*nsteps+nsteps,ind],zend[j*nsteps:j*nsteps+nsteps,ind], \
+						iend[j*nsteps:j*nsteps+nsteps,ind],jend[j*nsteps:j*nsteps+nsteps,ind],kend[j*nsteps:j*nsteps+nsteps,ind],flag[ind],ttend[j*nsteps:j*nsteps+nsteps,ind] = \
+						tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
+						np.ma.compressed(zstart),t0,np.ma.compressed(ia),np.ma.compressed(ja),
+						np.ma.compressed(ka),tseas,uflux,
+						vflux,ff,grid['kmt'].astype(int),dzt,hs,grid['dxdy'],nsteps)#dz.data,dxdy)
+		# if np.sum(flag)>0:
 		# pdb.set_trace()
-		# Linearly interpolate uflux and vflux to step between model outputs, field at ending time for this step
-		ufluxinterp[:,:,:,1] = uflux[:,:,:,0] + (uflux[:,:,:,1]-uflux[:,:,:,0])*((i+1.)/nsteps)
-		vfluxinterp[:,:,:,1] = vflux[:,:,:,0] + (vflux[:,:,:,1]-vflux[:,:,:,0])*((i+1.)/nsteps)
-		hsinterp[:,:,1] = hs[:,:,0] + (hs[:,:,1]-hs[:,:,0])*((i+1.)/nsteps)
-		dztinterp[:,:,:,1] = dzt[:,:,:,0] + (dzt[:,:,:,1]-dzt[:,:,:,0])*((i+1.)/nsteps)
-		# dxyzinterp[:,:,:,1] = dxyz[:,:,:,0] + (dxyz[:,:,:,1]-dxyz[:,:,:,0])*((i+1.)/nsteps)
-		# Find drifter locations
-		# pdb.set_trace()
-		# only send unmasked values to step
-		if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
-			break
-		else:
-			xend[j,ind],yend[j,ind],zend[j,ind],iend[j,ind],jend[j,ind],kend[j,ind],flag[ind] = \
-							tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
-							np.ma.compressed(zstart),0.,np.ma.compressed(ia),np.ma.compressed(ja),
-							np.ma.compressed(ka),tseas/float(nsteps),ufluxinterp,
-							vfluxinterp,ff,grid['kmt'],dztinterp,hsinterp,grid['dxdy'])#dz.data,dxdy)
-			# if np.sum(flag)>0:
-			# pdb.set_trace()
-			t0[j+1] = t0[j] + tseas/float(nsteps) # update time in seconds to match drifters
-			# if i == 8:
-			# 	pdb.set_trace()
-		j = j + 1
+		# CHECK THIS, want time for each time step between model outputs
+		# TIMES ARE WRONG
+		t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps)    #tseas/float(nsteps) # update time in seconds to match drifters
+		# if i == 8:
+		# 	pdb.set_trace()
+	j = j + 1
 
 nc.close()
 # grid.close()
 
-t0 = t0 + t0save # add back in base time in seconds
+# # Add on time for first time step
+# t0=np.concatenate((0,t0),axis=0)
 
+t = t + t0save # add back in base time in seconds
+
+# Add on to front location for first time step
 xg=np.concatenate((xstart0.reshape(1,xstart0.size),xend),axis=0)
 yg=np.concatenate((ystart0.reshape(1,ystart0.size),yend),axis=0)
 zg=np.concatenate((zstart0.reshape(1,zstart0.size),zend),axis=0)
@@ -215,6 +214,7 @@ plot(grid['xr'][0,:],grid['yr'][0,:],'k:')
 plot(grid['xr'][:,0],grid['yr'][:,0],'k:')
 plot(grid['xr'][:,-1],grid['yr'][:,-1],'k:')
 show()
-
+toc = time.time()
+print "run time:",toc-tic
 # if __name__=='__main__':
 # 	run()

@@ -1,6 +1,6 @@
 SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
   &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,ntractot,xend,yend,zend, &
-            &iend,jend,kend,flag)
+            &iend,jend,kend,flag,ttend,iter)
 
 !!--------------------
 !! Loop to step a numerical drifter forward one dt.
@@ -46,12 +46,12 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 !!   ystart       :   Original y position of drifters
 !!   zstart
 !!   t0       :   Time at original position of drifters
-!!   tseas    :   Time between velocity fields that are input
+!!   tseas    :   Time between velocity fields that are input, in seconds
 !!   uflux    :   u velocity flux field, two time steps [txkxjxi]
 !!   vflux
 !!   ff      :   Trajectory direction (forward=1, backward=-1
 !!   hs        :    Sea surface height in meters [txjxi]?
-!!  
+!!   iter : nsteps in run.py, number of interpolation time steps between model outputs
 !!
 !! Output:
 !!   xend       : the new position (coordinate), x
@@ -63,23 +63,25 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 
 implicit none
 
-integer,        intent(in)                                      :: ff, IMT, JMT, KM, ntractot
+integer,        intent(in)                                      :: ff, IMT, JMT, KM, ntractot, iter
 real(kind=8),   intent(in),     dimension(ntractot)             :: xstart, ystart, zstart
-real(kind=8),   intent(out),    dimension(ntractot)             :: xend,yend,zend
-integer,   intent(out),    dimension(ntractot)             :: flag, iend, jend, kend
+real(kind=8),   intent(out),    dimension(iter,ntractot)             :: xend,yend,zend
+integer,   intent(out),    dimension(ntractot)             :: flag
+integer,   intent(out),    dimension(iter,ntractot)             :: iend, jend, kend,ttend
 real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
 real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
 real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: dzt
 real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
 ! real(kind=8),   intent(in),     dimension(KM)                   :: dz
-real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy,kmt
+real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy
+integer,   intent(in),     dimension(IMT,JMT)              :: kmt
 real(kind=8),   intent(in)                                      :: t0, tseas
 integer,        intent(in),     dimension(ntractot)             :: istart, jstart, kstart
 real(kind=8)                                                    :: rr, rg, ts, timax, &
                                                                     dstep, dtmin, dxyz, &
                                                                     dsmin, ds, dse,dsw,dsn,dss,dt, &
                                                                     x0,y0,z0,x1,y1,z1,tt,tss,rbg,rb, dsc
-integer                                                         :: ntrac, niter, iter, ia,ja,ka,&
+integer                                                         :: ntrac, niter, ia,ja,ka,&
                                                                     iam,ib,jb,kb,errCode
 integer                                         :: nsm=1,nsp=2
 real(kind=8), PARAMETER                         :: UNDEF=1.d20
@@ -88,13 +90,13 @@ real(kind=8), PARAMETER                         :: UNDEF=1.d20
 ! ntractot = size(xstart) !Sum of x0 entries
 ! The following all seem to be for interpolation between output files in addition to the necessary iterations in the file.
 !     ! controls the stepping
-!     dstep=1.d0/dble(iter)
+dstep=1.d0/dble(iter)
 !     dtmin=dstep*tseas
-dstep = 1.d0 ! The input model info is not being subdivided in this code.
+! dstep = 1.d0 ! The input model info is not being subdivided in this code.
 dtmin = dstep*tseas 
 
 timax = tseas! now in seconds *(1.d0/(24.d0*3600.d0)) ! maximum length of a trajectory in days. Just set to tseas.
-iter = 1 ! one iteration since model output is interpolated before sending in here
+! iter = 1 ! one iteration since model output is interpolated before sending in here
 
 ! kmt = KM ! Why are these separate? I think kmt is used in calc_dxyz as an array if they number of cells changes in x,y
 flag = 0
@@ -103,7 +105,7 @@ flag = 0
 !=== Loop over all trajectories and calculate        ===
 !=== a new position for this time step.              ===
 !=======================================================
-     
+
 !      call fancyTimer('advection','start')
 ntracLoop: do ntrac=1,ntractot  
 
@@ -136,7 +138,11 @@ ntracLoop: do ntrac=1,ntractot
     niterLoop: do 
         niter=niter+1 ! iterative step of trajectory
 !         print *,'niter=',niter
-        rg=dmod(ts,1.d0) ! time interpolation constant between 0 and 1
+        ! KMT change: using the dmod function makes the final rr,rg values be switched
+        ! in value, so rr=1, rg=0 when it should be the opposite at the end of a model time step
+        ! However, I am not sure why this would be wrong here, so I want to ask in the future.
+        rg=ts/1.d0 
+!         rg=dmod(ts,1.d0) ! time interpolation constant between 0 and 1
         rr=1.d0-rg
 !         print *,'ts=',ts,' rg=',rg,' rr=',rr
         ! Update particle indices and locations
@@ -147,7 +153,11 @@ ntracLoop: do ntrac=1,ntractot
         iam = ia-1
         ja = jb
         ka = kb
-        ! start track off with no error (maybe export these later to keep track of)
+!       print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2),' dxyz=',dxyz
+!       print '(a,f8.1,a,f8.1,a,f12.2)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2),' dxyz=',dxyz
+!       print *,'ia=',ia,' ja=',ja,' ka=',ka
+!       print *,'iter=',iter,'ntractot=',ntractot
+!         ! start track off with no error (maybe export these later to keep track of)
         errCode = 0
 
         ! Are tracking fields being properly updated between loops?
@@ -172,12 +182,12 @@ ntracLoop: do ntrac=1,ntractot
             print *,'====================================='
             errCode = -39
 !             flag = 1
-            xend(ntrac) = x1
-            yend(ntrac) = y1
-            zend(ntrac) = z1
-            iend(ntrac) = ib
-            jend(ntrac) = jb
-            kend(ntrac) = kb
+!             xend(ntrac) = x1
+!             yend(ntrac) = y1
+!             zend(ntrac) = z1
+!             iend(ntrac) = ib
+!             jend(ntrac) = jb
+!             kend(ntrac) = kb
             flag(ntrac) = 1 ! want to continue drifters if time was the limiting factor here
         end if
 
@@ -249,12 +259,12 @@ ntracLoop: do ntrac=1,ntractot
             print *,'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,'dsmin=',dsmin
             print *,'-------------------------------------'
             errCode = -48
-            xend(ntrac) = x1
-            yend(ntrac) = y1
-            zend(ntrac) = z1
-            iend(ntrac) = ib
-            jend(ntrac) = jb
-            kend(ntrac) = kb
+!             xend(ntrac) = x1
+!             yend(ntrac) = y1
+!             zend(ntrac) = z1
+!             iend(ntrac) = ib
+!             jend(ntrac) = jb
+!             kend(ntrac) = kb
             flag(ntrac) = 1 ! want to continue drifters if time was the limiting factor here
         end if
 
@@ -326,12 +336,12 @@ ntracLoop: do ntrac=1,ntractot
             print *,'==================================================='
     !         nerror=nerror+1
     !         nrj(ntrac,6)=1
-            xend(ntrac) = x1
-            yend(ntrac) = y1
-            zend(ntrac) = z1
-            iend(ntrac) = ib
-            jend(ntrac) = jb
-            kend(ntrac) = kb
+!             xend(ntrac) = x1
+!             yend(ntrac) = y1
+!             zend(ntrac) = z1
+!             iend(ntrac) = ib
+!             jend(ntrac) = jb
+!             kend(ntrac) = kb
             flag(ntrac) = 1
             errCode = -56
         end if
@@ -345,9 +355,13 @@ ntracLoop: do ntrac=1,ntractot
         ! === calculate the new positions ===
         ! === of the trajectory           ===    
         call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsmin,dsc,ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux)
-        print '(a,f6.2,a,f6.2,a,e6.1,a,f3.1,a,f3.1,a,f3.1)','x0=',x0,' x1=',x1,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb
-        print '(a,f8.1,a,f8.1)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2)
-
+!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','x0=',x0,' x1=',x1,&
+!             ' y0=',y0,' y1=',y1,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
+!         print '(a,f10.2,a,f10.2,a,f10.2)','tt=',tt, ' t0=',t0, ' timax=',timax
+!       print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2),' dxyz=',dxyz
+!       print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
+!         print '(a,f7.1,a,f6.1,a,f5.2,a,f5.2)', 'tt=',tt,' dt=',dt,' ts=',ts,' tss=',tss
+!         print *,''
         ! === make sure that trajectory ===
         ! === is inside ib,jb,kb box    ===
 !         print *,'ib=',ib,' jb=',jb,' x1=',x1,' idint(x1)=',idint(x1)
@@ -374,12 +388,12 @@ ntracLoop: do ntrac=1,ntractot
 !            boundError = boundError +1
            errCode = -50
 !            if (strict==1) stop
-            xend(ntrac) = x1
-            yend(ntrac) = y1
-            zend(ntrac) = z1
-            iend(ntrac) = ib
-            jend(ntrac) = jb
-            kend(ntrac) = kb
+!             xend(ntrac) = x1
+!             yend(ntrac) = y1
+!             zend(ntrac) = z1
+!             iend(ntrac) = ib
+!             jend(ntrac) = jb
+!             kend(ntrac) = kb
             flag(ntrac) = 1
 
 !            nrj(ntrac,6)=1
@@ -464,8 +478,9 @@ ntracLoop: do ntrac=1,ntractot
 !         call errorCheck('cornerError', errCode)
             ! problems if trajectory is in the exact location of a corner
             ! KMT added the second set of conditions
-         if((x1 == dble(idint(x1)) .and. y1 == dble(idint(y1))) .or. &
-            ((abs(x1-dble(idint(x1))) <= 0.001) .and. (abs(y1-dble(idint(y1))) <= 0.001))) then
+         if(x1 == dble(idint(x1)) .and. y1 == dble(idint(y1)))  then
+!          if((x1 == dble(idint(x1)) .and. y1 == dble(idint(y1))) .or. &
+!             ((abs(x1-dble(idint(x1))) <= 0.001) .and. (abs(y1-dble(idint(y1))) <= 0.001))) then
             print *,'corner problem'
             !print *,'corner problem',ntrac,x1,x0,y1,y0,ib,jb
             !print *,'ds=',ds,dse,dsw,dsn,dss,dsu,dsd,dsmin
@@ -522,36 +537,53 @@ ntracLoop: do ntrac=1,ntractot
             if(x1>=IMT) x1=dble(IMT)
             if(y1<=2.d0) y1=2.d0
             if(y1>=JMT) y1=dble(JMT)
-            xend(ntrac) = x1
-            yend(ntrac) = y1
-            zend(ntrac) = z1
-            iend(ntrac) = ib
-            jend(ntrac) = jb
-            kend(ntrac) = kb
+            ! Don't write here since the timing of the location would probably be off
+!             xend(idint(tss),ntrac) = x1
+!             yend(idint(tss),ntrac) = y1
+!             zend(idint(tss),ntrac) = z1
+!             iend(idint(tss),ntrac) = ib
+!             jend(idint(tss),ntrac) = jb
+!             kend(idint(tss),ntrac) = kb
+!             ttend(idint(tss),ntrac) = tt
             flag(ntrac) = 1
 !             print *,'I should exit'
             exit niterLoop
 !             print *,'I did not exit'
         endif
 
+        ! If no errors have caught the loop, and it is at an interpolation step,
+        ! write to array to save drifter location
+        if(dmod(tss,dble(idint(tss)))<0.00001d0) then
+          xend(idint(tss),ntrac) = x1
+          yend(idint(tss),ntrac) = y1
+          zend(idint(tss),ntrac) = z1
+          iend(idint(tss),ntrac) = ib
+          jend(idint(tss),ntrac) = jb
+          kend(idint(tss),ntrac) = kb
+          ttend(idint(tss),ntrac) = tt
+        endif
+!         print *,'x1=',x1,' y1=',y1,' tt=',tt
+
 ! This is the normal stopping routine for the loop. I am going to do a shorter one
         ! === stop trajectory if the choosen time or ===
         ! === water mass properties are exceeded     ===
+        ! Have already written to save arrays above
         if(tt-t0.ge.timax) then ! was .gt. in original code
         !               nexit(NEND)=nexit(NEND)+1
-            print *, 'Stopping trajectory due to time'
+!             print *, 'Stopping trajectory due to time'
 !             print *, 'tt=',tt,' t0=',t0,' timax=',timax
 !             print *, 'x1=',x1,' y1=',y1
-            xend(ntrac) = x1
-            yend(ntrac) = y1
-            zend(ntrac) = z1
-            iend(ntrac) = ib
-            jend(ntrac) = jb
-            kend(ntrac) = kb
+!             xend(ntrac) = x1
+!             yend(ntrac) = y1
+!             zend(ntrac) = z1
+!             iend(ntrac) = ib
+!             jend(ntrac) = jb
+!             kend(ntrac) = kb
             flag(ntrac) = 0 ! want to continue drifters if time was the limiting factor here
 !             print *,'xend=',xend,' flag=',flag
             exit niterLoop
         endif
+
 
 
 !         print *, 'x0[',niter,']=', x0, ' y0[',niter,']=',y0

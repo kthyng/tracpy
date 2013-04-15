@@ -142,6 +142,12 @@ def readgrid(loc,nc):
     ind = (mask==0)
     kmt[ind] = 0
 
+    # # Flip vertical dimension because in ROMS surface is at k=-1 
+    # # and in tracmass surface is at 1
+    # Cs_r = np.flipud(Cs_r)
+    # sc_r = np.flipud(sc_r)
+    # Cs_r and sc_r are flipped vertically!
+
     # Fill in grid structure
     grid = {'imt':imt,'jmt':jmt,'km':km, 
     	'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 

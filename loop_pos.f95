@@ -15,8 +15,8 @@ subroutine pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsmin,
     REAL*8, INTENT(IN)                         :: x0, y0, z0,ds,dse,dsw,dss,dsn,dsmin,dsc,rbg,rb, rr
     REAL*8, INTENT(OUT)                        :: x1, y1, z1
     REAL(kind=8), PARAMETER                         :: UNDEF=1.d20
-real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: vflux
+real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
+real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
 
     ! === calculate the new positions ===
     ! === of the trajectory           ===    
