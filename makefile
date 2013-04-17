@@ -49,8 +49,8 @@ F95COMPILER        = "gfortran"
 #  fl21  = -Dtracer         # Stores a simulated tracer
 #  fl22  = -Dsediment       # Sediment code developed for RCO
 #------------------------------------------------------------------------
-#  fl23  = -Dturb           # Adds subgrid turbulent velocities 
-#  fl24  = -Ddiffusion      # Adds a diffusion on trajectory
+ # fl23  = -Dturb           # Adds subgrid turbulent velocities 
+ fl24  = -Ddiffusion      # Adds a diffusion on trajectory
 #  fl25  = -Danisodiffusion # Adds an anisotropic diffusion on trajectory
 #  fl26  = -Dcoarse         # Adds a diffusion on trajectory
 #========================================================================
@@ -102,7 +102,8 @@ else
 	F2PY = f2py
 endif
 
-objects           = pos.o cross.o calc_dxyz.o calc_time.o loop_pos.o vertvel.o
+objects           = pos.o cross.o calc_dxyz.o calc_time.o loop_pos.o \
+					vertvel.o turb.o diffusion.o
 f2py_source       = step.f95
 MODULENAME		  = tracmass
                     

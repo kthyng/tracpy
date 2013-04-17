@@ -1,6 +1,6 @@
 SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
   &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,ntractot,xend,yend,zend, &
-            &iend,jend,kend,flag,ttend,iter)
+            &iend,jend,kend,flag,ttend,iter,ah)
 
 !!--------------------
 !! Loop to step a numerical drifter forward one dt.
@@ -26,6 +26,11 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 !!      * NOT full_wflux flag: Use a full 3D wflux field, and calculate it within the code
 !!      * NOT explicit_w: Use a given vertical velocity
 !!  * I have been commenting out the interpolation stuff
+!!  * There are several diffusion flags (do only one of these):
+!!      * -turb           # Adds subgrid turbulent velocities 
+!!      * -diffusion      # Adds a diffusion on trajectory
+!!      * -anisodiffusion # Adds an anisotropic diffusion on trajectory
+!!      * -coarse         # Adds a diffusion on trajectory
 !!
 !! Time variables:
 !!   These are stored for between model outputs (whether original or interpolated)
@@ -52,6 +57,7 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 !!   ff      :   Trajectory direction (forward=1, backward=-1
 !!   hs        :    Sea surface height in meters [txjxi]?
 !!   iter : nsteps in run.py, number of interpolation time steps between model outputs
+!!   ah
 !!
 !! Output:
 !!   xend       : the new position (coordinate), x
@@ -81,7 +87,7 @@ real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
 ! real(kind=8),   intent(in),     dimension(KM)                   :: dz
 real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy
 integer,   intent(in),     dimension(IMT,JMT)              :: kmt
-real(kind=8),   intent(in)                                      :: t0, tseas
+real(kind=8),   intent(in)                                      :: t0, tseas, ah
 integer,        intent(in),     dimension(ntractot)             :: istart, jstart, kstart
 real(kind=8)                                                    :: rr, rg, ts, timax, &
                                                                     dstep, dtmin, dxyz, &
@@ -91,6 +97,7 @@ integer                                                         :: ntrac, niter,
                                                                     iam,ib,jb,kb,errCode
 integer                                         :: nsm=1,nsp=2
 real(kind=8), PARAMETER                         :: UNDEF=1.d20
+real*8,  dimension(6,2) :: upr  
 
 ! Number of drifters input in x0, y0
 ! ntractot = size(xstart) !Sum of x0 entries
@@ -292,9 +299,9 @@ ntracLoop: do ntrac=1,ntractot
 !         print *,'dsmin=',dsmin,' dtmin=',dtmin,' dxyz=',dxyz
 
         ! ! === calculate the turbulent velocities ===
-        ! #ifdef turb
-        !   call turbuflux(ia,ja,ka,rr,dt)
-        ! #endif /*turb*/
+#ifdef turb
+  call turbuflux(ia,ja,ka,rr,dtmin,Ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
+#endif /*turb*/
 
         ! WHAT IS RR VS RBG VS RG? THEY ARE ALL IN VARIOUS SUBROUTINES
 
@@ -302,9 +309,9 @@ ntracLoop: do ntrac=1,ntractot
         call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
         ! supposed to be inputting nondimensional distances x0,y0 I think
 !  print *,'ja=',ja,' jb=',jb,x1,y1
-        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! zonal
-        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! meridional
-        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! vertical
+        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr) ! zonal
+        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr) ! meridional
+        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr) ! vertical
 !         ds=dmin1(dse,dsw,dsn,dss,dsmin)
 !         print *, 'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,' dsmin=',dsmin
           ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
@@ -359,7 +366,7 @@ ntracLoop: do ntrac=1,ntractot
         ! === calculate the new positions ===
         ! === of the trajectory           ===    
         call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux)
+                ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux,upr)
 !         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','x0=',x0,' x1=',x1,&
 !             ' y0=',y0,' y1=',y1,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
 !         print '(a,f10.2,a,f10.2,a,f10.2)','tt=',tt, ' t0=',t0, ' timax=',timax

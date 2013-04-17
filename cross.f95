@@ -1,4 +1,4 @@
-subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,KM,JMT,IMT)
+subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr)
   
 ! subroutine to compute time (sp,sn) when trajectory 
 ! crosses face of box (ia,ja,ka) 
@@ -20,13 +20,7 @@ subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,KM,JMT,IMT)
 !
 !    sp,sn   : crossing time to reach the grid box wall 
 !              (in units of s/m3)
-  
-
-!     USE mod_param
-!     USE mod_vel
-!     USE mod_turb
-!     USE mod_time
-    
+      
 IMPLICIT none
 integer, intent(in)     :: ijk,ia,ja,ka,ff,IMT,JMT,KM
 real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
@@ -42,6 +36,7 @@ real(kind=8),   intent(out)  :: sp,sn
 ! #else
     real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
 ! #endif
+real*8, intent(out), dimension(6,2) :: upr  
 
     rg=1.d0-rr
 
@@ -53,35 +48,35 @@ real(kind=8),   intent(out)  :: sp,sn
         uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
         um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
 !         print *,'in cross: uu=',uu,' um=',um
-! #ifdef turb   
-!       if(r0.ne.dble(ii)) then
-!         uu=uu+upr(1,2)  
-!       else
-!         uu=uu+upr(1,1)  ! add u' from previous iterative time step if on box wall
-!       endif
-!       if(r0.ne.dble(im)) then
-!         um=um+upr(2,2)
-!       else
-!         um=um+upr(2,1)  ! add u' from previous iterative time step if on box wall
-!       endif
-! #endif
+#ifdef turb   
+      if(r0.ne.dble(ii)) then
+        uu=uu+upr(1,2)  
+      else
+        uu=uu+upr(1,1)  ! add u' from previous iterative time step if on box wall
+      endif
+      if(r0.ne.dble(im)) then
+        um=um+upr(2,2)
+      else
+        um=um+upr(2,1)  ! add u' from previous iterative time step if on box wall
+      endif
+#endif
     else if(ijk.eq.2) then
         ii=ja
         uu=(rg*vflux(ia,ja  ,ka,nsp)+rr*vflux(ia,ja  ,ka,nsm))*ff
         um=(rg*vflux(ia,ja-1,ka,nsp)+rr*vflux(ia,ja-1,ka,nsm))*ff
 !         print *,'in cross: vu=',uu,' vm=',um
-! #ifdef turb    
-!       if(r0.ne.dble(ja  )) then
-!         uu=uu+upr(3,2)  
-!       else
-!         uu=uu+upr(3,1)  ! add u' from previous iterative time step if on box wall
-!       endif
-!       if(r0.ne.dble(ja-1)) then
-!         um=um+upr(4,2)
-!       else
-!         um=um+upr(4,1)  ! add u' from previous iterative time step if on box wall
-!       endif
-! #endif
+#ifdef turb    
+      if(r0.ne.dble(ja  )) then
+        uu=uu+upr(3,2)  
+      else
+        uu=uu+upr(3,1)  ! add u' from previous iterative time step if on box wall
+      endif
+      if(r0.ne.dble(ja-1)) then
+        um=um+upr(4,2)
+      else
+        um=um+upr(4,1)  ! add u' from previous iterative time step if on box wall
+      endif
+#endif
     elseif(ijk.eq.3) then
       ii=ka
 ! #ifdef full_wflux
@@ -92,18 +87,18 @@ real(kind=8),   intent(out)  :: sp,sn
       um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
 ! #endif
 
-! #ifndef twodim && turb   
-!       if(r0.ne.dble(ka  )) then
-!         uu=uu+upr(5,2)  
-!       else
-!         uu=uu+upr(5,1)  ! add u' from previous iterative time step if on box wall
-!       endif
-!       if(r0.ne.dble(ka-1)) then
-!         uu=uu+upr(6,2)  
-!       else
-!         uu=uu+upr(6,1)  ! add u' from previous iterative time step if on box wall
-!       endif
-! #endif
+#ifndef twodim && turb   
+      if(r0.ne.dble(ka  )) then
+        uu=uu+upr(5,2)  
+      else
+        uu=uu+upr(5,1)  ! add u' from previous iterative time step if on box wall
+      endif
+      if(r0.ne.dble(ka-1)) then
+        uu=uu+upr(6,2)  
+      else
+        uu=uu+upr(6,1)  ! add u' from previous iterative time step if on box wall
+      endif
+#endif
     endif
 
 ! east, north or upward crossing
