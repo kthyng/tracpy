@@ -1,4 +1,4 @@
-subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,ff,KM,JMT,IMT)
+subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,KM,JMT,IMT)
   
 ! subroutine to compute time (sp,sn) when trajectory 
 ! crosses face of box (ia,ja,ka) 
@@ -36,6 +36,12 @@ real(kind=8) :: ba,uu,um,rg,vv,vm
 integer  :: ii,im,nsm=1,nsp=2
 real(kind=8), PARAMETER                         :: UNDEF=1.d20
 real(kind=8),   intent(out)  :: sp,sn
+! #ifdef  full_wflux
+!     ! Not sure if this is right
+!     real(kind=8),   intent(in),     dimension(IMT,JMT,KM+1,2)         :: wflux
+! #else
+    real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
+! #endif
 
     rg=1.d0-rr
 
@@ -43,6 +49,7 @@ real(kind=8),   intent(out)  :: sp,sn
         ii=ia
         im=ia-1
         if(im.eq.0) im=IMT
+! print *,'a'
         uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
         um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
 !         print *,'in cross: uu=',uu,' um=',um
@@ -75,14 +82,14 @@ real(kind=8),   intent(out)  :: sp,sn
 !         um=um+upr(4,1)  ! add u' from previous iterative time step if on box wall
 !       endif
 ! #endif
-!     elseif(ijk.eq.3) then
-!       ii=ka
+    elseif(ijk.eq.3) then
+      ii=ka
 ! #ifdef full_wflux
 !       uu=wflux(ia ,ja ,ka   ,nsm)
 !       um=wflux(ia ,ja ,ka-1 ,nsm)
 ! #else
-!       uu=rg*wflux(ka  ,nsp)+rr*wflux(ka  ,nsm)
-!       um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
+      uu=rg*wflux(ka  ,nsp)+rr*wflux(ka  ,nsm)
+      um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
 ! #endif
 
 ! #ifndef twodim && turb   

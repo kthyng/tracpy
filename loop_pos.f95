@@ -1,4 +1,5 @@
-subroutine pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsmin,dsc,ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux)
+subroutine pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
+                &ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux)
 ! === calculate the new positions ===
 ! === of the trajectory           ===    
 !
@@ -12,11 +13,17 @@ subroutine pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsmin,
     REAL(kind=8)                                       :: uu
     INTEGER, intent(in)                        :: ia, iam, ja, ka, IMT, JMT, KM,ff
     integer, intent(out)  :: ib, jb, kb
-    REAL*8, INTENT(IN)                         :: x0, y0, z0,ds,dse,dsw,dss,dsn,dsmin,dsc,rbg,rb, rr
+    REAL*8, INTENT(IN)                         :: x0, y0, z0,ds,dse,dsw,dss,dsn,dsd,dsu,dsmin,dsc,rbg,rb, rr
     REAL*8, INTENT(OUT)                        :: x1, y1, z1
     REAL(kind=8), PARAMETER                         :: UNDEF=1.d20
 real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
 real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
+! #ifdef  full_wflux
+!     ! Not sure if this is right
+!     real(kind=8),   intent(in),     dimension(IMT,JMT,KM+1,2)         :: wflux
+! #else
+    real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
+! #endif
 
     ! === calculate the new positions ===
     ! === of the trajectory           ===    
@@ -33,8 +40,8 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
             if(ib.gt.IMT) ib=ib-IMT ! IMT is a grid parameter
         endif
         x1=dble(ia)
-        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) 
-        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM)
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM)
 
     else if(ds==dsw) then ! westward grid-cell exit
 !         print *,'dsw'
@@ -44,8 +51,8 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
             ib=iam
         endif
         x1=dble(iam)
-        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! meridional position
-        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vertical position
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! meridional position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vertical position
 !       scrivi=.true.      
 
     else if(ds==dsn) then ! northward grid-cell exit
@@ -56,8 +63,8 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
             jb=ja+1
         endif
         y1=dble(ja)
-        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! zonal position
-        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vertical position
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vertical position
 
     else if(ds==dss) then ! southward grid-cell exit
 !         print *,'dss'
@@ -71,41 +78,40 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
 #endif
        endif
        y1=dble(ja-1)
-       call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! zonal position
-       call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vertical position
+       call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+       call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vertical position
        
-!     elseif(ds==dsu) then ! upward grid-cell exit
+    elseif(ds==dsu) then ! upward grid-cell exit
 !        scrivi=.false.
-!        call vertvel(rb,ia,iam,ja,ka)
+       call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
 ! #ifdef full_wflux
 !        uu=wflux(ia,ja,ka,nsm)
 ! #else
-!        uu=rbg*wflux(ka,nsp)+rb*wflux(ka,nsm)
+       uu=rbg*wflux(ka,nsp)+rb*wflux(ka,nsm)
 ! #endif
-!        if(uu.gt.0.d0) then
-!           kb=ka+1
-!        endif
-!        z1=dble(ka)
-!        if(kb==KM+1) then    ! prevent "evaporation" and put particle from the surface
-!           kb=KM           
-!           z1=dble(KM)-0.5d0 ! to the middle of the surface layer
-!        endif
-!        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr)
-!        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr)
+       if(uu.gt.0.d0) then
+          kb=ka+1
+       endif
+       z1=dble(ka)
+       if(kb==KM+1) then    ! prevent "evaporation" and put particle from the surface
+          kb=KM           
+          z1=dble(KM)-0.5d0 ! to the middle of the surface layer
+       endif
+       call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+       call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! meridional position
 
-
-!     elseif(ds==dsd) then ! downward grid-cell exit
+    elseif(ds==dsd) then ! downward grid-cell exit
 !        scrivi=.false.
-!        call vertvel(rb,ia,iam,ja,ka)
+       call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
        
 ! #ifdef full_wflux
 !        if(wflux(ia,ja,ka-1,nsm).lt.0.d0) kb=ka-1
 ! #else
-!        if(rbg*wflux(ka-1,nsp)+rb*wflux(ka-1,nsm).lt.0.d0) kb=ka-1
+       if(rbg*wflux(ka-1,nsp)+rb*wflux(ka-1,nsm).lt.0.d0) kb=ka-1
 ! #endif              
-!        z1=dble(ka-1)
-!        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr)
-!        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr)
+       z1=dble(ka-1)
+       call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+       call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! meridional position
 
     else if( ds==dsc .or. ds==dsmin) then  
 !         print *,'ds=',ds,' dsc=',dsc,' dsmin=',dsmin
@@ -139,9 +145,9 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
         endif
 !       else
 ! print *,'before: ia=',ia,' x0=',x0,' x1=',x1
-        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! zonal crossing 
-        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! merid. crossing 
-        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,ff,IMT,JMT,KM) ! vert. crossing 
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal crossing 
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! merid. crossing 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vert. crossing 
 ! print *,'after: ia=',ia,' x0=',x0,' x1=',x1
 !       endif
     endif

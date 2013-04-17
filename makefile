@@ -35,7 +35,7 @@ F95COMPILER        = "gfortran"
                             # calculated in an identical previous run.    
 #   fl12  = -Dinitxyt        # Start trajectories at given positions and times
 #------------------------------------------------------------------------
-  fl13  = -Dtwodim         # Turn off vertical velocities.
+#  fl13  = -Dtwodim         # Turn off vertical velocities.
 #  fl14  = -Dfull_wflux     # Use a full 3D wflux field.
 #  fl15  = -Dexplicit_w     # Use a given vertical velocity.
 #------------------------------------------------------------------------
@@ -102,7 +102,7 @@ else
 	F2PY = f2py
 endif
 
-objects           = pos.o cross.o calc_dxyz.o calc_time.o loop_pos.o
+objects           = pos.o cross.o calc_dxyz.o calc_time.o loop_pos.o vertvel.o
 f2py_source       = step.f95
 MODULENAME		  = tracmass
                     

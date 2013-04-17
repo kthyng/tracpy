@@ -22,9 +22,9 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 !!  * NOT tracer flag
 !!  * ifs flag looks like it is for a specific example, ignoring for now
 !!  * Vertical flags:
-!!      * two dim flag: sets vertical velocity to zero and drifters are essentially drogued USE THIS
-!!      * full_wflux flag: Use a full 3D wflux field, and calculate it within the code
-!!      * explicit_w: Use a given vertical velocity
+!!      * two dim flag: sets vertical velocity to zero and drifters are essentially drogued
+!!      * NOT full_wflux flag: Use a full 3D wflux field, and calculate it within the code
+!!      * NOT explicit_w: Use a given vertical velocity
 !!  * I have been commenting out the interpolation stuff
 !!
 !! Time variables:
@@ -70,6 +70,12 @@ integer,   intent(out),    dimension(ntractot)             :: flag
 integer,   intent(out),    dimension(iter,ntractot)             :: iend, jend, kend,ttend
 real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
 real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
+! #ifdef  full_wflux
+!     ! Not sure if this is right
+!     real(kind=8),        dimension(IMT,JMT,KM+1,2)         :: wflux
+! #else
+    real(kind=8),        dimension(0:KM,2)         :: wflux
+! #endif
 real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: dzt
 real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
 ! real(kind=8),   intent(in),     dimension(KM)                   :: dz
@@ -79,7 +85,7 @@ real(kind=8),   intent(in)                                      :: t0, tseas
 integer,        intent(in),     dimension(ntractot)             :: istart, jstart, kstart
 real(kind=8)                                                    :: rr, rg, ts, timax, &
                                                                     dstep, dtmin, dxyz, &
-                                                                    dsmin, ds, dse,dsw,dsn,dss,dt, &
+                                                                    dsmin, ds, dse,dsw,dsn,dss,dsd,dsu,dt, &
                                                                     x0,y0,z0,x1,y1,z1,tt,tss,rbg,rb, dsc
 integer                                                         :: ntrac, niter, ia,ja,ka,&
                                                                     iam,ib,jb,kb,errCode
@@ -164,7 +170,6 @@ ntracLoop: do ntrac=1,ntractot
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
 
         call calc_dxyz(ib,jb,kb,rr,KM,kmt,dzt,hs,dxdy,dxyz,JMT,IMT)
-!         call calc_dxyz(ib,jb,kb,rr,KM,kmt,dzt,hs,dxdy,dxyz,JMT,IMT)
         ! I am putting the error checks directly in the loop for convenience
         !         call errorCheck('dxyzError',errCode,dxyz,flag)
         ! Check the grid box volume
@@ -294,15 +299,15 @@ ntracLoop: do ntrac=1,ntractot
         ! WHAT IS RR VS RBG VS RG? THEY ARE ALL IN VARIOUS SUBROUTINES
 
         ! === calculate the vertical velocity ===
-        !             call vertvel(rr,ia,iam,ja,ka) ! Start with 2D drifters
+        call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
         ! supposed to be inputting nondimensional distances x0,y0 I think
 !  print *,'ja=',ja,' jb=',jb,x1,y1
-        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,ff,KM,JMT,IMT) ! zonal
-        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,ff,KM,JMT,IMT) ! meridional
-        !             call cross(3,ia,ja,ka,z0,dsu,dsd,rr) ! vertical ! Start with 2D drifters
-        ds=dmin1(dse,dsw,dsn,dss,dsmin)
+        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! zonal
+        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! meridional
+        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! vertical
+!         ds=dmin1(dse,dsw,dsn,dss,dsmin)
 !         print *, 'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,' dsmin=',dsmin
-        !             ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
+          ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
 !         print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
 
 !         call errorCheck('dsCrossError', errCode)
@@ -347,14 +352,14 @@ ntracLoop: do ntrac=1,ntractot
         end if
         if (errCode.ne.0) cycle ntracLoop
 
-
         call calc_time(ds,dsmin,dt,dtmin,tss,tseas,ts,tt,dxyz,dstep,iter,rbg,rb,dsc)
 
 !         print *,'After calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dt=',dt,' dtmin=',dtmin
 
         ! === calculate the new positions ===
         ! === of the trajectory           ===    
-        call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsmin,dsc,ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux)
+        call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
+                ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux)
 !         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','x0=',x0,' x1=',x1,&
 !             ' y0=',y0,' y1=',y1,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
 !         print '(a,f10.2,a,f10.2,a,f10.2)','tt=',tt, ' t0=',t0, ' timax=',timax
@@ -362,7 +367,7 @@ ntracLoop: do ntrac=1,ntractot
 !       print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
 !         print '(a,f7.1,a,f6.1,a,f5.2,a,f5.2)', 'tt=',tt,' dt=',dt,' ts=',ts,' tss=',tss
 !         print *,''
-        ! === make sure that trajectory ===
+!         === make sure that trajectory ===
         ! === is inside ib,jb,kb box    ===
 !         print *,'ib=',ib,' jb=',jb,' x1=',x1,' idint(x1)=',idint(x1)
         if(x1.ne.dble(idint(x1))) ib=idint(x1)+1 ! index for correct cell?

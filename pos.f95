@@ -1,4 +1,4 @@
-subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,ff,IMT,JMT,KM)
+subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM)
 #ifndef timeanalyt 
 !====================================================================
 ! computes new position (r0 --> r1) of trajectory after time ds
@@ -28,6 +28,12 @@ real(kind=8), intent(out) :: r1
 integer, intent(in) :: ijk,ia,ja,ka,ff,IMT,JMT,KM
 real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
 real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
+! #ifdef  full_wflux
+!     ! Not sure if this is right
+!     real(kind=8),   intent(in),     dimension(IMT,JMT,KM+1,2)         :: wflux
+! #else
+    real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
+! #endif
 
 rg=1.d0-rr
 
@@ -83,31 +89,31 @@ else if(ijk.eq.2) then
 !         ! add u' from previous iterative time step if on box wall
 !      endif
 ! #endif
-!   elseif(ijk.eq.3) then
-!      ii=ka
+  elseif(ijk.eq.3) then
+     ii=ka
 ! #ifdef full_wflux
 !      uu=wflux(ia ,ja ,ka   ,nsm)
 !      um=wflux(ia ,ja ,ka-1 ,nsm)
 ! #else
-!      uu=rg*wflux(ka  ,nsp)+rr*wflux(ka  ,nsm)
-!      um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
+     uu=rg*wflux(ka  ,nsp)+rr*wflux(ka  ,nsm)
+     um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
 ! #endif
-! #ifndef twodim   
-! #ifdef turb    
-!      if(r0.ne.dble(ka  )) then
-!         uu=uu+upr(5,2)  
-!      else
-!         uu=uu+upr(5,1)  
-!         ! add u' from previous iterative time step if on box wall
-!      endif
-!      if(r0.ne.dble(ka-1)) then
-!         uu=uu+upr(6,2)  
-!      else
-!         uu=uu+upr(6,1)  
-!         ! add u' from previous iterative time step if on box wall
-!      endif
-! #endif
-! #endif
+#ifndef twodim   
+#ifdef turb    
+     if(r0.ne.dble(ka  )) then
+        uu=uu+upr(5,2)  
+     else
+        uu=uu+upr(5,1)  
+        ! add u' from previous iterative time step if on box wall
+     endif
+     if(r0.ne.dble(ka-1)) then
+        uu=uu+upr(6,2)  
+     else
+        uu=uu+upr(6,1)  
+        ! add u' from previous iterative time step if on box wall
+     endif
+#endif
+#endif
 endif
 
 !
