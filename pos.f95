@@ -34,7 +34,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
 ! #else
     real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
 ! #endif
-real*8, intent(out), dimension(6,2) :: upr  
+real*8, optional, intent(out), dimension(6,2) :: upr  
 
 rg=1.d0-rr
 

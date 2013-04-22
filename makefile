@@ -35,8 +35,8 @@ F95COMPILER        = "gfortran"
                             # calculated in an identical previous run.    
 #   fl12  = -Dinitxyt        # Start trajectories at given positions and times
 #------------------------------------------------------------------------
-#  fl13  = -Dtwodim         # Turn off vertical velocities.
-#  fl14  = -Dfull_wflux     # Use a full 3D wflux field.
+ # fl13  = -Dtwodim         # Turn off vertical velocities.
+ # fl14  = -Dfull_wflux     # Use a full 3D wflux field.
 #  fl15  = -Dexplicit_w     # Use a given vertical velocity.
 #------------------------------------------------------------------------
 #   fl16  = -Dvarbottombox   # Variable bottom box to match actual depth
@@ -50,7 +50,7 @@ F95COMPILER        = "gfortran"
 #  fl22  = -Dsediment       # Sediment code developed for RCO
 #------------------------------------------------------------------------
  # fl23  = -Dturb           # Adds subgrid turbulent velocities 
- fl24  = -Ddiffusion      # Adds a diffusion on trajectory
+fl24  = -Ddiffusion      # Adds a diffusion on trajectory
 #  fl25  = -Danisodiffusion # Adds an anisotropic diffusion on trajectory
 #  fl26  = -Dcoarse         # Adds a diffusion on trajectory
 #========================================================================
@@ -104,7 +104,8 @@ endif
 
 objects           = pos.o cross.o calc_dxyz.o calc_time.o loop_pos.o \
 					vertvel.o turb.o diffusion.o
-f2py_source       = step.f95
+f2py_source       = outdir/step.f95
+#f2py_source       = step.f95
 MODULENAME		  = tracmass
                     
 # objects           = modules.o seed.o  savepsi.o loop_pos.o init_seed.o \
@@ -125,7 +126,10 @@ runtracmass : $(objects)
 
 $(objects) : 
 
+#preproc : $(FF) -E $(ARG_FLAGS) $(f2py_source) -o outdir/$(f2py_source)
+
 f2py : $(objects)
+	$(FF) -E $(ARG_FLAGS) -x f95-cpp-input step.f95 -o outdir/step.f95
 	$(F2PY) $(objects) -c $(f2py_source) -m $(MODULENAME)
 #readfield.o:  projects/$(PROJECT)/readfield.f95
 #	$(FF) $(FF_FLAGS) $(ORM_FLAGS) projects/$(PROJECT)/readfield.f95 -o tmp/$@

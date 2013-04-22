@@ -41,10 +41,11 @@ wflux=0.d0
 ! start 3D code
 #else
   kloop: do k=1,ka
-     uu=rg*uflux(ia ,ja  ,k,nsp)+rr*uflux(ia ,ja  ,k,nsm)
-     um=rg*uflux(iam,ja  ,k,nsp)+rr*uflux(iam,ja  ,k,nsm)
-     vv=rg*vflux(ia ,ja  ,k,nsp)+rr*vflux(ia ,ja  ,k,nsm)
-     vm=rg*vflux(ia ,ja-1,k,nsp)+rr*vflux(ia ,ja-1,k,nsm)
+  ! these only need to be defined if we use full_wflux, which we aren't doing right now
+!      uu=rg*uflux(ia ,ja  ,k,nsp)+rr*uflux(ia ,ja  ,k,nsm)
+!      um=rg*uflux(iam,ja  ,k,nsp)+rr*uflux(iam,ja  ,k,nsm)
+!      vv=rg*vflux(ia ,ja  ,k,nsp)+rr*vflux(ia ,ja  ,k,nsm)
+!      vm=rg*vflux(ia ,ja-1,k,nsp)+rr*vflux(ia ,ja-1,k,nsm)
 
 ! ! start ifs code
 ! #if defined ifs

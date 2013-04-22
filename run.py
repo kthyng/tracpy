@@ -57,6 +57,7 @@ Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:]
 tout = np.int((ndays*(24*3600))/Dt)
 tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
 ah = 350. # horizontal diffusion in m^2/s. See project values of 350, 100, 0, 2000. For -turb
+av = 0. # m^2/s
 
 # THINK I NEED THIS STARTED HERE AND THEN UPDATED IN STEP
 # tt = ints*tseas
@@ -170,7 +171,7 @@ for tind in tinds:
 						tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
 						np.ma.compressed(zstart),t0,np.ma.compressed(ia),np.ma.compressed(ja),
 						np.ma.compressed(ka),tseas,uflux,
-						vflux,ff,grid['kmt'].astype(int),dzt,hs,grid['dxdy'],nsteps,ah)#dz.data,dxdy)
+						vflux,ff,grid['kmt'].astype(int),dzt,hs,grid['dxdy'],nsteps,ah,av)#dz.data,dxdy)
 		# if np.sum(flag)>0:
 		# pdb.set_trace()
 		# CHECK THIS, want time for each time step between model outputs

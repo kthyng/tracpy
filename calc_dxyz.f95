@@ -51,6 +51,7 @@ real(kind=8), intent(out)                                    :: dxyz
 !     dxyz=rg*dxyzarray(ib,jb,kb,nsp)+rr*dxyzarray(ib,jb,kb,nsm)
     dxyz=rg*dzt(ib,jb,kb,nsp)+rr*dzt(ib,jb,kb,nsm)
 #elif  zgrid3D
+! 	print *,'this is happening in cakc_dxyz'
     dxyz=dzt(ib,jb,kb)
 #ifdef freesurface
     if(kb == KM) dxyz=dxyz+rg*hs(ib,jb,nsp)+rr*hs(ib,jb,nsm)

@@ -36,7 +36,7 @@ real(kind=8),   intent(out)  :: sp,sn
 ! #else
     real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
 ! #endif
-real*8, intent(out), dimension(6,2) :: upr  
+real*8, optional, intent(out), dimension(6,2) :: upr  
 
     rg=1.d0-rr
 
@@ -87,7 +87,11 @@ real*8, intent(out), dimension(6,2) :: upr
       um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
 ! #endif
 
-#ifndef twodim && turb   
+! #ifndef twodim && turb   ! master code at tracmass github has this change
+#ifndef twodim
+#ifdef turb
+!         print *,'this is happening'
+!         print *,'if defined turb',twodim,'turb=',turb
       if(r0.ne.dble(ka  )) then
         uu=uu+upr(5,2)  
       else
@@ -98,6 +102,7 @@ real*8, intent(out), dimension(6,2) :: upr
       else
         uu=uu+upr(6,1)  ! add u' from previous iterative time step if on box wall
       endif
+#endif
 #endif
     endif
 

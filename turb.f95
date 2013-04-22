@@ -1,5 +1,6 @@
-#ifdef turb    
 subroutine turbuflux(ia,ja,ka,rr,dtmin,Ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
+!KMT had to move this inside subroutine
+#ifdef turb    
   
   ! computes the paramterised turbulent velocities u' and v' into upr
 
@@ -116,6 +117,6 @@ amp=Ah/( dtmin**(1./3.) )
  
  
  return
+#endif ! KMT had to move this inside subroutine
 end subroutine turbuflux
-#endif
 !_______________________________________________________________________

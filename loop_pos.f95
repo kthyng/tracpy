@@ -24,7 +24,7 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
 ! #else
     real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
 ! #endif
-real*8, intent(out), dimension(6,2) :: upr  
+real*8, optional, intent(in), dimension(6,2) :: upr  
 
     ! === calculate the new positions ===
     ! === of the trajectory           ===    
@@ -41,8 +41,13 @@ real*8, intent(out), dimension(6,2) :: upr
             if(ib.gt.IMT) ib=ib-IMT ! IMT is a grid parameter
         endif
         x1=dble(ia)
+#ifdef turb
         call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) 
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr)
+#else
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM)
+#endif /*turb*/
 
     else if(ds==dsw) then ! westward grid-cell exit
 !         print *,'dsw'
@@ -52,8 +57,13 @@ real*8, intent(out), dimension(6,2) :: upr
             ib=iam
         endif
         x1=dble(iam)
+#ifdef turb
         call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! meridional position
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! vertical position
+#else
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! meridional position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vertical position
+#endif /*turb*/
 !       scrivi=.true.      
 
     else if(ds==dsn) then ! northward grid-cell exit
@@ -64,8 +74,13 @@ real*8, intent(out), dimension(6,2) :: upr
             jb=ja+1
         endif
         y1=dble(ja)
+#ifdef turb
         call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! zonal position
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! vertical position
+#else
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vertical position
+#endif /*turb*/
 
     else if(ds==dss) then ! southward grid-cell exit
 !         print *,'dss'
@@ -79,8 +94,13 @@ real*8, intent(out), dimension(6,2) :: upr
 #endif
        endif
        y1=dble(ja-1)
+#ifdef turb
        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! zonal position
        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! vertical position
+#else
+       call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+       call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vertical position
+#endif /*turb*/
        
     elseif(ds==dsu) then ! upward grid-cell exit
 !        scrivi=.false.
@@ -98,8 +118,13 @@ real*8, intent(out), dimension(6,2) :: upr
           kb=KM           
           z1=dble(KM)-0.5d0 ! to the middle of the surface layer
        endif
+#ifdef turb
        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! zonal position
        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! meridional position
+#else
+       call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+       call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! meridional position
+#endif /*turb*/
 
     elseif(ds==dsd) then ! downward grid-cell exit
 !        scrivi=.false.
@@ -111,8 +136,13 @@ real*8, intent(out), dimension(6,2) :: upr
        if(rbg*wflux(ka-1,nsp)+rb*wflux(ka-1,nsm).lt.0.d0) kb=ka-1
 ! #endif              
        z1=dble(ka-1)
+#ifdef turb
        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! zonal position
        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! meridional position
+#else
+       call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal position
+       call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! meridional position
+#endif /*turb*/
 
     else if( ds==dsc .or. ds==dsmin) then  
 !         print *,'ds=',ds,' dsc=',dsc,' dsmin=',dsmin
@@ -146,9 +176,15 @@ real*8, intent(out), dimension(6,2) :: upr
         endif
 !       else
 ! print *,'before: ia=',ia,' x0=',x0,' x1=',x1
+#ifdef turb
         call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! zonal crossing 
         call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! merid. crossing 
         call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM,upr) ! vert. crossing 
+#else
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! zonal crossing 
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! merid. crossing 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,IMT,JMT,KM) ! vert. crossing 
+#endif /*turb*/
 ! print *,'after: ia=',ia,' x0=',x0,' x1=',x1
 !       endif
     endif
