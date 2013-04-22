@@ -56,8 +56,8 @@ Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:]
 # Number of model outputs to use
 tout = np.int((ndays*(24*3600))/Dt)
 tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
-ah = 350. # horizontal diffusion in m^2/s. See project values of 350, 100, 0, 2000. For -turb
-av = 0. # m^2/s
+ah = 100. # horizontal diffusion in m^2/s. See project values of 350, 100, 0, 2000. For -turb,-diffusion
+av = 1.e-5 # m^2/s, or try 5e-6
 
 # THINK I NEED THIS STARTED HERE AND THEN UPDATED IN STEP
 # tt = ints*tseas
@@ -83,7 +83,7 @@ fX = grid['tric'].nn_interpolator(grid['X'].flatten())
 fY = grid['tric'].nn_interpolator(grid['Y'].flatten())
 xstart0 = fX(x0,y0)
 ystart0 = fY(x0,y0)
-zstart0 = np.ones(xstart0.shape)
+zstart0 = np.ones(xstart0.shape)*5.
 # Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
 # # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
 # # want ceil(xstart0+1)
@@ -170,8 +170,8 @@ for tind in tinds:
 						iend[j*nsteps:j*nsteps+nsteps,ind],jend[j*nsteps:j*nsteps+nsteps,ind],kend[j*nsteps:j*nsteps+nsteps,ind],flag[ind],ttend[j*nsteps:j*nsteps+nsteps,ind] = \
 						tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
 						np.ma.compressed(zstart),t0,np.ma.compressed(ia),np.ma.compressed(ja),
-						np.ma.compressed(ka),tseas,uflux,
-						vflux,ff,grid['kmt'].astype(int),dzt,hs,grid['dxdy'],nsteps,ah,av)#dz.data,dxdy)
+						np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
+						dzt,hs,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av)#dz.data,dxdy)
 		# if np.sum(flag)>0:
 		# pdb.set_trace()
 		# CHECK THIS, want time for each time step between model outputs

@@ -24,7 +24,7 @@ def setupROMSfiles(loc,date,ff,tout):
 	'''
 
 
-	# files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # sorted list of file names
+	# files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
 	files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
 	# pdb.set_trace()
 	# files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # sorted list of file names

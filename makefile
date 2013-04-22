@@ -50,8 +50,8 @@ F95COMPILER        = "gfortran"
 #  fl22  = -Dsediment       # Sediment code developed for RCO
 #------------------------------------------------------------------------
  # fl23  = -Dturb           # Adds subgrid turbulent velocities 
-fl24  = -Ddiffusion      # Adds a diffusion on trajectory
-#  fl25  = -Danisodiffusion # Adds an anisotropic diffusion on trajectory
+ fl24  = -Ddiffusion      # Adds a diffusion on trajectory
+ fl25  = -Danisodiffusion # Adds an anisotropic diffusion on trajectory
 #  fl26  = -Dcoarse         # Adds a diffusion on trajectory
 #========================================================================
 
@@ -142,6 +142,9 @@ f2py : $(objects)
 
 #main.o : main.f95 
 #	$(FF) $(FF_FLAGS) $(ORM_FLAGS) main.f95
+
+# minclean :
+# 	-rm *.o
 
 .PHONY : clean
 clean :

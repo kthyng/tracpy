@@ -1,5 +1,5 @@
 SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
-  &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,ntractot,xend,yend,zend, &
+  &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,dxv,dyu,h,ntractot,xend,yend,zend, &
             &iend,jend,kend,flag,ttend,iter,ah,av)
 
 !!--------------------
@@ -30,6 +30,7 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 !!      * -turb           # Adds subgrid turbulent velocities 
 !!      * -diffusion      # Adds a diffusion on trajectory
 !!      * -anisodiffusion # Adds an anisotropic diffusion on trajectory
+!!                          Use -anisodiffusion with diffusion flag
 !!      * -coarse         # Adds a diffusion on trajectory
 !!
 !! Time variables:
@@ -56,6 +57,7 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 !!   vflux
 !!   ff      :   Trajectory direction (forward=1, backward=-1
 !!   hs        :    Sea surface height in meters [txjxi]?
+!!   h            depths [imt,jmt]
 !!   iter : nsteps in run.py, number of interpolation time steps between model outputs
 !!   ah
 !!
@@ -85,8 +87,10 @@ real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
 real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: dzt
 real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
 ! real(kind=8),   intent(in),     dimension(KM)                   :: dz
-real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy
+real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy,h
 integer,   intent(in),     dimension(IMT,JMT)              :: kmt
+integer,   intent(in),     dimension(IMT-1,JMT)              :: dyu
+integer,   intent(in),     dimension(IMT,JMT-1)              :: dxv
 real(kind=8),   intent(in)                                      :: t0, tseas, ah,av
 integer,        intent(in),     dimension(ntractot)             :: istart, jstart, kstart
 real(kind=8)                                                    :: rr, rg, ts, timax, &
@@ -99,7 +103,7 @@ integer                                         :: nsm=1,nsp=2
 real(kind=8), PARAMETER                         :: UNDEF=1.d20
 #ifdef  turb
   real*8,  dimension(6,2) :: upr  
-  print *,'upr is being allocated'
+!   print *,'upr is being allocated'
 #endif /*turb*/
 
 ! Number of drifters input in x0, y0
@@ -306,8 +310,6 @@ ntracLoop: do ntrac=1,ntractot
   call turbuflux(ia,ja,ka,rr,dtmin,Ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
 #endif /*turb*/
 
-        ! WHAT IS RR VS RBG VS RG? THEY ARE ALL IN VARIOUS SUBROUTINES
-
         ! === calculate the vertical velocity ===
         call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
 !         print *,'wflux=',wflux
@@ -376,15 +378,15 @@ ntracLoop: do ntrac=1,ntractot
         ! === calculate the new positions ===
         ! === of the trajectory           ===    
 #ifdef turb
-print *,'using turb'
+! print *,'using turb'
         call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux,upr)
 #else
         call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux)
 #endif /*turb*/
-!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+        print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+            ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
 ! !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0, ' timax=',timax,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
 !       print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2),' dxyz=',dxyz
 !       print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
@@ -542,8 +544,8 @@ print *,'using turb'
 
 #ifdef diffusion     
 ! #if defined diffusion     
-print *,'using diffusion'
-           call diffuse(x1, y1, z1, ib, jb, kb, dt,IMT,JMT,KM,kmt,ah,av)
+! print *,'using diffusion'
+           call diffuse(x1, y1, z1, ib, jb, kb, dt,IMT,JMT,KM,kmt,dxv,dyu,dzt,h,ah,av)
 #endif /*diffusion*/
 ! #endif
         !         nout=nout+1 ! number of trajectories that have exited the space and time domain
