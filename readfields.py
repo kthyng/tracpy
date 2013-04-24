@@ -78,11 +78,12 @@ def readfields(tind,grid,nc):
 		uflux1[:,:,k] = u[:,:,k]*dzu[:,:,k]*grid['dyu']
 		vflux1[:,:,k] = v[:,:,k]*dzv[:,:,k]*grid['dxv']
 
-	# Flip vertical dimension because in ROMS surface is at k=-1 
-	# and in tracmass surface is at 1
-	uflux1 = uflux1[:,:,::-1]
-	vflux1 = vflux1[:,:,::-1]
-	dzt = dzt[:,:,::-1]
+	# # Flip vertical dimension because in ROMS surface is at k=-1 
+	# # and in tracmass surface is at 1
+	# # This is not true. In tracmass, surface is at k=KM
+	# uflux1 = uflux1[:,:,::-1]
+	# vflux1 = vflux1[:,:,::-1]
+	# dzt = dzt[:,:,::-1]
 	# uflux1 = np.flipud(uflux1)
 	# vflux1 = np.flipud(vflux1)
 	# dzt = np.flipud(dzt)

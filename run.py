@@ -46,9 +46,9 @@ elif 'hafen.tamu.edu' in os.uname():
 # Initialize parameters
 nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
 ndays = 1 # number of days to track the particles
-ff = 1 # 1 forward, -1 backward
+ff = -1 # 1 forward, -1 backward
 # Start date
-date = datetime(2009,11, 20, 0)
+date = datetime(2009,11, 30, 0)
 # Convert date to number
 date = netCDF.date2num(date,units)
 # Time between outputs
@@ -83,7 +83,7 @@ fX = grid['tric'].nn_interpolator(grid['X'].flatten())
 fY = grid['tric'].nn_interpolator(grid['Y'].flatten())
 xstart0 = fX(x0,y0)
 ystart0 = fY(x0,y0)
-zstart0 = np.ones(xstart0.shape)*5.
+zstart0 = np.ones(xstart0.shape)*grid['km'] # The surface in tracmass is at k=KM
 # Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
 # # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
 # # want ceil(xstart0+1)

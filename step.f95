@@ -307,7 +307,7 @@ ntracLoop: do ntrac=1,ntractot
 
         ! ! === calculate the turbulent velocities ===
 #ifdef turb
-  call turbuflux(ia,ja,ka,rr,dtmin,Ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
+  call turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
 #endif /*turb*/
 
         ! === calculate the vertical velocity ===
