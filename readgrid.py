@@ -130,11 +130,12 @@ def readgrid(loc,nc):
     dyu = dyu[:-1,:]
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
+    # pdb.set_trace()
     kmt = np.ones((imt,jmt))*km
     ind = (mask[1:imt,:]==1)
     mask[0:imt-1,ind] = 1
-    ind = (mask[:,1:imt]==1)
-    mask[:,0:jmt-1] = 1
+    ind = (mask[:,1:jmt]==1)
+    mask[ind,0:jmt-1] = 1
     # ind = (mask[1:imt-1,:]==1)
     # mask[0:imt-2,ind] = 1
     # ind = (mask[:,1:imt-1]==1)
