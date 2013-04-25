@@ -15,7 +15,7 @@ from setupROMSfiles import *
 from readgrid import *
 from mpl_toolkits.basemap import Basemap
 import time
-
+from matplotlib.mlab import *
 
 '''
 
@@ -45,7 +45,7 @@ elif 'hafen.tamu.edu' in os.uname():
 
 # Initialize parameters
 nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
-ndays = 10 # number of days to track the particles
+ndays = 1 # number of days to track the particles
 ff = -1 # 1 forward, -1 backward
 # Start date
 date = datetime(2009,11, 30, 0)
@@ -83,7 +83,13 @@ fX = grid['tric'].nn_interpolator(grid['X'].flatten())
 fY = grid['tric'].nn_interpolator(grid['Y'].flatten())
 xstart0 = fX(x0,y0)
 ystart0 = fY(x0,y0)
-zstart0 = np.ones(xstart0.shape)*grid['km'] # The surface in tracmass is at k=KM
+
+# Input initial vertical locations in real space. 
+# These are converted to grid space once dzt is calculated
+# z0 = np.zeros(xstart0.shape) # surface
+z0 = np.ones(xstart0.shape)*-1. # 5 meters below the surface
+
+# zstart0 = np.ones(xstart0.shape)*grid['km'] # The surface in tracmass is at k=KM
 # Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
 # # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
 # # want ceil(xstart0+1)
@@ -92,7 +98,6 @@ zstart0 = np.ones(xstart0.shape)*grid['km'] # The surface in tracmass is at k=KM
 # ka = np.ceil(zstart0)+(1-(np.ceil(zstart0)-np.floor(zstart0)))
 ia = np.ceil(xstart0) #[253]#,525]
 ja = np.ceil(ystart0) #[57]#,40]
-ka = np.ceil(zstart0) #[1]#,1]
 
 # pdb.set_trace()
 dates = nc.variables['ocean_time'][:]	
@@ -102,6 +107,7 @@ t0save = dates[0] # time at start of file in seconds since 1970-01-01, add this 
 xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 yend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 zend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+zp = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 kend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
@@ -119,6 +125,33 @@ dzt = np.ones((grid['imt'],grid['jmt'],grid['km'],2))*np.nan # 2 times
 # Read initial field in - to 2nd time spot since will be moved
 # at the beginning of the time loop ahead
 hs[:,:,1],uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tinds[0],grid,nc)
+
+# Convert initial real space vertical locations to grid space
+# first find indices of grid cells vertically
+ka = np.ones(ia.size)*np.nan
+zstart0 = np.ones(ia.size)*np.nan
+for i in xrange(ia.size):
+	ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
+	ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+	if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
+		ka[i] = ka[i]+1
+	# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
+	zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
+
+# # Now can find grid indices of vertical starting locations
+# ka = np.ceil(zstart0) #[1]#,1]
+
+# Bump all grid-based fields up by one since in Fortran they are 1-based instead of 0-based
+ia = ia + 1
+ja = ja + 1
+ka = ka + 1
+xstart0 = xstart0 + 1
+ystart0 = ystart0 + 1
+zstart0 = zstart0 + 1
+
+# # convert real vertical position of initial drifter locations
+# zp0 = np.sum(dzt[ia-1,ja-1,ka+1-1:KM+1,1],axis=3)
+# sum(dzttemp(ib,jb,kb+1:KM),1) + (dble(kb)-z1)*dzttemp(ib,jb,kb)
 
 j = 0 # index for number of saved steps for drifters
 # Loop through model outputs. tinds is in proper order for moving forward
@@ -166,8 +199,15 @@ for tind in tinds:
 	if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
 		break
 	else:
-		xend[j*nsteps:j*nsteps+nsteps,ind],yend[j*nsteps:j*nsteps+nsteps,ind],zend[j*nsteps:j*nsteps+nsteps,ind], \
-						iend[j*nsteps:j*nsteps+nsteps,ind],jend[j*nsteps:j*nsteps+nsteps,ind],kend[j*nsteps:j*nsteps+nsteps,ind],flag[ind],ttend[j*nsteps:j*nsteps+nsteps,ind] = \
+		xend[j*nsteps:j*nsteps+nsteps,ind],\
+						yend[j*nsteps:j*nsteps+nsteps,ind],\
+						zend[j*nsteps:j*nsteps+nsteps,ind], \
+						zp[j*nsteps:j*nsteps+nsteps,ind],\
+						iend[j*nsteps:j*nsteps+nsteps,ind],\
+						jend[j*nsteps:j*nsteps+nsteps,ind],\
+						kend[j*nsteps:j*nsteps+nsteps,ind],\
+						flag[ind],\
+						ttend[j*nsteps:j*nsteps+nsteps,ind] = \
 						tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
 						np.ma.compressed(zstart),t0,np.ma.compressed(ia),np.ma.compressed(ja),
 						np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
@@ -178,7 +218,7 @@ for tind in tinds:
 		# TIMES ARE WRONG
 		t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps)    #tseas/float(nsteps) # update time in seconds to match drifters
 		# if i == 8:
-		# 	pdb.set_trace()
+		# pdb.set_trace()
 	j = j + 1
 
 nc.close()
@@ -192,7 +232,8 @@ t = t + t0save # add back in base time in seconds
 # Add on to front location for first time step
 xg=np.concatenate((xstart0.reshape(1,xstart0.size),xend),axis=0)
 yg=np.concatenate((ystart0.reshape(1,ystart0.size),yend),axis=0)
-zg=np.concatenate((zstart0.reshape(1,zstart0.size),zend),axis=0)
+# Concatenate zp with initial real space positions
+zp=np.concatenate((z0.reshape(1,zstart0.size),zp),axis=0)
 
 # Recreate Cartesian particle locations from their index-relative locations
 # just by interpolating. These are in tracmass ordering

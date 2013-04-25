@@ -1,5 +1,5 @@
 SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
-  &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,dxv,dyu,h,ntractot,xend,yend,zend, &
+  &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,dxv,dyu,h,ntractot,xend,yend,zend,zp, &
             &iend,jend,kend,flag,ttend,iter,ah,av)
 
 !!--------------------
@@ -65,6 +65,7 @@ SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
 !!   xend       : the new position (coordinate), x
 !!   yend       : the new position (coordinate), y
 !!   zend       : the new position (coordinate), z
+!!   zp         : the new z position in real space, meters
 !!   flag       : set to 1 for a drifter if drifter shouldn't be stepped in the future anymore
 !!  
 !!---------------------
@@ -73,7 +74,7 @@ implicit none
 
 integer,        intent(in)                                      :: ff, IMT, JMT, KM, ntractot, iter
 real(kind=8),   intent(in),     dimension(ntractot)             :: xstart, ystart, zstart
-real(kind=8),   intent(out),    dimension(iter,ntractot)             :: xend,yend,zend
+real(kind=8),   intent(out),    dimension(iter,ntractot)             :: xend,yend,zend,zp
 integer,   intent(out),    dimension(ntractot)             :: flag
 integer,   intent(out),    dimension(iter,ntractot)             :: iend, jend, kend,ttend
 real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
@@ -105,6 +106,7 @@ real(kind=8), PARAMETER                         :: UNDEF=1.d20
   real*8,  dimension(6,2) :: upr  
 !   print *,'upr is being allocated'
 #endif /*turb*/
+real(kind=8),     dimension(IMT,JMT,KM)         :: dzttemp
 
 ! Number of drifters input in x0, y0
 ! ntractot = size(xstart) !Sum of x0 entries
@@ -594,6 +596,19 @@ ntracLoop: do ntrac=1,ntractot
           jend(idint(tss),ntrac) = jb
           kend(idint(tss),ntrac) = kb
           ttend(idint(tss),ntrac) = tt
+          ! KMT: Calculate real space z position in here since I have all the information
+          ! interpolate dzt in time and add up vertical levels from surface down to cell
+          ! above drifter's cell, then account for the distance in the cell too
+          rg=1.d0-rr
+          ! KMT: dzttemp is the time-interpolated dzt since I need it twice here
+          dzttemp = rg*dzt(:,:,:,nsp)+rr*dzt(:,:,:,nsm)
+          ! first term is adding up the depth levels between grid cell above drifter's cell and
+          ! the surface and the second term is finding the difference into the cell the
+          ! drifter is to account for that
+          ! I have to set the dimension that the sum acts along as 1 since only the vertical
+          ! direction has more than one element
+          ! Ends up being as depth below the surface in meters
+          zp(idint(tss),ntrac) = -(sum(dzttemp(ib,jb,kb+1:KM),1) + (dble(kb)-z1)*dzttemp(ib,jb,kb))
         endif
 !         print *,'x1=',x1,' y1=',y1,' tt=',tt
 

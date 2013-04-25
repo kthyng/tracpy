@@ -30,6 +30,7 @@ def readgrid(loc,nc):
      mask           Land/sea mask [imt,jmt] 
      pm,pn          Difference in horizontal grid spacing in x and y [imt,jmt]
      kmt            Number of vertical levels in horizontal space [imt,jmt]
+     dzt0           Depth in meters of grid at each k-level without free surface. Surface is at km [imt,jmt,km]
      xr,yr          Rho grid zonal (x) and meriodional (y) coordinates [imt,jmt]
      xu,yu          U grid zonal (x) and meriodional (y) coordinates [imt,jmt]
      xv,yv          V grid zonal (x) and meriodional (y) coordinates [imt,jmt]
@@ -143,6 +144,12 @@ def readgrid(loc,nc):
     ind = (mask==0)
     kmt[ind] = 0
 
+    # Copy calculations from rutgersNWA/readfields.f95
+    dzt0 = np.ones((imt,jmt,km))*np.nan
+    for k in xrange(km):
+        dzt0[:,:,k] = (sc_r[k]-Cs_r[k])*hc + Cs_r[k]*h
+
+
     # # Flip vertical dimension because in ROMS surface is at k=-1 
     # # and in tracmass surface is at 1
     # Cs_r = np.flipud(Cs_r)
@@ -152,7 +159,7 @@ def readgrid(loc,nc):
     # Fill in grid structure
     grid = {'imt':imt,'jmt':jmt,'km':km, 
     	'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
-    	'mask':mask,'kmt':kmt,'pm':pm,'pn':pn,'tri':tri,'tric':tric,
+    	'mask':mask,'kmt':kmt,'dzt0':dzt0,'pm':pm,'pn':pn,'tri':tri,'tric':tric,
     	'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
     	'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,
     	'Cs_r':Cs_r,'sc_r':sc_r,'hc':hc,'h':h, 
