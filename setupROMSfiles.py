@@ -15,7 +15,7 @@ def setupROMSfiles(loc,date,ff,tout):
 	Input:
 	 loc 	File location
 	 date 	datetime format start date
-	 ff 	Time direction. ff=1 forward, ff=0 backward
+	 ff 	Time direction. ff=1 forward, ff=-1 backward
 	 tout 	Number of model outputs to use
 
 	Output:

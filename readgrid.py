@@ -3,6 +3,7 @@ from mpl_toolkits.basemap import Basemap
 import numpy as np
 from matplotlib import delaunay
 import pdb
+from octant import depths
 
 def readgrid(loc,nc):
     '''
@@ -38,8 +39,14 @@ def readgrid(loc,nc):
      X,Y            Grid index arrays
      tri,tric       Delaunay triangulations
      Cs_r,sc_r      Vertical grid streching paramters [km-1]
-     hc             [scalar]
+     hc             Critical depth [scalar]
      h              Depths [imt,jmt]
+     theta_s        Vertical stretching parameter [scalar]. A parameter 
+                    (typically 0.0 <= theta_s < 5.0) that defines the amount 
+                    of grid focusing. A higher value for theta_s will focus the grid more.
+     theta_b        Vertical stretching parameter [scalar]. A parameter (0.0 < theta_b < 1.0) 
+                    that says whether the coordinate will be focused at the surface 
+                    (theta_b -> 1.0) or split evenly between surface and bottom (theta_b -> 0)
      basemap        Basemap object
     '''
 
@@ -79,6 +86,8 @@ def readgrid(loc,nc):
     Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
     hc = nc.variables['hc'][:]
     h = gridfile.variables['h'][:]
+    theta_s = nc.variables['theta_s'][:]
+    theta_b = nc.variables['theta_b'][:]
 
     # make arrays in same order as is expected in the fortran code
     # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
@@ -104,6 +113,7 @@ def readgrid(loc,nc):
     km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
     # Index grid, for interpolation between real and grid space
+    # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
     Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
     # Triangulation for grid space to curvilinear space
     tri = delaunay.Triangulation(X.flatten(),Y.flatten())
@@ -144,10 +154,21 @@ def readgrid(loc,nc):
     ind = (mask==0)
     kmt[ind] = 0
 
-    # Copy calculations from rutgersNWA/readfields.f95
-    dzt0 = np.ones((imt,jmt,km))*np.nan
-    for k in xrange(km):
-        dzt0[:,:,k] = (sc_r[k]-Cs_r[k])*hc + Cs_r[k]*h
+    # Use octant to calculate depths/thicknesses for the appropriate vertical grid parameters
+    # have to transform a few back to ROMS coordinates and python ordering for this
+    zt = depths.get_zw(1, 1, km+1, theta_s, theta_b, 
+                    h.T.copy(order='c'), 
+                    hc, zeta=0, Hscale=3)
+    # Change dzt to tracmass/fortran ordering
+    zt = zt.T.copy(order='f')
+    # this should be the base grid layer thickness that doesn't change in time because it 
+    # is for the reference vertical level
+    dzt0 = zt[:,:,1:] - zt[:,:,:-1]
+
+    # # Copy calculations from rutgersNWA/readfields.f95
+    # dzt0 = np.ones((imt,jmt,km))*np.nan
+    # for k in xrange(km):
+    #     dzt0[:,:,k] = (sc_r[k]-Cs_r[k])*hc + Cs_r[k]*h
 
 
     # # Flip vertical dimension because in ROMS surface is at k=-1 
@@ -156,13 +177,17 @@ def readgrid(loc,nc):
     # sc_r = np.flipud(sc_r)
     # Cs_r and sc_r are flipped vertically!
 
+    # pdb.set_trace()
+
     # Fill in grid structure
     grid = {'imt':imt,'jmt':jmt,'km':km, 
     	'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
-    	'mask':mask,'kmt':kmt,'dzt0':dzt0,'pm':pm,'pn':pn,'tri':tri,'tric':tric,
+    	'mask':mask,'kmt':kmt,'dzt0':dzt0,
+        'pm':pm,'pn':pn,'tri':tri,'tric':tric,
     	'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
     	'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,
     	'Cs_r':Cs_r,'sc_r':sc_r,'hc':hc,'h':h, 
+        'theta_s':theta_s,'theta_b':theta_b,
         'basemap':basemap}
 
     gridfile.close()

@@ -1,17 +1,42 @@
-subroutine pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
+subroutine pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 &ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux,upr)
-! === calculate the new positions ===
-! === of the trajectory           ===    
+!====================================================================
+! calculate the new positions of the trajectory with pos_orgn()   
 !
-! Inputs:
+!  Input:
 !
-! Outputs:
-!  
+!    ia,ja,ka       : original position in grid space indices
+!    x0,y0,z0       : original non-dimensional position in the ijk-direction
+!                     of particle (fractions of a grid box side in the 
+!                     corresponding direction)
+!    ds             : crossing time to reach the grid box wall (units=s/m3)
+!    rr             : time interpolation constant between 0 and 1 
+!    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
+!    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
+!    wflux          : w velocity (vertical) flux field, two time steps [kxt]
+!    ff             : time direction. ff=1 forward, ff=-1 backward
+!    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
+!                     horizontal and vertical rho grid [scalar]
+!    upr            : parameterized turbulent velocities u', v', and w'
+!                     optional because only used if using turb flag for diffusion
+!                     size [6,2]. The 2nd dimension is for two time steps.
+!                     The 1st dimension is: [u'_ia,u'_ia-1,v'_ja,v'_ja-1,w'_ka,w'_ka-1]
+!
+!  Output:
+!    
+!    ib,jb,kb       : new position in grid space indices
+!    r1             : the new position (coordinate)
+!
+!  Other parameters used in function:
+!    rg             : rg=1-rr for time interpolation between time steps
+!    uu             : time-interpolated flux at ia/ja/ka (depending on ijk)
+!    um             : time-interpolated flux at ia-1/ja-1/ka-1 (depending on ijk)
+!====================================================================
     
     IMPLICIT none
-    INTEGER                                    :: nsm=1,nsp=2
+    INTEGER, intent(in)                        :: ia, ja, ka, IMT, JMT, KM,ff
+    INTEGER                                    :: nsm=1,nsp=2,im=ia-1
     REAL(kind=8)                                       :: uu
-    INTEGER, intent(in)                        :: ia, iam, ja, ka, IMT, JMT, KM,ff
     integer, intent(out)  :: ib, jb, kb
     REAL*8, INTENT(IN)                         :: x0, y0, z0,ds,dse,dsw,dss,dsn,dsd,dsu,dsmin,dsc,rbg,rb, rr
     REAL*8, INTENT(OUT)                        :: x1, y1, z1

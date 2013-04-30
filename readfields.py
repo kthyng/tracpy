@@ -1,6 +1,7 @@
 import netCDF4 as netCDF
 import numpy as np
 import pdb
+from octant import depths
 
 def readfields(tind,grid,nc):
 	'''
@@ -24,20 +25,22 @@ def readfields(tind,grid,nc):
      ssh 		Free surface at tind
      uflux1 	Zonal (x) flux at tind
      vflux1 	Meriodional (y) flux at tind
+     dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
 
     Array descriptions:
-     u,v 		 	Zonal (x) and meridional (y) velocities [imt,jmt,km] (m/s)
-     ssh 			Free surface [imt,jmt] (m)
-     dz   			Height of k-cells in 1 dim [km]
-     				From coord.f95: z coordinates (z>0 going up) for layers in meters 
-					bottom layer: k=0; surface layer: k=KM and zw=0
-					dz = layer thickness
-     dzt 			Height of k-cells in 3 dim in meters. [imt,jmt,km]
-     dzt0 			Height of k-cells in 2 dim. [imt,jmt]
-     dzu 	 		Height of each u grid cell [imt-1,jmt,km]
-     dzv 	 		Height of each v grid cell [imt,jmt-1,km]
-     uflux1 	 	Zonal (x) fluxes [imt-1,jmt,km] (m^3/s)?
-     vflux1 	 	Meriodional (y) fluxes [imt,jmt-1,km] (m^3/s)?
+     u,v 		Zonal (x) and meridional (y) velocities [imt,jmt,km] (m/s)
+     ssh 		Free surface [imt,jmt] (m)
+     dz   		Height of k-cells in 1 dim [km]
+     			From coord.f95: z coordinates (z>0 going up) for layers in meters 
+				bottom layer: k=0; surface layer: k=KM and zw=0
+				dz = layer thickness
+	 zt  		Depths (negative) in meters of w vertical grid [imt,jmt,km+1]
+     dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
+     dzt0 		Height of k-cells in 2 dim. [imt,jmt]
+     dzu 	 	Height of each u grid cell [imt-1,jmt,km]
+     dzv 	 	Height of each v grid cell [imt,jmt-1,km]
+     uflux1 	Zonal (x) fluxes [imt-1,jmt,km] (m^3/s)?
+     vflux1 	Meriodional (y) fluxes [imt,jmt-1,km] (m^3/s)?
 	'''
 
 	# Read in model output for index tind
@@ -56,18 +59,30 @@ def readfields(tind,grid,nc):
 	# u = np.flipud(u)
 	# v = np.flipud(v)
 
-	# Copy calculations from rutgersNWA/readfields.f95
-	dzt = np.ones((grid['imt'],grid['jmt'],grid['km']))*np.nan
+	# This is code from tracmass itself, which is being replaced by Rob's octant code
+	# # Copy calculations from rutgersNWA/readfields.f95
+	# dzt = np.ones((grid['imt'],grid['jmt'],grid['km']))*np.nan
 	dzu = np.ones((grid['imt']-1,grid['jmt'],grid['km']))*np.nan
 	dzv = np.ones((grid['imt'],grid['jmt']-1,grid['km']))*np.nan
-	for k in xrange(grid['km']):
-		dzt0 = (grid['sc_r'][k]-grid['Cs_r'][k])*grid['hc'] \
-				+ grid['Cs_r'][k]*grid['h']
-		dzt[:,:,k] = dzt0 + ssh*(1.+dzt0/grid['h'])
+	# for k in xrange(grid['km']):
+	# 	dzt0 = (grid['sc_r'][k]-grid['Cs_r'][k])*grid['hc'] \
+	# 			+ grid['Cs_r'][k]*grid['h']
+	# 	dzt[:,:,k] = dzt0 + ssh*(1.+dzt0/grid['h'])
 
-	dzt0 = dzt[:,:,grid['km']-1]
-	dzt[:,:,0:grid['km']-1] = dzt[:,:,1:grid['km']] - dzt[:,:,0:grid['km']-1]
-	dzt[:,:,grid['km']-1] = ssh - dzt0
+	# dzt0 = dzt[:,:,grid['km']-1]
+	# dzt[:,:,0:grid['km']-1] = dzt[:,:,1:grid['km']] - dzt[:,:,0:grid['km']-1]
+	# dzt[:,:,grid['km']-1] = ssh - dzt0
+
+	# Use octant to calculate depths for the appropriate vertical grid parameters
+	# have to transform a few back to ROMS coordinates and python ordering for this
+	zt = depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+					grid['h'].T.copy(order='c'), 
+					grid['hc'], zeta=ssh.T.copy(order='c'), Hscale=3)
+	# Change dzt to tracmass/fortran ordering
+	zt = zt.T.copy(order='f')
+	dzt = zt[:,:,1:] - zt[:,:,:-1]
+	# pdb.set_trace()
+
 	dzu[0:grid['imt']-1,:,:] = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
 	dzv[:,0:grid['jmt']-1,:] = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
 	# pdb.set_trace()

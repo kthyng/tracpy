@@ -45,7 +45,7 @@ elif 'hafen.tamu.edu' in os.uname():
 
 # Initialize parameters
 nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
-ndays = 1 # number of days to track the particles
+ndays = .25 # number of days to track the particles
 ff = -1 # 1 forward, -1 backward
 # Start date
 date = datetime(2009,11, 30, 0)
@@ -79,17 +79,13 @@ d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
 # pdb.set_trace()
 x0,y0 = grid['basemap'](d['lon0'],d['lat0'])
 # Interpolate to get starting positions in grid space
+# tric is on a python index grid from 0 to imt-1 and 0 to jmt-1
 fX = grid['tric'].nn_interpolator(grid['X'].flatten())
 fY = grid['tric'].nn_interpolator(grid['Y'].flatten())
 xstart0 = fX(x0,y0)
 ystart0 = fY(x0,y0)
+# Do z a little lower down
 
-# Input initial vertical locations in real space. 
-# These are converted to grid space once dzt is calculated
-# z0 = np.zeros(xstart0.shape) # surface
-z0 = np.ones(xstart0.shape)*-1. # 5 meters below the surface
-
-# zstart0 = np.ones(xstart0.shape)*grid['km'] # The surface in tracmass is at k=KM
 # Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
 # # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
 # # want ceil(xstart0+1)
@@ -126,17 +122,62 @@ dzt = np.ones((grid['imt'],grid['jmt'],grid['km'],2))*np.nan # 2 times
 # at the beginning of the time loop ahead
 hs[:,:,1],uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tinds[0],grid,nc)
 
-# Convert initial real space vertical locations to grid space
-# first find indices of grid cells vertically
-ka = np.ones(ia.size)*np.nan
-zstart0 = np.ones(ia.size)*np.nan
-for i in xrange(ia.size):
-	ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
-	ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-	if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
-		ka[i] = ka[i]+1
-	# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
-	zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
+
+# Input initial vertical locations in real space. 
+# These are converted to grid space once dzt is calculated
+# To place drifters on the surface, they should actually be just below the 
+# surface because the vertical grid does not go to zero at the surface (just gets near it)
+# For surface: Note that if surface is chosen here and the twodim flag is chosen in the 
+# makefile, the drifters will stay at their relative position in the uppermost grid cells,
+# that is, in the middle (vertically). Their actual, real space vertical position will 
+# change in time.
+z0 = 'surface'
+# z0 = np.ones(xstart0.shape)*-.05 #  below the surface
+
+# zstart0 = np.ones(xstart0.shape)*grid['km'] # The surface in tracmass is at k=KM
+
+# For special case of the surface, take the surface grid cell index and the depth at 
+# the middle of the surface layer
+if z0 == 'surface':
+	# subtract 1 from km since in python indexing here
+	ka = np.ones(ia.size)*grid['km']-1
+	# Find the corresponding depths at the rho grid in the topmost level
+	zt = depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+						grid['h'].T.copy(order='c'), 
+						grid['hc'], zeta=hs[:,:,1].T.copy(order='c'), Hscale=3)
+	zt = zt.T.copy(order='f')
+	# change z0 to be what it is in the normal case: the real space depth for the drifters
+	z0 = zt[ia.astype(int),ja.astype(int),ka.astype(int)]
+	zstart0 = np.ones(ia.size)*(ka-.5) # start mid-way vertically through the uppermost grid cell
+	# for i in xrange(ia.size):
+	# 	ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
+	# 	# ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+	# 	# if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
+	# 	# 	ka[i] = ka[i]+1
+	# 	# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
+	# 	zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
+else:	
+	# Convert initial real space vertical locations to grid space
+	# first find indices of grid cells vertically
+	ka = np.ones(ia.size)*np.nan
+	zstart0 = np.ones(ia.size)*np.nan
+	for i in xrange(ia.size):
+		ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
+		ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+		if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
+			ka[i] = ka[i]+1
+		# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
+		zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
+
+# zstart0 = np.ones(ia.size)*np.nan
+# for i in xrange(ia.size):
+# 	ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
+# 	ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+# 	if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
+# 		ka[i] = ka[i]+1
+# 	# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
+# 	zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
+# pdb.set_trace()
 
 # # Now can find grid indices of vertical starting locations
 # ka = np.ceil(zstart0) #[1]#,1]

@@ -381,10 +381,10 @@ ntracLoop: do ntrac=1,ntractot
         ! === of the trajectory           ===    
 #ifdef turb
 ! print *,'using turb'
-        call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
+        call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux,upr)
 #else
-        call pos(ia,iam,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
+        call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux)
 #endif /*turb*/
         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
