@@ -1,5 +1,6 @@
-subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr)
+subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr)
   
+!====================================================================
 ! subroutine to compute time (sp,sn) when trajectory 
 ! crosses face of box (ia,ja,ka) 
 ! two crossings are considered for each direction:  
@@ -7,34 +8,55 @@ subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr)
 ! 
 !  Input:
 !
-!  ijk      : considered direction (i=zonal, 2=meridional, 3=vertical)
-!  ia,ja,ka : original position in integers
-!  r0       : original non-dimensional position in the 
-!             ijk-direction of particle 
-!             (fractions of a grid box side in the 
-!              corresponding direction)
-!  rr       : time interpolation constant between 0 and 1 
-!
+!    ijk            : considered direction (1=zonal,2=meridional,3=vertical)
+!    ia,ja,ka       : original position in integers
+!    r0             : original non-dimensional position in the ijk-direction
+!                     of particle (fractions of a grid box side in the 
+!                     corresponding direction)
+!    rr             : time interpolation constant between 0 and 1. Controls how much
+!                   : of earlier time step is used in interpolation.
+!    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
+!    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
+!    wflux          : w velocity (vertical) flux field, two time steps [kxt]
+!    ff             : time direction. ff=1 forward, ff=-1 backward
+!    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
+!                     horizontal and vertical rho grid [scalar]
+!    upr            : parameterized turbulent velocities u', v', and w'
+!                     optional because only used if using turb flag for diffusion
+!                     size [6,2]. The 2nd dimension is for two time steps.
+!                     The 1st dimension is: [u'_ia,u'_ia-1,v'_ja,v'_ja-1,w'_ka,w'_ka-1]
 !
 !  Output:
 !
-!    sp,sn   : crossing time to reach the grid box wall 
-!              (in units of s/m3)
-      
-IMPLICIT none
-integer, intent(in)     :: ijk,ia,ja,ka,ff,IMT,JMT,KM
-real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
-real(kind=8),   intent(in)  :: r0,rr
-real(kind=8) :: ba,uu,um,rg,vv,vm
-integer  :: ii,im,nsm=1,nsp=2
-real(kind=8), PARAMETER                         :: UNDEF=1.d20
-real(kind=8),   intent(out)  :: sp,sn
+!    sp,sn          : crossing time (positive and negative directions) to reach the 
+!                     grid box wall (in units of s/m3)
+!
+!  Other parameters used in function:
+!    ba             : linear interpolation of the transport (Eqn 1.6 in user manual)
+!    uu             : time-interpolated flux at ia/ja/ka (depending on ijk)
+!    um             : time-interpolated flux at ia-1/ja-1/ka-1 (depending on ijk)
+!    rg             : rg=1-rr for time interpolation between time steps. Controls how much
+!                   : of later time step is used in interpolation.
+!    nsm=1,nsp=2    : Time index. nsm picks out the earlier bounding time step and 
+!                     nsp picks out the later bounding time step for interpolation.
+!====================================================================
+
+implicit none
+
+integer,        intent(in)                                      :: ijk,ia,ja,ka,ff,imt,jmt,km
+real(kind=8),   intent(in)                                      :: r0,rr
+real(kind=8),   intent(in),     dimension(imt-1,jmt,km,2)       :: uflux
+real(kind=8),   intent(in),     dimension(imt,jmt-1,km,2)       :: vflux
+real(kind=8),   intent(out)                                     :: sp,sn
+real(kind=8)                                                    :: ba,uu,um,rg
+integer                                                         :: ii,im,nsm=1,nsp=2
+real(kind=8),   PARAMETER                                       :: UNDEF=1.d20
+
 ! #ifdef  full_wflux
 !     ! Not sure if this is right
-!     real(kind=8),   intent(in),     dimension(IMT,JMT,KM+1,2)         :: wflux
+!     real(kind=8),   intent(in),     dimension(imt,jmt,km+1,2)         :: wflux
 ! #else
-    real(kind=8),   intent(in),     dimension(0:KM,2)         :: wflux
+    real(kind=8),   intent(in),     dimension(0:km,2)         :: wflux
 ! #endif
 real*8, optional, intent(out), dimension(6,2) :: upr  
 
@@ -43,7 +65,7 @@ real*8, optional, intent(out), dimension(6,2) :: upr
     if(ijk.eq.1) then
         ii=ia
         im=ia-1
-        if(im.eq.0) im=IMT
+        if(im.eq.0) im=imt
 ! print *,'a'
         uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
         um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
