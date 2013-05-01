@@ -17,15 +17,26 @@ F95COMPILER        = "gfortran"
 
 # PROJECT_FLAG      = -DPROJECT_NAME=\'$(PROJECT)\'
 # CASE_FLAG         = -DCASE_NAME=\'$(CASE)\'
+
+# KMT: Always use timestep. We can assume that the fields are stationary for dtmin
+# which is the step between interpolated fields between model outputs
    fl01   = -Dtimestep       # Analytical time scheme used to solve the differential Eqs.
-#  fl01   = -Dtimeanalyt    # Time steps with analytical stationary scheme 
-#   fl02   = -Dregulardt      # Regular time steps to be used with -Dtimestep
+# KMT: I took out code for the timeanalyt flag since it isn't as robust and we 
+# currently do not plan to use that.
+#  fl01   = -Dtimeanalyt    # Time steps with analytical stationary scheme. 
+# KMT: I don't know what this is for. I took out the code for it, though. My guess is
+# that it is if, within the regime of the drifters choosing their own timesteps using
+# the normal analytical time scheme (timestep flag), there is a certain time step 
+# that you want to be used specifically.
+#   fl02   = -Dregulardt      # Regular time steps to be used with -Dtimestep 
 #------------------------------------------------------------------------
+# KMT: None of this code was retained since we can do this stuff in python
 #  fl03   = -Dtempsalt       # Include temp and salt
 #  fl04   = -Dtextwrite      # Write results to textfile
 #  fl05   = -Dbinwrite       # Write results to binaryfile
 #  fl06   = -Dmysqlwrite     # Write results to mysql
 #------------------------------------------------------------------------
+# KMT: None of this code was retained since we can do this stuff in python
 #  fl07  = -Dstreamxy       # Calculates the barotropic stream function.
 #  fl08  = -Dstreamr        #    vertical stream function, z=density
 #  fl09  = -Dstreamts       #    vertical stream function, z=???
@@ -35,20 +46,34 @@ F95COMPILER        = "gfortran"
                             # calculated in an identical previous run.    
 #   fl12  = -Dinitxyt        # Start trajectories at given positions and times
 #------------------------------------------------------------------------
- # fl13  = -Dtwodim         # Turn off vertical velocities.
- # fl14  = -Dfull_wflux     # Use a full 3D wflux field.
-#  fl15  = -Dexplicit_w     # Use a given vertical velocity.
+# KMT: Use the twodim flag when you want drifters to stay at their starting 
+# vertical position in grid space. Their real space position may change with the
+# free surface changes, but their grid space vertical position will stay the same.
+# fl13  = -Dtwodim         # Turn off vertical velocities.
+# KMT: The code is not set up to use this
+# fl14  = -Dfull_wflux     # Use a full 3D wflux field.
+# KMT: The code is not set up to use this
+# fl15  = -Dexplicit_w     # Use a given vertical velocity.
 #------------------------------------------------------------------------
+# KMT: The code is set up to only use zgrid3Dt, assuming that the input
+# dzt values already have taken into account the free surface movement
 #   fl16  = -Dvarbottombox   # Variable bottom box to match actual depth
   # fl17  = -Dfreesurface    # Variable bottom box to match actual depth
 #   fl18  = -Dzvec1D         # Cell depths defined as vector (for z-coord?)
  # fl18  = -Dzgrid3D        # Cell depths defined as 3D grid (for sigma)
  fl18  = -Dzgrid3Dt       # Cell depths 3D and time interp. (for atm)
 #------------------------------------------------------------------------
+# KMT: None of this code was retained since we can do this stuff in python
 #  fl20  = -Dselect         # Select only one trajectory (for debugging)
 #  fl21  = -Dtracer         # Stores a simulated tracer
 #  fl22  = -Dsediment       # Sediment code developed for RCO
 #------------------------------------------------------------------------
+# KMT: The turb flag can be used to add u,v,w diffusion and the diffusion
+# flag can be used to add u,v,w diffusion via another algorithm. The 
+# anisotropic diffusion can be used with the diffusion flag to have 
+# diffusion along an ellipse added in x and y instead of a circle, and
+# does not alter what the diffusion flag does vertically.
+# I couldn't find what the coarse flag does.
  fl23  = -Dturb           # Adds subgrid turbulent velocities 
  # fl24  = -Ddiffusion      # Adds a diffusion on trajectory
  # fl25  = -Danisodiffusion # Adds an anisotropic diffusion on trajectory

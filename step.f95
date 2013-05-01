@@ -185,7 +185,7 @@ ntracLoop: do ntrac=1,ntractot
         ! Are tracking fields being properly updated between loops?
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
 
-        call calc_dxyz(ib,jb,kb,rr,KM,kmt,dzt,hs,dxdy,dxyz,JMT,IMT)
+        call calc_dxyz(ib,jb,kb,rr,imt,jmt,KM,kmt,dzt,dxdy,dxyz)
         ! I am putting the error checks directly in the loop for convenience
         !         call errorCheck('dxyzError',errCode,dxyz,flag)
         ! Check the grid box volume
@@ -313,7 +313,7 @@ ntracLoop: do ntrac=1,ntractot
 #endif /*turb*/
 
         ! === calculate the vertical velocity ===
-        call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+        call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
 !         print *,'wflux=',wflux
 
 !  print *,'ja=',ja,' jb=',jb,x1,y1
