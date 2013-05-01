@@ -12,7 +12,8 @@ subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr
 !                     of particle (fractions of a grid box side in the 
 !                     corresponding direction)
 !    ds             : crossing time to reach the grid box wall (units=s/m3)
-!    rr             : time interpolation constant between 0 and 1 
+!    rr             : time interpolation constant between 0 and 1. Controls how much
+!                   : of earlier time step is used in interpolation.
 !    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
 !    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
 !    wflux          : w velocity (vertical) flux field, two time steps [kxt]
@@ -29,9 +30,15 @@ subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr
 !    r1             : the new position (coordinate)
 !
 !  Other parameters used in function:
-!    rg             : rg=1-rr for time interpolation between time steps
+!    rg             : rg=1-rr for time interpolation between time steps. Controls how much
+!                   : of later time step is used in interpolation.
 !    uu             : time-interpolated flux at ia/ja/ka (depending on ijk)
 !    um             : time-interpolated flux at ia-1/ja-1/ka-1 (depending on ijk)
+!    ii             : generic index for grid index for whichever direction, ijk
+!    im             : generic index for grid index -1 for whichever direction, ijk. 
+!                     Is only used in the i direction for whatever reason.
+!    nsm=1,nsp=2    : Time index. nsm picks out the earlier bounding time step and 
+!                     nsp picks out the later bounding time step for interpolation.
 !====================================================================
 
 implicit none
@@ -41,8 +48,8 @@ real(kind=8),       intent(in)                                  :: r0,rr,ds
 real(kind=8),       intent(in),     dimension(imt-1,jmt,km,2)   :: uflux
 real(kind=8),       intent(in),     dimension(imt,jmt-1,km,2)   :: vflux
 real(kind=8),       intent(in),     dimension(0:km,2)           :: wflux
+real*8, optional,   intent(in),     dimension(6,2)              :: upr  
 real(kind=8),       intent(out)                                 :: r1
-real*8, optional,   intent(out),    dimension(6,2)              :: upr  
 real*8                                                          :: rg,uu,um
 integer                                                         :: ii,im,nsm=1,nsp=2
 
@@ -50,8 +57,8 @@ rg=1.d0-rr
 
 #ifdef twodim   
     if(ijk.eq.3) then
-     r1=r0
-     return
+        r1=r0
+        return
     endif
 #endif
 
@@ -62,67 +69,66 @@ if(ijk.eq.1) then
     if(im.eq.0) im=imt
     uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff
     um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
-!     print *,'ijk=',ijk,' rg=',rg,' rr=',rr,' ff=',ff
-!     print *,'uflux(ia,ja,ka,nsp)=',uflux(ia,ja,ka,nsp),' uflux(ia,ja,ka,nsm)=',uflux(ia,ja,ka,nsm)
-!     print *,'uflux(ia,ja-1,ka,nsp)=',uflux(ia,ja-1,ka,nsp),' uflux(ia,ja-1,ka,nsm)=',uflux(ia,ja-1,ka,nsm)
+
 #ifdef turb    
-     if(r0.ne.dble(ii)) then
+    if(r0.ne.dble(ii)) then
         uu=uu+upr(1,2)  
-     else
+    else
         uu=uu+upr(1,1)  
         ! add u' from previous iterative time step if on box wall
-     endif
-     if(r0.ne.dble(im)) then
+    endif
+    if(r0.ne.dble(im)) then
         um=um+upr(2,2)
-     else
+    else
         um=um+upr(2,1)  
         ! add u' from previous iterative time step if on box wall
-     endif
+    endif
 #endif
+
 else if(ijk.eq.2) then
     ii=ja
     uu=(rg*vflux(ia,ja  ,ka,nsp)+rr*vflux(ia,ja  ,ka,nsm))*ff
     um=(rg*vflux(ia,ja-1,ka,nsp)+rr*vflux(ia,ja-1,ka,nsm))*ff
-!     print *,'ijk=',ijk,' rg=',rg,' rr=',rr,' ff=',ff
-!     print *,'vflux(ia,ja,ka,nsp)=',vflux(ia,ja,ka,nsp),' vflux(ia,ja,ka,nsm)=',vflux(ia,ja,ka,nsm)
-!     print *,'vflux(ia,ja-1,ka,nsp)=',vflux(ia,ja-1,ka,nsp),' vflux(ia,ja-1,ka,nsm)=',vflux(ia,ja-1,ka,nsm)
+
 #ifdef turb    
-     if(r0.ne.dble(ja  )) then
+    if(r0.ne.dble(ja  )) then
         uu=uu+upr(3,2)  
-     else
+    else
         uu=uu+upr(3,1)  
         ! add u' from previous iterative time step if on box wall
-     endif
-     if(r0.ne.dble(ja-1)) then
+    endif
+    if(r0.ne.dble(ja-1)) then
         um=um+upr(4,2)
-     else
+    else
         um=um+upr(4,1)  
         ! add u' from previous iterative time step if on box wall
-     endif
+    endif
 #endif
-  elseif(ijk.eq.3) then
-     ii=ka
+
+elseif(ijk.eq.3) then
+    ii=ka
 ! #ifdef full_wflux
 !      uu=wflux(ia ,ja ,ka   ,nsm)
 !      um=wflux(ia ,ja ,ka-1 ,nsm)
 ! #else
-     uu=rg*wflux(ka  ,nsp)+rr*wflux(ka  ,nsm)
-     um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
+    uu=rg*wflux(ka  ,nsp)+rr*wflux(ka  ,nsm)
+    um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
 ! #endif
+
 #ifndef twodim   
 #ifdef turb    
-     if(r0.ne.dble(ka  )) then
+    if(r0.ne.dble(ka  )) then
         uu=uu+upr(5,2)  
-     else
+    else
         uu=uu+upr(5,1)  
         ! add u' from previous iterative time step if on box wall
-     endif
-     if(r0.ne.dble(ka-1)) then
+    endif
+    if(r0.ne.dble(ka-1)) then
         uu=uu+upr(6,2)  
-     else
+    else
         uu=uu+upr(6,1)  
         ! add u' from previous iterative time step if on box wall
-     endif
+    endif
 #endif
 #endif
 endif
@@ -132,14 +138,9 @@ endif
 ! in case of um-uu = small; also see subroutine cross
 if(um.ne.uu) then
     r1= (r0+(-dble(ii-1) + um/(uu-um))) * dexp( (uu-um)*ds ) + dble(ii-1) - um/(uu-um)
-! print *,'r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1,' dble(ii-1)=',dble(ii-1)
 else
     r1=r0+uu*ds
 endif
-! print *,'ijk=',ijk,' r0=',r0,' ii=',ii,' um=',um,' uu=',uu,' ds=',ds,' r1=',r1
-! print *,'rg=',rg,' uflux=(ia,ja,ka,nsp)=',uflux(ia,ja,ka,nsp),' rr=',rr,' uflux(ia,ja,ka,nsm)=',uflux(ia,ja,ka,nsm)
-! ! print *,'ia=',ia,' ja=',ja,' ka=',ka
-! print *,' uflux=(im,ja,ka,nsp)=',uflux(im,ja,ka,nsp),' uflux(im,ja,ka,nsm)=',uflux(ia,ja,ka,nsm),' ff=',ff
 
 ! print '(a,i1,a,f6.2,a,f6.2,a,e6.1,a,f4.2)','ijk=',ijk,' r0=',r0,' r1=',r1,' ds=',ds,' rr=',rr
 ! print '(a,f8.1,a,f8.1)','uu=',uu,' um=',um

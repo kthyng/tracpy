@@ -382,10 +382,10 @@ ntracLoop: do ntrac=1,ntractot
 #ifdef turb
 ! print *,'using turb'
         call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux,upr)
+                ff,IMT,JMT,KM,rr,rb,uflux,vflux,wflux,upr)
 #else
         call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                ff,IMT,JMT,KM,rr,rbg,rb,uflux,vflux,wflux)
+                ff,IMT,JMT,KM,rr,rb,uflux,vflux,wflux)
 #endif /*turb*/
         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
