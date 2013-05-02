@@ -22,7 +22,6 @@ def readfields(tind,grid,nc):
 	 nc 	NetCDF object for relevant files
 
     Output:
-     ssh 		Free surface at tind
      uflux1 	Zonal (x) flux at tind
      vflux1 	Meriodional (y) flux at tind
      dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
@@ -103,4 +102,4 @@ def readfields(tind,grid,nc):
 	# vflux1 = np.flipud(vflux1)
 	# dzt = np.flipud(dzt)
 
-	return ssh, uflux1, vflux1, dzt
+	return uflux1, vflux1, dzt

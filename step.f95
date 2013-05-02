@@ -1,126 +1,179 @@
-SUBROUTINE step(xstart,ystart,zstart,t0,istart,jstart,kstart,tseas, &
-  &uflux,vflux,ff,IMT,JMT,KM,kmt,dzt,hs,dxdy,dxv,dyu,h,ntractot,xend,yend,zend,zp, &
-            &iend,jend,kend,flag,ttend,iter,ah,av)
+SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
+                & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
+                & ntractot,xend,yend,zend,zp,iend,jend,kend,flag,ttend,iter,ah,av)
 
-!!--------------------
-!! Loop to step a numerical drifter forward one dt.
-!!
-!! This is put together with code pieces from TRACMASS to be 
-!! controlled by outside wrapping Python code.
-!! Kristen M. Thyng Feb 2012
-!! Code from:   loop.f95
-!!
-!! Options used from TRACMASS:
-!!  * NOT regulardt, which I think is for stepping within model outputs, 
-!!    since this will be accomplished in the wrapping Python.
-!!  * NOT timeanalyt since it is not as robust as the original code.
-!!  * I am including options for both means of adding in turbulence:
-!!    turb (for turbuflux) and diffusion (or diffuse).
-!!    Use only one of them, not both, if any.
-!!  * Removed all writing calls.
-!!  * NOT rerun flag
-!!  * NOT tracer flag
-!!  * ifs flag looks like it is for a specific example, ignoring for now
-!!  * Vertical flags:
-!!      * two dim flag: sets vertical velocity to zero and drifters are essentially drogued
-!!      * NOT full_wflux flag: Use a full 3D wflux field, and calculate it within the code
-!!      * NOT explicit_w: Use a given vertical velocity
-!!  * I have been commenting out the interpolation stuff
-!!  * There are several diffusion flags (do only one of these):
-!!      * -turb           # Adds subgrid turbulent velocities 
-!!      * -diffusion      # Adds a diffusion on trajectory
-!!      * -anisodiffusion # Adds an anisotropic diffusion on trajectory
-!!                          Use -anisodiffusion with diffusion flag
-!!      * -coarse         # Adds a diffusion on trajectory
-!!
-!! Time variables:
-!!   These are stored for between model outputs (whether original or interpolated)
-!!   tt     time in seconds of the trajectory relative to the code start
-!!   ts     model dataset time step of trajectory, which changes from 0 to 1 in the script since interpolation between model outputs is done in python
-!!   tss
-!!   dt     time step of trajectory iteration in seconds    
-!!   ds     ds=dt/(dx*dy*dz) Units in (s/m**3)
-!!   dtmin   was iterative time steping in seconds, now there is only one iteration between input flux fields
-!!   dsmin  dtmin/(dx*dy*dz) Units in (s/m**3)
-!!   tseas (sec) velocity fields time step = time between velocity fields
-!! Interpolation constants:
-!!   rr,rb,rbg      Time interpolation constant between 0 and 1 at different parts in the loop
-!!   
-!!
-!! Input:
-!!   xstart       :   Original x position of drifters
-!!   ystart       :   Original y position of drifters
-!!   zstart
-!!   t0       :   Time at original position of drifters
-!!   tseas    :   Time between velocity fields that are input, in seconds
-!!   uflux    :   u velocity flux field, two time steps [txkxjxi]
-!!   vflux
-!!   ff      :   Trajectory direction (forward=1, backward=-1
-!!   hs        :    Sea surface height in meters [txjxi]?
-!!   h            depths [imt,jmt]
-!!   iter : nsteps in run.py, number of interpolation time steps between model outputs
-!!   ah
-!!
-!! Output:
-!!   xend       : the new position (coordinate), x
-!!   yend       : the new position (coordinate), y
-!!   zend       : the new position (coordinate), z
-!!   zp         : the new z position in real space, meters
-!!   flag       : set to 1 for a drifter if drifter shouldn't be stepped in the future anymore
-!!  
-!!---------------------
+!============================================================================
+! Loop to step a numerical drifter forward for the time tseas between two 
+! model outputs. uflux and vflux are interpolated in time to iter steps 
+! between the model outputs, and drifter tracks will be output at 1/iter
+! intervals.
+!
+! This is put together with code pieces from tracmass to be 
+! controlled by outside wrapping Python code.
+! Kristen M. Thyng Feb 2013
+!
+!  Input:
+!
+!    xstart         : Starting x,y,z position of drifters for this set of two
+!    ystart           model outputs, in fraction of the grid cell in each
+!    zstart           direction. [ntractoc]
+!    istart         : Starting grid index of drifters in x,y,z for this set of two
+!    jstart           model outputs, should be integers and be for grid cell wall
+!    kstart           just beyond the drifter location. Maybe these can be inferred 
+!                     from x/y/zstart arrays instead. [ntractoc]
+!    tseas          : Time between model-output velocity fields that are input.
+!                     Also max time for this loop (seconds)
+!    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
+!    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
+!    ff             : time direction. ff=1 forward, ff=-1 backward
+!    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
+!                     horizontal and vertical rho grid [scalar]
+!    kmt            : Number of vertical levels in horizontal space [imt,jmt]
+!    dzt            : Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
+!    dxdy           : Area of horizontal cell-walls [imt,jmt]
+!    dxv,dyu        : Horizontal grid cell walls areas in x and y directions [imt,jmt]
+!    h              : Depths [imt,jmt]
+!    ntractoc       : Total number of drifters
+!    iter           : number of interpolation time steps to do between model outputs, 
+!                     was called nsteps in run.py
+!    ah             : horizontal diffusion in m^2/s. Input parameter.
+!                   : For -turb and -diffusion flags
+!    av             : vertical diffusion in m^2/s. Input parameter. For -diffusion flag.
+!
+!  Output:
+!
+!    flag           : set to 1 for a drifter if drifter shouldn't be stepped in the 
+!                     future anymore
+!    xend           : the new grid fraction position of drifters in x/y/z [iter,ntractot]
+!    yend       
+!    zend       
+!    zp             : the new z position in real space (meters). This is currently
+!                     calculated in this code because all the necessary info is 
+!                     available.
+!    iend           : the new grid index position of drifters in x/y/z [iter,ntractot]
+!    jend       
+!    kend       
+!    ttend          : time in seconds relative to the code start for when particles are
+!                     output. [iter,ntractot]
+!
+!  Other parameters used in function:
+!
+!    rbg            : rbg=1-rg for time interpolation between time steps. Controls how much
+!                   : of later time step is used in interpolation.
+!    rg             : rg=1-rr for time interpolation between time steps. Controls how much
+!                   : of later time step is used in interpolation.
+!    rr             : time interpolation constant between 0 and 1. Controls how much
+!                   : of earlier time step is used in interpolation.
+!    rb             : time interpolation constant between 0 and 1. Controls how much
+!                   : of earlier time step is used in interpolation (for next time 
+!                     at the end of the loop?).
+!    dsc            : Not sure what this is right now
+!    dstep          : Model time step between time interpolation steps between model outputs
+!    dtmin          : time step based on the interpolation step between model output times.
+!                   : sets a limit on the time step that a drifter can go. (seconds)
+!    dxyz           : Volume of drifter's grid cell (m^3)
+!    dt             : time step of trajectory iteration in seconds  
+!    dsmin          : time step based on the interpolation step between model output times.
+!                   : sets a limit on the time step that a drifter can go. (s/m^3)
+!                     dtmin/(dx*dy*dz)
+!    ds             : crossing time to reach the grid box wall (units=s/m3). ds=dt/(dx*dy*dz)
+!    dse,dsw        : crossing times for drifter to reach the east and west grid box wall
+!    dsn,dss        : crossing times for drifter to reach the north and south grid box wall
+!    dsu,dsd        : crossing times for drifter to reach the up and down grid box wall
+!    x0,y0,z0       : original non-dimensional position in the i,j,k-direction
+!                     of particle (fractions of a grid box side in the 
+!                     corresponding direction)
+!    x1,y1,z1       : updated non-dimensional position in the i,j,k-direction
+!                     of particle (fractions of a grid box side in the 
+!                     corresponding direction)
+!    tt             : time in seconds of the trajectory relative to the code start
+!    tss            : Counter for iterations between model outputs. Counts up to iter I think.
+!    ts             : Time step of time interpolation between model outputs, non-dimensional,
+!                     has values between 0 and 1
+!    ntrac          : Index in arrays for current drifter in ntracLoop
+!    niter          : Index in arrays for current point in drifter loop in niterLoop
+!    ia,ja,ka       : original position in integers
+!    iam            : index for grid index ia-1
+!    ib,jb,kb       : new position in grid space indices
+!    errCode        : Keeps track of errors that occur. Currently not being well utilized.
+!    nsm=1,nsp=2    : Time index. nsm picks out the earlier bounding time step and 
+!                     nsp picks out the later bounding time step for interpolation.
+!    upr            : parameterized turbulent velocities u', v', and w'
+!                     optional because only used if using turb flag for diffusion
+!                     size [6,2]. The 2nd dimension is for two time steps.
+!                     The 1st dimension is: [u'_ia,u'_ia-1,v'_ja,v'_ja-1,w'_ka,w'_ka-1]
+!
+! Flags that can be used from tracmass and turned on/off in the makefile:
+!   -Dtimestep:         The normal analytic time stepping routine described 
+!                       in the tracmass user guide. Mandatory.
+!   -Dtwodim:           If set, then drifters cannot move vertically in grid 
+!                       space. Optional. Default is 3D motion calculated from 
+!                       the input uflux and vflux using the continuity equation.
+!   -Dzgrid3Dt:         Vertical cell thicknesses already account for changes 
+!                       in time due to free surface movement. Mandatory.
+!   -Dturb:             Adds parameterized horizontal and vertical subgrid-scale  
+!                       turbulence to drifter fluxes. Optional. Do not use with 
+!                       -Ddiffusion or -Danisodiffusion.
+!   -Ddiffusion:        Adds a diffusive random isotropic horizontal position to  
+!                       drifter trajectory based on a circle. Also adds a vertical 
+!                       position. Optional. Do not use with -Dturb but can use  
+!                       with -anisodiffusion.
+!   -Danisodiffusion:   Adds a diffusive random anistropic horizontal position to 
+!                       drifter trajectory based on an ellipse, so that the 
+!                       diffusion is higher along the isobaths and weaker in the
+!                       perpendicular direction. This diffusion will hence take 
+!                       into account the fact that observations of trajectories 
+!                       of floats and drifters tend to follow isolines of constant 
+!                       planetary vorticity (f/h).
+!
+! Notes:
+!  * ifs flag looks like it is for a specific example, ignoring for now
+!  * There are vertical flux flags, but only the default behavior works currently.
+!    Not sure if other options need to be included in this work (-Dfull_wflux
+!    and -Dexplicit_w)
+!  
+!====================================================================
 
 implicit none
 
-integer,        intent(in)                                      :: ff, IMT, JMT, KM, ntractot, iter
-real(kind=8),   intent(in),     dimension(ntractot)             :: xstart, ystart, zstart
-real(kind=8),   intent(out),    dimension(iter,ntractot)             :: xend,yend,zend,zp
-integer,   intent(out),    dimension(ntractot)             :: flag
-integer,   intent(out),    dimension(iter,ntractot)             :: iend, jend, kend,ttend
-real(kind=8),   intent(in),     dimension(IMT-1,JMT,KM,2)         :: uflux
-real(kind=8),   intent(in),     dimension(IMT,JMT-1,KM,2)         :: vflux
-! #ifdef  full_wflux
-!     ! Not sure if this is right
-!     real(kind=8),        dimension(IMT,JMT,KM+1,2)         :: wflux
-! #else
-    real(kind=8),        dimension(0:KM,2)         :: wflux
-! #endif
-real(kind=8),   intent(in),     dimension(IMT,JMT,KM,2)         :: dzt
-real(kind=4),   intent(in),     dimension(IMT,JMT,2)            :: hs
-! real(kind=8),   intent(in),     dimension(KM)                   :: dz
-real(kind=8),   intent(in),     dimension(IMT,JMT)              :: dxdy,h
-integer,   intent(in),     dimension(IMT,JMT)              :: kmt
-integer,   intent(in),     dimension(IMT-1,JMT)              :: dyu
-integer,   intent(in),     dimension(IMT,JMT-1)              :: dxv
-real(kind=8),   intent(in)                                      :: t0, tseas, ah,av
-integer,        intent(in),     dimension(ntractot)             :: istart, jstart, kstart
-real(kind=8)                                                    :: rr, rg, ts, timax, &
-                                                                    dstep, dtmin, dxyz, &
-                                                                    dsmin, ds, dse,dsw,dsn,dss,dsd,dsu,dt, &
-                                                                    x0,y0,z0,x1,y1,z1,tt,tss,rbg,rb, dsc
-integer                                                         :: ntrac, niter, ia,ja,ka,&
-                                                                    iam,ib,jb,kb,errCode
-integer                                         :: nsm=1,nsp=2
-real(kind=8), PARAMETER                         :: UNDEF=1.d20
-#ifdef  turb
-  real*8,  dimension(6,2) :: upr  
-!   print *,'upr is being allocated'
-#endif /*turb*/
-real(kind=8),     dimension(IMT,JMT,KM)         :: dzttemp
+integer,    intent(in)                                  :: ff, imt, jmt, km, ntractot, iter
+integer,    intent(in),     dimension(ntractot)         :: istart, jstart, kstart
+integer,    intent(in),     dimension(imt,jmt)          :: kmt
+integer,    intent(in),     dimension(imt-1,jmt)        :: dyu
+integer,    intent(in),     dimension(imt,jmt-1)        :: dxv
+real*8,     intent(in),     dimension(ntractot)         :: xstart, ystart, zstart
+real*8,     intent(in),     dimension(imt-1,jmt,km,2)   :: uflux
+real*8,     intent(in),     dimension(imt,jmt-1,km,2)   :: vflux
+real*8,     intent(in),     dimension(imt,jmt,km,2)     :: dzt
+real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
+real*8,     intent(in)                                  :: tseas, ah, av
 
-! Number of drifters input in x0, y0
-! ntractot = size(xstart) !Sum of x0 entries
-! The following all seem to be for interpolation between output files in addition to the necessary iterations in the file.
-!     ! controls the stepping
+integer,    intent(out),    dimension(ntractot)         :: flag
+real*8,     intent(out),    dimension(iter,ntractot)    :: xend, yend, zend, zp
+integer,    intent(out),    dimension(iter,ntractot)    :: iend, jend, kend, ttend
+
+real*8,                     dimension(0:km,2)           :: wflux
+real*8,                     dimension(imt,jmt,km)       :: dzttemp
+real*8                                                  :: rr, rg, rbg, rb, dsc, &
+                                                           dstep, dtmin, dxyz, dt, &
+                                                           dsmin, ds, dse, dsw, dsn, &
+                                                           dss, dsd, dsu, &
+                                                           x0, y0, z0, x1, y1, z1, &
+                                                           tt, tss, ts
+integer                                                 :: ntrac, niter, ia, ja, ka, &
+                                                           iam, ib, jb, kb, errCode
+integer                                                 :: nsm=1,nsp=2
+real*8,     parameter                                   :: UNDEF=1.d20
+#ifdef  turb
+    real*8, dimension(6,2)                              :: upr  
+#endif /*turb*/
+
+
+
+! controls the iterative stepping between the two input model outputs
 dstep=1.d0/dble(iter)
-!     dtmin=dstep*tseas
-! dstep = 1.d0 ! The input model info is not being subdivided in this code.
 dtmin = dstep*tseas 
 
-timax = tseas! now in seconds *(1.d0/(24.d0*3600.d0)) ! maximum length of a trajectory in days. Just set to tseas.
-! iter = 1 ! one iteration since model output is interpolated before sending in here
-
-! kmt = KM ! Why are these separate? I think kmt is used in calc_dxyz as an array if they number of cells changes in x,y
 flag = 0
 
 !=======================================================
@@ -128,12 +181,8 @@ flag = 0
 !=== a new position for this time step.              ===
 !=======================================================
 
-!      call fancyTimer('advection','start')
 ntracLoop: do ntrac=1,ntractot  
-
-!     print *,'ntrac=',ntrac
-
-!     ! start track off with no error
+    ! start track off with no error
 !     errCode = 0
     ! Counter for sub-interations for each drifter. In the source, this was read in but I am not sure why.
     niter = 0
@@ -160,7 +209,7 @@ ntracLoop: do ntrac=1,ntractot
     niterLoop: do 
         niter=niter+1 ! iterative step of trajectory
 !         print *,'niter=',niter
-        ! KMT change: using the dmod function makes the final rr,rg values be switched
+        ! kmT change: using the dmod function makes the final rr,rg values be switched
         ! in value, so rr=1, rg=0 when it should be the opposite at the end of a model time step
         ! However, I am not sure why this would be wrong here, so I want to ask in the future.
         rg=ts/1.d0 
@@ -185,7 +234,7 @@ ntracLoop: do ntrac=1,ntractot
         ! Are tracking fields being properly updated between loops?
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
 
-        call calc_dxyz(ib,jb,kb,rr,imt,jmt,KM,kmt,dzt,dxdy,dxyz)
+        call calc_dxyz(ib,jb,kb,rr,imt,jmt,km,kmt,dzt,dxdy,dxyz)
         ! I am putting the error checks directly in the loop for convenience
         !         call errorCheck('dxyzError',errCode,dxyz,flag)
         ! Check the grid box volume
@@ -240,7 +289,7 @@ ntracLoop: do ntrac=1,ntractot
            print *,'====================================='    
            errCode = -44
            stop
-        elseif((dble(kb-1).gt.z1.and.kb.ne.KM).or. & 
+        elseif((dble(kb-1).gt.z1.and.kb.ne.km).or. & 
              dble(kb).lt.z1 ) then
            print *,'========================================'
            print *,'ERROR: Particle overshoot in k direction'
@@ -318,13 +367,13 @@ ntracLoop: do ntrac=1,ntractot
 
 !  print *,'ja=',ja,' jb=',jb,x1,y1
 #ifdef turb
-        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr) ! zonal
-        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr) ! meridional
-        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,KM,JMT,IMT,upr) ! vertical
+        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr) ! zonal
+        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr) ! meridional
+        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr) ! vertical
 #else 
-        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! zonal
-        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! meridional
-        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,KM,JMT,IMT) ! vertical
+        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! zonal
+        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! meridional
+        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! vertical
 #endif /*turb*/
 !         ds=dmin1(dse,dsw,dsn,dss,dsmin)
 !         print *, 'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,' dsmin=',dsmin
@@ -355,7 +404,7 @@ ntracLoop: do ntrac=1,ntractot
 !             write (*,'(A7, F10.3, A7, F10.3, A7, F10.3)'), & 
 !                 ' x0= ', x0, ' y0= ', y0, ' z0= ', z0
 !             write (*,'(A7, I10, A7, I10, A7, I10)'), & 
-!                 ' k_inv= ', KM+1-kmt(ia,ja), ' kmt= ', kmt(ia,ja), &
+!                 ' k_inv= ', km+1-kmt(ia,ja), ' kmt= ', kmt(ia,ja), &
 !                 'lnd= ', mask(ia,ja)
             print *,'---------------------------------------------------'
             print *,'The trajectory is killed'
@@ -382,14 +431,14 @@ ntracLoop: do ntrac=1,ntractot
 #ifdef turb
 ! print *,'using turb'
         call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                ff,IMT,JMT,KM,rr,rb,uflux,vflux,wflux,upr)
+                ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,upr)
 #else
         call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                ff,IMT,JMT,KM,rr,rb,uflux,vflux,wflux)
+                ff,imt,jmt,km,rr,rb,uflux,vflux,wflux)
 #endif /*turb*/
         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-! !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0, ' timax=',timax,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
+! !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
 !       print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2),' dxyz=',dxyz
 !       print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
 !         print '(a,f7.1,a,f6.1,a,f5.2,a,f5.2)', 'tt=',tt,' dt=',dt,' ts=',ts,' tss=',tss
@@ -472,8 +521,8 @@ ntracLoop: do ntrac=1,ntractot
 !         ! if trajectory under bottom of ocean, 
 !         ! then put in middle of deepest layer 
 !         ! (this should however be impossible)
-!          if( z1.le.dble(KM-kmt(ib,jb)) ) then
-!             print *,'under bottom !!!!!!!',z1,dble(KM-kmt(ib,jb))
+!          if( z1.le.dble(km-kmt(ib,jb)) ) then
+!             print *,'under bottom !!!!!!!',z1,dble(km-kmt(ib,jb))
 !             print *,'kmt=',kmt(ia,ja),kmt(ib,jb)
 !             print *,'ntrac=',ntrac
 !              print *,'ds',ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dxyz
@@ -486,16 +535,16 @@ ntracLoop: do ntrac=1,ntractot
 !             nerror=nerror+1
 !             nrj(ntrac,6)=1
 !              stop 3957
-!              z1=dble(KM-kmt(ib,jb))+0.5d0
+!              z1=dble(km-kmt(ib,jb))+0.5d0
 !             errCode = -49
 !          end if
 
 !         call errorCheck('airborneError', errCode)
          ! if trajectory above sea level,
          ! then put back in the middle of shallowest layer (evaporation)
-         if( z1.ge.dble(KM) ) then
-            z1=dble(KM)-0.5d0
-            kb=KM
+         if( z1.ge.dble(km) ) then
+            z1=dble(km)-0.5d0
+            kb=km
             errCode = -50
          endif
 
@@ -503,13 +552,13 @@ ntracLoop: do ntrac=1,ntractot
          ! sets the right level for the corresponding trajectory depth
          if(z1.ne.dble(idint(z1))) then
             kb=idint(z1)+1
-            if(kb == KM+1) kb=KM  ! (should perhaps be removed)
+            if(kb == km+1) kb=km  ! (should perhaps be removed)
             errCode = -52
          endif
 
 !         call errorCheck('cornerError', errCode)
             ! problems if trajectory is in the exact location of a corner
-            ! KMT added the second set of conditions
+            ! kmT added the second set of conditions
          if(x1 == dble(idint(x1)) .and. y1 == dble(idint(y1)))  then
 !          if((x1 == dble(idint(x1)) .and. y1 == dble(idint(y1))) .or. &
 !             ((abs(x1-dble(idint(x1))) <= 0.001) .and. (abs(y1-dble(idint(y1))) <= 0.001))) then
@@ -547,7 +596,7 @@ ntracLoop: do ntrac=1,ntractot
 #ifdef diffusion     
 ! #if defined diffusion     
 ! print *,'using diffusion'
-           call diffuse(x1, y1, z1, ib, jb, kb, dt,IMT,JMT,KM,kmt,dxv,dyu,dzt,h,ah,av)
+           call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av)
 #endif /*diffusion*/
 ! #endif
         !         nout=nout+1 ! number of trajectories that have exited the space and time domain
@@ -565,13 +614,13 @@ ntracLoop: do ntrac=1,ntractot
 !  print *,'ja=',ja,' jb=',jb,x1,y1
 
         ! Need to add other conditions to this. Checking to see if drifter has exited domain.
-        if(x1<=2.d0 .or. x1>=IMT-2.d0 .or. y1<=2.d0 .or. y1>=JMT-2.d0) then
+        if(x1<=2.d0 .or. x1>=imt-2.d0 .or. y1<=2.d0 .or. y1>=jmt-2.d0) then
             print *, 'Stopping trajectory due to domain'
 !             print *, 'x1=',x1,' y1=',y1
             if(x1<=2.d0) x1=2.d0
-            if(x1>=IMT) x1=dble(IMT)
+            if(x1>=imt) x1=dble(imt)
             if(y1<=2.d0) y1=2.d0
-            if(y1>=JMT) y1=dble(JMT)
+            if(y1>=jmt) y1=dble(jmt)
             ! Don't write here since the timing of the location would probably be off
 !             xend(idint(tss),ntrac) = x1
 !             yend(idint(tss),ntrac) = y1
@@ -596,11 +645,11 @@ ntracLoop: do ntrac=1,ntractot
           jend(idint(tss),ntrac) = jb
           kend(idint(tss),ntrac) = kb
           ttend(idint(tss),ntrac) = tt
-          ! KMT: Calculate real space z position in here since I have all the information
+          ! kmT: Calculate real space z position in here since I have all the information
           ! interpolate dzt in time and add up vertical levels from surface down to cell
           ! above drifter's cell, then account for the distance in the cell too
           rg=1.d0-rr
-          ! KMT: dzttemp is the time-interpolated dzt since I need it twice here
+          ! kmT: dzttemp is the time-interpolated dzt since I need it twice here
           dzttemp = rg*dzt(:,:,:,nsp)+rr*dzt(:,:,:,nsm)
           ! first term is adding up the depth levels between grid cell above drifter's cell and
           ! the surface and the second term is finding the difference into the cell the
@@ -608,7 +657,7 @@ ntracLoop: do ntrac=1,ntractot
           ! I have to set the dimension that the sum acts along as 1 since only the vertical
           ! direction has more than one element
           ! Ends up being as depth below the surface in meters
-          zp(idint(tss),ntrac) = -(sum(dzttemp(ib,jb,kb+1:KM),1) + (dble(kb)-z1)*dzttemp(ib,jb,kb))
+          zp(idint(tss),ntrac) = -(sum(dzttemp(ib,jb,kb+1:km),1) + (dble(kb)-z1)*dzttemp(ib,jb,kb))
         endif
 !         print *,'x1=',x1,' y1=',y1,' tt=',tt
 
@@ -616,10 +665,11 @@ ntracLoop: do ntrac=1,ntractot
         ! === stop trajectory if the choosen time or ===
         ! === water mass properties are exceeded     ===
         ! Have already written to save arrays above
-        if(tt-t0.ge.timax) then ! was .gt. in original code
+        if(tt.ge.tseas) then ! was .gt. in original code
+!         if(tt-t0.ge.tseas) then ! was .gt. in original code, also eliminated t0 since was =0
         !               nexit(NEND)=nexit(NEND)+1
 !             print *, 'Stopping trajectory due to time'
-!             print *, 'tt=',tt,' t0=',t0,' timax=',timax
+!             print *, 'tt=',tt,' t0=',t0,' tseas=',tseas
 !             print *, 'x1=',x1,' y1=',y1
 !             xend(ntrac) = x1
 !             yend(ntrac) = y1
@@ -637,7 +687,7 @@ ntracLoop: do ntrac=1,ntractot
 !         print *, 'x0[',niter,']=', x0, ' y0[',niter,']=',y0
 !         print *, 'x1[',niter,']=', x1, ' y1[',niter,']=',y1
 !         print *,'ts=',ts,' rg=',rg,' rr=',rr
-!     print *,'tt=',tt,' t0=',t0,' timax=',timax
+!     print *,'tt=',tt,' t0=',t0,' tseas=',tseas
 
 ! ! this is for shortening the loop for troubleshooting
 !         if(niter .gt. 0) then

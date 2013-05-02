@@ -108,19 +108,16 @@ iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 kend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 ttend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-# t0 = np.zeros(((len(tinds))*nsteps+1))
-t0=0
 t = np.zeros(((len(tinds))*nsteps+1))
 flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
 # Initialize free surface and fluxes
-hs = np.ones((grid['imt'],grid['jmt'],2))*np.nan # free surface, 2 times
 uflux = np.ones((grid['imt']-1,grid['jmt'],grid['km'],2))*np.nan # uflux, 2 times
 vflux = np.ones((grid['imt'],grid['jmt']-1,grid['km'],2))*np.nan # vflux, 2 times
 dzt = np.ones((grid['imt'],grid['jmt'],grid['km'],2))*np.nan # 2 times
 # Read initial field in - to 2nd time spot since will be moved
 # at the beginning of the time loop ahead
-hs[:,:,1],uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tinds[0],grid,nc)
+uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tinds[0],grid,nc)
 
 
 # Input initial vertical locations in real space. 
@@ -200,13 +197,12 @@ j = 0 # index for number of saved steps for drifters
 for tind in tinds:
 	# pdb.set_trace()
 	# Move previous new time step to old time step info
-	hs[:,:,0] = hs[:,:,1]
 	uflux[:,:,:,0] = uflux[:,:,:,1]
 	vflux[:,:,:,0] = vflux[:,:,:,1]
 	dzt[:,:,:,0] = dzt[:,:,:,1]
 
 	# Read stuff in for next time loop
-	hs[:,:,1],uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tind+1,grid,nc)
+	uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tind+1,grid,nc)
 	# pdb.set_trace()
 
 	print j
@@ -241,18 +237,18 @@ for tind in tinds:
 		break
 	else:
 		xend[j*nsteps:j*nsteps+nsteps,ind],\
-						yend[j*nsteps:j*nsteps+nsteps,ind],\
-						zend[j*nsteps:j*nsteps+nsteps,ind], \
-						zp[j*nsteps:j*nsteps+nsteps,ind],\
-						iend[j*nsteps:j*nsteps+nsteps,ind],\
-						jend[j*nsteps:j*nsteps+nsteps,ind],\
-						kend[j*nsteps:j*nsteps+nsteps,ind],\
-						flag[ind],\
-						ttend[j*nsteps:j*nsteps+nsteps,ind] = \
-						tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
-						np.ma.compressed(zstart),t0,np.ma.compressed(ia),np.ma.compressed(ja),
-						np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
-						dzt,hs,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av)#dz.data,dxdy)
+			yend[j*nsteps:j*nsteps+nsteps,ind],\
+			zend[j*nsteps:j*nsteps+nsteps,ind], \
+			zp[j*nsteps:j*nsteps+nsteps,ind],\
+			iend[j*nsteps:j*nsteps+nsteps,ind],\
+			jend[j*nsteps:j*nsteps+nsteps,ind],\
+			kend[j*nsteps:j*nsteps+nsteps,ind],\
+			flag[ind],\
+			ttend[j*nsteps:j*nsteps+nsteps,ind] = \
+				tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
+					np.ma.compressed(zstart),np.ma.compressed(ia),np.ma.compressed(ja),
+					np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
+					dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av)#dz.data,dxdy)
 		# if np.sum(flag)>0:
 		# pdb.set_trace()
 		# CHECK THIS, want time for each time step between model outputs
