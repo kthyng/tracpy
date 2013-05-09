@@ -53,18 +53,18 @@ subroutine pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,ds
 implicit none
 
 integer,            intent(in)                                  :: ia, ja, ka, imt, jmt, km,ff
-real*8,             intent(in)                                  :: x0, y0, z0,ds,dse,dsw,dss,dsn,dsd,dsu,dsmin,dsc,rbg,rb, rr
+real*8,             intent(in)                                  :: x0, y0, z0,ds,dse,dsw,dss,dsn,dsd,dsu,dsmin,dsc,rb, rr
 real(kind=8),       intent(in),     dimension(imt-1,jmt,km,2)   :: uflux
 real(kind=8),       intent(in),     dimension(imt,jmt-1,km,2)   :: vflux
 real(kind=8),       intent(in),     dimension(0:km,2)           :: wflux
 real*8, optional,   intent(in),     dimension(6,2)              :: upr  
 integer,            intent(out)                                 :: ib, jb, kb
 real*8,             intent(out)                                 :: x1, y1, z1
-integer                                                         :: nsm=1,nsp=2,im=ia-1
-real(kind=8)                                                    :: uu
+integer                                                         :: nsm=1,nsp=2,im,iam
+real(kind=8)                                                    :: uu, rbg
 real(kind=8),       parameter                                   :: UNDEF=1.d20
 
-
+im=ia-1
 rbg =1.d0-rb
 
 ! === calculate the new positions ===

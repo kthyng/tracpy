@@ -39,7 +39,7 @@ integer,        intent(in)      :: iter
 real(kind=8),   intent(in)      :: dsmin,dtmin,tseas,dxyz,dstep
 real(kind=8),   intent(in out)  :: ds,tss,tt,ts
 real(kind=8),   intent(out)     :: dt,rb,dsc
-real(kind=8),                   :: rbg
+real(kind=8)                    :: rbg
 
 ! Don't allow particle to move more than between the model outputs
 if(ds == dsmin) then ! transform ds to dt in seconds
