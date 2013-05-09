@@ -159,7 +159,7 @@ real*8                                                  :: rr, rg, rbg, rb, dsc,
                                                            dsmin, ds, dse, dsw, dsn, &
                                                            dss, dsd, dsu, &
                                                            x0, y0, z0, x1, y1, z1, &
-                                                           tt, tss, ts
+                                                           tt, tss, ts, t0
 integer                                                 :: ntrac, niter, ia, ja, ka, &
                                                            iam, ib, jb, kb, errCode
 integer                                                 :: nsm=1,nsp=2
