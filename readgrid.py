@@ -26,7 +26,8 @@ def readgrid(loc,nc):
 
     grid dictionary contains: (array sizing is for tracmass ordering)
      imt,jmt,km     Grid index sizing constants in (x,y,z), are for horizontal rho grid [scalar]
-     dxv,dyu        Horizontal grid cell walls areas in x and y directions [imt,jmt]
+     dxv            Horizontal grid cell walls areas in x direction [imt,jmt-1]
+     dyu            Horizontal grid cell walls areas in y direction [imt-1,jmt]
      dxdy           Area of horizontal cell-walls [imt,jmt]
      mask           Land/sea mask [imt,jmt] 
      pm,pn          Difference in horizontal grid spacing in x and y [imt,jmt]

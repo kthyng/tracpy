@@ -59,7 +59,7 @@ itno=0
 do while(tryAgain)
     itno=itno+1
     ! find random displacement 
-    call displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av)
+    call displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu)
 !     CALL displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,kmt,h,ah,av)
 !     print *,'xd=',xd,' yd=',yd,' zd=',zd
 !     print *,'dzt(ib,jb,:,1)=',dzt(ib,jb,:,1)
@@ -142,19 +142,21 @@ end subroutine diffuse
 ! xd, yd, zd : Variables in which the displacement will be stored
 ! dt: Model time step
 !===============================================================================
-subroutine displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av) 
+subroutine displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu) 
 
 implicit none
   
-integer,        intent(in)                      :: ib,jb,kb,imt,jmt   ! box indices
-real(kind=8),   intent(in)                      :: dt,ah,av
-integer,        intent(in), dimension(imt,jmt)  :: h
-real(kind=8),   intent(out)                     :: xd, yd, zd
-real(kind=8),   parameter                       :: pi = 3.14159265358979323846
-real(kind=8)                                    :: q1, q2, q3, q4, r, elip, xx, yy, hp, hm
+integer,        intent(in)                          :: ib,jb,kb,imt,jmt   ! box indices
+real(kind=8),   intent(in)                          :: dt,ah,av
+integer,        intent(in), dimension(imt,jmt)      :: h
+integer,        intent(in), dimension(imt-1,jmt)    :: dyu
+integer,        intent(in), dimension(imt,jmt-1)    :: dxv
+real(kind=8),   intent(out)                         :: xd, yd, zd
+real(kind=8),   parameter                           :: pi = 3.14159265358979323846
+real(kind=8)                                        :: q1, q2, q3, q4, r, elip, xx, yy, hp, hm
 #ifdef anisodiffusion   
-real(kind=8)                                    :: rx, ry, grdx, grdy, grad, theta
-integer                                         :: ip,im,jp,jm
+real(kind=8)                                        :: rx, ry, grdx, grdy, grad, theta
+integer                                             :: ip,im,jp,jm
 #endif
     
 ! random generated numbers between 0 and 1
@@ -194,9 +196,10 @@ yd = R * sin(2*PI*q2)
     ! just depth gradient
     ! grdx=float(kmt(ip,jb)-kmt(im,jb)) ! zonal      depth gradient (zw should be used)
     ! grdy=float(kmt(ib,jp)-kmt(ib,jm)) ! meridional depth gradient
-    ! kmT: switching the bathymetry/depths array in here
-    grdx=float(h(ip,jb)-h(im,jb)) ! zonal      depth gradient
-    grdy=float(h(ib,jp)-h(ib,jm)) ! meridional depth gradient
+    ! kmT: switching the bathymetry/depths array and grid distances in here
+    ! since user manual (pg 21) shows grdx=\Delta h/\Delta x, for example
+    grdx=float(h(ip,jb)-h(im,jb))/float(dxv(ip,jb)-dxv(im,jb)) ! zonal depth gradient
+    grdy=float(h(ib,jp)-h(ib,jm))/float(dyu(ib,jp)-dyu(ib,jm)) ! meridional depth gradient
 
     grad=dsqrt(grdx**2+grdy**2)       ! total depth gradient
 
