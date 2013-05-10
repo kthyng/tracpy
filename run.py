@@ -146,13 +146,6 @@ if z0 == 'surface':
 	# change z0 to be what it is in the normal case: the real space depth for the drifters
 	z0 = zt[ia.astype(int),ja.astype(int),ka.astype(int)]
 	zstart0 = np.ones(ia.size)*(ka-.5) # start mid-way vertically through the uppermost grid cell
-	# for i in xrange(ia.size):
-	# 	ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
-	# 	# ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-	# 	# if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
-	# 	# 	ka[i] = ka[i]+1
-	# 	# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
-	# 	zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
 else:	
 	# Convert initial real space vertical locations to grid space
 	# first find indices of grid cells vertically
@@ -166,19 +159,6 @@ else:
 		# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
 		zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
 
-# zstart0 = np.ones(ia.size)*np.nan
-# for i in xrange(ia.size):
-# 	ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
-# 	ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-# 	if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
-# 		ka[i] = ka[i]+1
-# 	# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
-# 	zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
-# pdb.set_trace()
-
-# # Now can find grid indices of vertical starting locations
-# ka = np.ceil(zstart0) #[1]#,1]
-
 # Bump all grid-based fields up by one since in Fortran they are 1-based instead of 0-based
 ia = ia + 1
 ja = ja + 1
@@ -186,10 +166,6 @@ ka = ka + 1
 xstart0 = xstart0 + 1
 ystart0 = ystart0 + 1
 zstart0 = zstart0 + 1
-
-# # convert real vertical position of initial drifter locations
-# zp0 = np.sum(dzt[ia-1,ja-1,ka+1-1:KM+1,1],axis=3)
-# sum(dzttemp(ib,jb,kb+1:KM),1) + (dble(kb)-z1)*dzttemp(ib,jb,kb)
 
 j = 0 # index for number of saved steps for drifters
 # Loop through model outputs. tinds is in proper order for moving forward
@@ -251,11 +227,8 @@ for tind in tinds:
 					dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av)#dz.data,dxdy)
 		# if np.sum(flag)>0:
 		# pdb.set_trace()
-		# CHECK THIS, want time for each time step between model outputs
-		# TIMES ARE WRONG
 		t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps)    #tseas/float(nsteps) # update time in seconds to match drifters
-		# if i == 8:
-		# pdb.set_trace()
+
 	j = j + 1
 
 nc.close()

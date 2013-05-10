@@ -20,6 +20,7 @@ subroutine calc_dxyz(ib,jb,kb,rr,imt,jmt,km,kmt,dzt,dxdy,dxyz)
 !                   : of later time step is used in interpolation.
 !    nsm=1,nsp=2    : Time index. nsm picks out the earlier bounding time step and 
 !                     nsp picks out the later bounding time step for interpolation.
+!
 !  Notes:
 !    KMT: Assuming zgrid3Dt flag which includes free surface already, I think. Other 
 !         flags aren't set up in the allocations or in the input variables,

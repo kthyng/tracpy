@@ -195,14 +195,9 @@ ntracLoop: do ntrac=1,ntractot
     tt = t0 !+ 0.d0 !time of trajectory in seconds... start at zero for this test case
     ts = 0.d0 ! model dataset time step of trajectory... start at zero for this test case
     tss = 0.d0
-!         subvol =  trj(ntrac,5)
-!         t0     =  trj(ntrac,7)
     ib = istart(ntrac)
     jb = jstart(ntrac)
     kb = kstart(ntrac)
-!        niter  =  nrj(ntrac,4)
-!         ts     =  dble(nrj(ntrac,5))
-!         tss    =  0.d0
   
     ! ===  start loop for each trajectory ===
     !         scrivi=.true.
@@ -231,7 +226,6 @@ ntracLoop: do ntrac=1,ntractot
 !         ! start track off with no error (maybe export these later to keep track of)
         errCode = 0
 
-        ! Are tracking fields being properly updated between loops?
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
 
         call calc_dxyz(ib,jb,kb,rr,imt,jmt,km,kmt,dzt,dxdy,dxyz)
@@ -375,7 +369,6 @@ ntracLoop: do ntrac=1,ntractot
         call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! meridional
         call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! vertical
 #endif /*turb*/
-!         ds=dmin1(dse,dsw,dsn,dss,dsmin)
 !         print *, 'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,' dsmin=',dsmin
           ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
 !         print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
@@ -603,14 +596,6 @@ ntracLoop: do ntrac=1,ntractot
 
         ! === end trajectory if outside chosen domain ===
 
-        ! For stream functions?
-        !            LBTloop: do k=1,LBT
-        !               if(float(ienw(k)) <= x1 .and. x1 <= float(iene(k)) .and. &
-        !                  float(jens(k)) <= y1 .and. y1 <= float(jenn(k))  ) then
-        !                  nexit(k)=nexit(k)+1
-        !                  exit niterLoop                                
-        !               endif
-        !            enddo LBTLOOP
 !  print *,'ja=',ja,' jb=',jb,x1,y1
 
         ! Need to add other conditions to this. Checking to see if drifter has exited domain.
