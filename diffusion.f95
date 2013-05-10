@@ -151,9 +151,9 @@ real(kind=8),   intent(in)                      :: dt,ah,av
 integer,        intent(in), dimension(imt,jmt)  :: h
 real(kind=8),   intent(out)                     :: xd, yd, zd
 real(kind=8),   parameter                       :: pi = 3.14159265358979323846
+real(kind=8)                                    :: q1, q2, q3, q4, r, elip, xx, yy, hp, hm
 #ifdef anisodiffusion   
-real(kind=8)                                    :: rx, ry, grdx, grdy, grad, theta, &
-                                                   q1, q2, q3, q4, r,elip, xx, yy, hp, hm
+real(kind=8)                                    :: rx, ry, grdx, grdy, grad, theta
 integer                                         :: ip,im,jp,jm
 #endif
     
