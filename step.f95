@@ -30,8 +30,9 @@ SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
 !                     horizontal and vertical rho grid [scalar]
 !    kmt            : Number of vertical levels in horizontal space [imt,jmt]
 !    dzt            : Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
-!    dxdy           : Area of horizontal cell-walls [imt,jmt]
-!    dxv,dyu        : Horizontal grid cell walls areas in x and y directions [imt,jmt]
+!    dxdy           : Horizontal area of cells defined at cell centers [imt,jmt]
+!    dxv            : Horizontal grid cell walls areas in x direction [imt,jmt-1]
+!    dyu            : Horizontal grid cell walls areas in y direction [imt-1,jmt]
 !    h              : Depths [imt,jmt]
 !    ntractoc       : Total number of drifters
 !    iter           : number of interpolation time steps to do between model outputs, 

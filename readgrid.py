@@ -28,7 +28,7 @@ def readgrid(loc,nc):
      imt,jmt,km     Grid index sizing constants in (x,y,z), are for horizontal rho grid [scalar]
      dxv            Horizontal grid cell walls areas in x direction [imt,jmt-1]
      dyu            Horizontal grid cell walls areas in y direction [imt-1,jmt]
-     dxdy           Area of horizontal cell-walls [imt,jmt]
+     dxdy           Horizontal area of cells defined at cell centers [imt,jmt]
      mask           Land/sea mask [imt,jmt] 
      pm,pn          Difference in horizontal grid spacing in x and y [imt,jmt]
      kmt            Number of vertical levels in horizontal space [imt,jmt]
@@ -123,8 +123,8 @@ def readgrid(loc,nc):
 
     # tracmass ordering.
     # Not sure how to convert this to pm, pn with appropriate shift
-    dxv = 1/pm.copy()
-    dyu = 1/pn.copy()
+    dxv = 1/pm.copy() # pm is 1/\Delta x at cell centers
+    dyu = 1/pn.copy() # pn is 1/\Delta y at cell centers
 
     # dxv = xr.copy()
     # dxv[0:imt-2,:] = dxv[1:imt-1,:] - dxv[0:imt-2,:]

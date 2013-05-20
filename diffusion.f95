@@ -10,7 +10,8 @@ subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av
 !    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
 !                     horizontal and vertical rho grid [scalar]
 !    kmt            : Number of vertical levels in horizontal space [imt,jmt]
-!    dxv,dyu        : Horizontal grid cell walls areas in x and y directions [imt,jmt]
+!    dxv            : Horizontal grid cell walls areas in x direction [imt,jmt-1]
+!    dyu            : Horizontal grid cell walls areas in y direction [imt-1,jmt]
 !    dzt            : Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
 !    h              : Depths [imt,jmt]
 !    ah             : horizontal diffusion in m^2/s. Input parameter.
@@ -126,7 +127,7 @@ if(x1.ne.dble(idint(x1))) ib=idint(x1)+1 ! make sure the index corresponds to th
 !print *,'slut',itno,kmt(ib,jb),ib,jb,kb,x1,y1,z1
   
 #endif 
-!kmT had to move inside subroutine (from very bottom of script)
+!KMT had to move inside subroutine (from very bottom of script)
 
 end subroutine diffuse
 
@@ -184,22 +185,42 @@ yd = R * sin(2*PI*q2)
     ! so that the diffusion is higher along the isobaths and weaker
     ! in the perpendicular direction (up/downhill)
 
+    ! for index in i direction for one cell positive from the current cell
     ip=ib+1
-    if(ip.eq.imt+1) ip=1
+    ! KMT: Is this a periodic BC? Replace with just the edge value so it won't 
+    ! elliptical but just at the edge.
+    ! I think the check should happen for ip==imt since in the x direction for u
+    ! the grid only goes up to imt-1 for the arakawa c grid.
+    if(ip.eq.imt) ip = imt-1 ! use ib instead of ib+1, and here ib=imt-1
+!     if(ip.eq.imt+1) ip=1
+
+    ! for index in i direction for one cell negative from the current cell
     im=ib-1
-    if(im.eq.0) im=imt
+    ! KMT: Is this a periodic BC? Replace with just the edge value so it won't 
+    ! elliptical but just at the edge.
+    if(im.eq.0) im = 1 ! use ib instead of ib-1, and here ib=1
+!     if(im.eq.0) im=imt
+
+     ! for index in j direction for one cell positive from the current cell
     jp=jb+1
-    if(jp.eq.jmt+1) jp=jmt
+    ! KMT: In v they don't use period BC. 
+    ! I think the check should happen for jp==jmt since in the y direction for v
+    ! the grid only goes up to jmt-1 for the arakawa c grid.
+    if(jp.eq.jmt) jp = jmt-1 ! use jb instead of jb+1, and here jb=jmt-1
+!     if(jp.eq.jmt+1) jp=jmt
+
+    ! for index in j direction for one cell negative from the current cell
     jm=jb-1
-    if(jm.eq.0) jm=1
+    ! KMT: In v they don't use period BC and this check is fine as is.
+    if(jm.eq.0) jm = 1
 
     ! just depth gradient
     ! grdx=float(kmt(ip,jb)-kmt(im,jb)) ! zonal      depth gradient (zw should be used)
     ! grdy=float(kmt(ib,jp)-kmt(ib,jm)) ! meridional depth gradient
-    ! kmT: switching the bathymetry/depths array and grid distances in here
+    ! KMT: switching the bathymetry/depths array and grid distances in here
     ! since user manual (pg 21) shows grdx=\Delta h/\Delta x, for example
-    grdx=float(h(ip,jb)-h(im,jb))/float(dxv(ip,jb)-dxv(im,jb)) ! zonal depth gradient
-    grdy=float(h(ib,jp)-h(ib,jm))/float(dyu(ib,jp)-dyu(ib,jm)) ! meridional depth gradient
+    grdx=float(h(ip,jb)-h(im,jb))/float(xr(ip,jb)-xr(im,jb)) ! zonal depth gradient
+    grdy=float(h(ib,jp)-h(ib,jm))/float(yr(ib,jp)-yr(ib,jm)) ! meridional depth gradient
 
     grad=dsqrt(grdx**2+grdy**2)       ! total depth gradient
 
