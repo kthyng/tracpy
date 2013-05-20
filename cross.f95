@@ -59,9 +59,15 @@ rg=1.d0-rr
 if(ijk.eq.1) then
     ii=ia
     im=ia-1
-    if(im.eq.0) im=imt
-        uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
-        um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
+    ! KMT: This statement occurs many times throughout the code and I don't
+    ! understand its purpose if it is supposed to be a hardwired boundary condition.
+    ! I am not sure this statement would ever actually be used, unless maybe the
+    ! drifter makes it to the very edge of the domain in x, on the west side, and
+    ! even then, the uflux is not set up to have values for imt.
+    ! Is there another boundary condition that should be taking this place?
+!     if(im.eq.0) im=imt
+    uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
+    um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
 
 #ifdef turb   
     if(r0.ne.dble(ii)) then

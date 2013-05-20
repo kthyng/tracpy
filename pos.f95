@@ -66,7 +66,10 @@ rg=1.d0-rr
 if(ijk.eq.1) then
     ii=ia
     im=ia-1
-    if(im.eq.0) im=imt
+    ! KMT: This appears to be a periodic boundary condition. I think this condition
+    ! would arise only when the drifter is at the very west x edge, and I am not sure
+    ! what the boundary condition here should be. Why isn't there one in the v/y direction?
+!     if(im.eq.0) im=imt
     uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff
     um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
 

@@ -46,7 +46,7 @@ logical                                                     :: tryAgain
 tryAgain = .FALSE.
   
 ! Is particle within model area?
-! kmT: I do not understand how the vertical checks are correct here, so I am changing them
+! KMT: I do not understand how the vertical checks are correct here, so I am changing them
 
 !   if(ib>=1 .AND. ib<=imt .AND. jb>=1 .AND. jb<=jmt .AND. km+1-kmt(ib,jb)<=kb .AND. kb>=1 ) then
 if(ib>=1 .AND. ib<=imt .AND. jb>=1 .AND. jb<=jmt .AND. km>=kb .AND. kb>=1 ) then
@@ -64,10 +64,10 @@ do while(tryAgain)
 !     print *,'xd=',xd,' yd=',yd,' zd=',zd
 !     print *,'dzt(ib,jb,:,1)=',dzt(ib,jb,:,1)
     ! Convert displacement from meters to model coordinates
-    ! kmT note: following example in master code for orc project
+    ! KMT note: following example in master code for orc project
     xd = xd/dxv(ib,jb)
     yd = yd/dyu(ib,jb)
-    zd = zd/dzt(ib,jb,kb,1) !kmT: this should be better than dz()
+    zd = zd/dzt(ib,jb,kb,1) !KMT: this should be better than dz()
     ! TO DO: improve so that dzt is calculated including free surface and for correct time
 !     zd = zd/dz(kb) !should be replaced for bottom box and include ssh (original note)
 
@@ -88,7 +88,7 @@ do while(tryAgain)
     end if
 
     ! check that column is deep enough  
-    ! kmT: this is the same check as above that looks wrong and I changed
+    ! KMT: this is the same check as above that looks wrong and I changed
 !     if( 1<=tmpi .AND. tmpi<=imt .AND. 1<=tmpj .AND. tmpj<=jmt .AND. km+1-kmt(tmpi,tmpj)<=tmpk .AND. tmpk>=1 ) then
     if(tmpi>=1 .AND. tmpi<=imt .AND. tmpj>=1 .AND. tmpj<=jmt .AND. km>=tmpk .AND. tmpk>=1 ) then
         print *,'km=',km,' km+1-kmt(tmpi,tmpj)=',km+1-kmt(tmpi,tmpj),' tmpk=',tmpk

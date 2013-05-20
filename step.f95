@@ -204,7 +204,7 @@ ntracLoop: do ntrac=1,ntractot
     niterLoop: do 
         niter=niter+1 ! iterative step of trajectory
 !         print *,'niter=',niter
-        ! kmT change: using the dmod function makes the final rr,rg values be switched
+        ! KMT change: using the dmod function makes the final rr,rg values be switched
         ! in value, so rr=1, rg=0 when it should be the opposite at the end of a model time step
         ! However, I am not sure why this would be wrong here, so I want to ask in the future.
         rg=ts/1.d0 
@@ -551,7 +551,7 @@ ntracLoop: do ntrac=1,ntractot
 
 !         call errorCheck('cornerError', errCode)
             ! problems if trajectory is in the exact location of a corner
-            ! kmT added the second set of conditions
+            ! KMT added the second set of conditions, which aren't used now
          if(x1 == dble(idint(x1)) .and. y1 == dble(idint(y1)))  then
 !          if((x1 == dble(idint(x1)) .and. y1 == dble(idint(y1))) .or. &
 !             ((abs(x1-dble(idint(x1))) <= 0.001) .and. (abs(y1-dble(idint(y1))) <= 0.001))) then
@@ -599,6 +599,8 @@ ntracLoop: do ntrac=1,ntractot
 !  print *,'ja=',ja,' jb=',jb,x1,y1
 
         ! Need to add other conditions to this. Checking to see if drifter has exited domain.
+        ! KMT: Maybe can change these to be closer to the edges
+        ! Do we want to keep the drifters at the edges if they have exited? Or change to nan's?
         if(x1<=2.d0 .or. x1>=imt-2.d0 .or. y1<=2.d0 .or. y1>=jmt-2.d0) then
             print *, 'Stopping trajectory due to domain'
 !             print *, 'x1=',x1,' y1=',y1
@@ -630,11 +632,11 @@ ntracLoop: do ntrac=1,ntractot
           jend(idint(tss),ntrac) = jb
           kend(idint(tss),ntrac) = kb
           ttend(idint(tss),ntrac) = tt
-          ! kmT: Calculate real space z position in here since I have all the information
+          ! KMT: Calculate real space z position in here since I have all the information
           ! interpolate dzt in time and add up vertical levels from surface down to cell
           ! above drifter's cell, then account for the distance in the cell too
           rg=1.d0-rr
-          ! kmT: dzttemp is the time-interpolated dzt since I need it twice here
+          ! KMT: dzttemp is the time-interpolated dzt since I need it twice here
           dzttemp = rg*dzt(:,:,:,nsp)+rr*dzt(:,:,:,nsm)
           ! first term is adding up the depth levels between grid cell above drifter's cell and
           ! the surface and the second term is finding the difference into the cell the

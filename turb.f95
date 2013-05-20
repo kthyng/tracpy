@@ -80,7 +80,10 @@ qran=amp*qran-0.5*amp ! ===  amplitude of turbulence with random numbers between
 rg=1.d0-rr
 
 im=ia-1
-!   if(im.eq.0) im=IMT # KMT commented this. Isn't this a periodic condition?
+! KMT commented this. Isn't this a periodic condition? Why is this hardwired in and
+! why isn't there one for the j direction too?
+! Is there a need for another sort of boundary condition here, in place of periodic?
+!   if(im.eq.0) im=IMT 
 jm=ja-1
   
 #if defined timestep

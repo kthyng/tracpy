@@ -78,7 +78,12 @@ if(ds==dse) then ! eastward grid-cell exit
     ! and change the x1 value to be the value at the west side of the new grid cell
     if(uu.gt.0.d0) then
         ib=ia+1
-        if(ib.gt.imt) ib=ib-imt ! imt is a grid parameter
+        ! KMT: This seems to be like a periodic bc. I don't know what this is for
+        ! or why it is here, or what should replace it. The way I have the grid set up,
+        ! the x direction grid for u stops at imt-1 also.
+        ! What should the boundary condition be if the drifter moves outside the boundary?
+        ! Is this where it should be enforced?
+!         if(ib.gt.imt) ib=ib-imt ! imt is a grid parameter
     endif
     x1=dble(ia)
 #ifdef turb
