@@ -16,10 +16,11 @@ from readgrid import *
 from mpl_toolkits.basemap import Basemap
 import time
 from matplotlib.mlab import *
+from convert_indices import *
 
 '''
 
-To re-compile tracmass fortran code, type "make f2py", which will give 
+To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
 a file tracmass.so, which is the module we import above. Then in ipython, "run run.py"
 xend,yend,zend are particle locations at next step
 some variables are not specifically because f2py is hiding them from me:
@@ -33,10 +34,35 @@ second velocity time. Each drifter may take some number of steps in between, but
 are not saved.
 
      hs 			Two time steps of ssh [imt,jmt,2] (m)
+
+# Vertical location of drifters:
+# z0 can be an array of starting depths (negative to be
+# below the surface). 
+# Or, if a 2D simulation is desired, make sure the 2dflag
+# has been chosen for the simulation in the makefile and:
+# set z0 to 's' for 2D along a terrain-following slice
+#  and zpar to be the index of s level you want to use (0 to km-1)
+# set z0 to 'rho' for 2D along a density surface
+#  and zpar to be the density value you want to use
+#  Can do the same thing with salinity ('salt') or temperature ('temp')
+#  The model output doesn't currently have density though.
+# set z0 to 'z' for 2D along a depth slice
+#  and zpar to be the constant (negative) depth value you want to use
+# To simulate drifters at the surface, set z0 to 's' 
+#  and zpar = grid['km']-1 to put them in the upper s level
+# To do 3D but start at surface, use z0=zeros(ia.shape) and have
+#  either zpar='fromMSL'
+# choose fromMSL to have z0 starting depths be for that depth below the base 
+# time-independent sea level (or mean sea level).
+# choose 'fromZeta' to have z0 starting depths be for that depth below the
+# time-dependent sea surface. Haven't quite finished the 'fromZeta' case.
 '''
 tic = time.time()
 # Units for time conversion with netCDF.num2date and .date2num
 units = 'seconds since 1970-01-01'
+
+
+##### Necessary User Input #####
 
 if 'rainier' in os.uname():
 	loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
@@ -44,23 +70,41 @@ elif 'hafen.tamu.edu' in os.uname():
 	loc = '/home/kthyng/shelf/' # for model outputs
 
 # Initialize parameters
+# do2d = 1 # if do2d=1, 
 nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
-ndays = .25 # number of days to track the particles
-ff = -1 # 1 forward, -1 backward
+ndays = .75 # number of days to track the particles
+ff = 1 # 1 forward, -1 backward
 # Start date
 date = datetime(2009,11, 30, 0)
-# Convert date to number
-date = netCDF.date2num(date,units)
 # Time between outputs
 Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
-# Number of model outputs to use
-tout = np.int((ndays*(24*3600))/Dt)
 tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
 ah = 100. # horizontal diffusion in m^2/s. See project values of 350, 100, 0, 2000. For -turb,-diffusion
 av = 1.e-5 # m^2/s, or try 5e-6
 
-# THINK I NEED THIS STARTED HERE AND THEN UPDATED IN STEP
-# tt = ints*tseas
+## Input starting locations as real space x,y locations
+# Read in starting locations from HAB experiment to test
+d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
+lon0 = d['lon0']
+lat0 = d['lat0']
+
+## Choose method for vertical placement of drifters
+# Also update makefile accordingly. Choose the twodim flag for isoslice.
+# See above for more notes, but do the following two lines for an isoslice
+z0 = 'salt' #'s' #'salt' #'s' 
+zpar = 35 #grid['km']-1 # 30 #grid['km']-1
+# Do the following two for a 3d simulation
+# z0 = np.ones(xstart0.shape)*-40 #  below the surface
+# zpar = 'fromMSL' 
+
+
+##### End of necessary user input #####
+
+# Number of model outputs to use
+tout = np.int((ndays*(24*3600))/Dt)
+
+# Convert date to number
+date = netCDF.date2num(date,units)
 
 # Figure out what files will be used for this tracking
 nc,tinds = setupROMSfiles(loc,date,ff,tout)
@@ -68,16 +112,11 @@ nc,tinds = setupROMSfiles(loc,date,ff,tout)
 # Read in grid parameters into dictionary, grid
 grid = readgrid(loc,nc)
 
-
-
+# Change input lat/lon into x,y then grid space
+# The basemap is set up for the northwestern Gulf of Mexico currently.
+x0,y0 = grid['basemap'](lon0,lat0)
 # Need to input x,y as relative to their grid box. Let's assume they are at 
 # some position relative to a grid node
-# xstart0 = np.array([[525.2]])#525.2]])
-# ystart0 = np.array([[40.3]])
-# Read in starting locations from HAB experiment to test
-d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
-# pdb.set_trace()
-x0,y0 = grid['basemap'](d['lon0'],d['lat0'])
 # Interpolate to get starting positions in grid space
 # tric is on a python index grid from 0 to imt-1 and 0 to jmt-1
 fX = grid['tric'].nn_interpolator(grid['X'].flatten())
@@ -86,16 +125,10 @@ xstart0 = fX(x0,y0)
 ystart0 = fY(x0,y0)
 # Do z a little lower down
 
-# Initialize seed locations # make these, e.g., ia=ceil(xstart0) (this was realized in cross.f95)
-# # want ceil(xstart0) for drifter positions within the cell, but if xstart0 is on a grid cell border,
-# # want ceil(xstart0+1)
-# ia = np.ceil(xstart0)+(1-(np.ceil(xstart0)-np.floor(xstart0)))
-# ja = np.ceil(ystart0)+(1-(np.ceil(ystart0)-np.floor(ystart0)))
-# ka = np.ceil(zstart0)+(1-(np.ceil(zstart0)-np.floor(zstart0)))
+# Initialize seed locations 
 ia = np.ceil(xstart0) #[253]#,525]
 ja = np.ceil(ystart0) #[57]#,40]
 
-# pdb.set_trace()
 dates = nc.variables['ocean_time'][:]	
 t0save = dates[0] # time at start of file in seconds since 1970-01-01, add this on at the end since it is big
 
@@ -111,75 +144,84 @@ ttend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 t = np.zeros(((len(tinds))*nsteps+1))
 flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
-# Initialize free surface and fluxes
-uflux = np.ones((grid['imt']-1,grid['jmt'],grid['km'],2))*np.nan # uflux, 2 times
-vflux = np.ones((grid['imt'],grid['jmt']-1,grid['km'],2))*np.nan # vflux, 2 times
-dzt = np.ones((grid['imt'],grid['jmt'],grid['km'],2))*np.nan # 2 times
-# Read initial field in - to 2nd time spot since will be moved
+# Initialize vertical stuff and fluxes
+# Read initial field in - to 'new' variable since will be moved
 # at the beginning of the time loop ahead
-uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tinds[0],grid,nc)
+if is_string_like(z0): # isoslice case
+	ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tinds[0],grid,nc,z0,zpar)
+else: # 3d case
+	ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tinds[0],grid,nc)
 
+## Find zstart0 and ka
+# The k indices and z grid ratios should be on a wflux vertical grid,
+# which goes from 0 to km since the vertical velocities are defined
+# at the vertical cell edges. A drifter's grid cell is vertically bounded
+# above by the kth level and below by the (k-1)th level
+if is_string_like(z0): # then doing a 2d isoslice
+	# there is only one vertical grid cell, but with two vertically-
+	# bounding edges, 0 and 1, so the initial ka value is 1 for all
+	# isoslice drifters.
+	ka = np.ones(ia.size) 
 
-# Input initial vertical locations in real space. 
-# These are converted to grid space once dzt is calculated
-# To place drifters on the surface, they should actually be just below the 
-# surface because the vertical grid does not go to zero at the surface (just gets near it)
-# For surface: Note that if surface is chosen here and the twodim flag is chosen in the 
-# makefile, the drifters will stay at their relative position in the uppermost grid cells,
-# that is, in the middle (vertically). Their actual, real space vertical position will 
-# change in time.
-z0 = 'surface'
-# z0 = np.ones(xstart0.shape)*-.05 #  below the surface
+	# for s level isoslice, place drifters vertically at the center 
+	# of the grid cell since that is where the u/v flux info is from.
+	# For a rho/temp/density isoslice, we treat it the same way, such
+	# that the u/v flux info taken at a specific rho/temp/density value
+	# is treated as being at the center of the grid cells vertically.
+	zstart0 = np.ones(ia.size)*0.5
 
-# zstart0 = np.ones(xstart0.shape)*grid['km'] # The surface in tracmass is at k=KM
-
-# For special case of the surface, take the surface grid cell index and the depth at 
-# the middle of the surface layer
-if z0 == 'surface':
-	# subtract 1 from km since in python indexing here
-	ka = np.ones(ia.size)*grid['km']-1
-	# Find the corresponding depths at the rho grid in the topmost level
-	zt = depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
-						grid['h'].T.copy(order='c'), 
-						grid['hc'], zeta=hs[:,:,1].T.copy(order='c'), Hscale=3)
-	zt = zt.T.copy(order='f')
-	# change z0 to be what it is in the normal case: the real space depth for the drifters
-	z0 = zt[ia.astype(int),ja.astype(int),ka.astype(int)]
-	zstart0 = np.ones(ia.size)*(ka-.5) # start mid-way vertically through the uppermost grid cell
-else:	
+else:	# 3d case
 	# Convert initial real space vertical locations to grid space
 	# first find indices of grid cells vertically
 	ka = np.ones(ia.size)*np.nan
 	zstart0 = np.ones(ia.size)*np.nan
-	for i in xrange(ia.size):
-		ind = (grid['dzt0'][ia[i],ja[i],:]<=z0[i])
-		ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-		if (z0[i] != grid['dzt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']-1):
-			ka[i] = ka[i]+1
-		# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
-		zstart0[i] = ka[i] - abs(z0[i]-grid['dzt0'][ia[i],ja[i],ka[i]])/abs(grid['dzt0'][ia[i],ja[i],ka[i]-1]-grid['dzt0'][ia[i],ja[i],ka[i]])
 
-# Bump all grid-based fields up by one since in Fortran they are 1-based instead of 0-based
-ia = ia + 1
-ja = ja + 1
-ka = ka + 1
-xstart0 = xstart0 + 1
-ystart0 = ystart0 + 1
-zstart0 = zstart0 + 1
+	if zpar == 'fromMSL':
+		for i in xrange(ia.size):
+			# pdb.set_trace()
+			ind = (grid['zwt0'][ia[i],ja[i],:]<=z0[i])
+			# check to make sure there is at least one true value, so the z0 is shallower than the seabed
+			if np.sum(ind): 
+				ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+			# if the drifter starting vertical location is too deep for the x,y location, complain about it
+			else:  # Maybe make this nan or something later
+				print 'drifter vertical starting location is too deep for its x,y location. Try again.'
+			if (z0[i] != grid['zwt0'][ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']): # check this
+				ka[i] = ka[i]+1
+			# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
+			zstart0[i] = ka[i] - abs(z0[i]-grid['zwt0'][ia[i],ja[i],ka[i]]) \
+								/abs(grid['zwt0'][ia[i],ja[i],ka[i]-1]-grid['zwt0'][ia[i],ja[i],ka[i]])
+	# elif zpar == 'fromZeta':
+	# 	for i in xrange(ia.size):
+	# 		pdb.set_trace()
+	# 		ind = (zwtnew[ia[i],ja[i],:]<=z0[i])
+	# 		ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+	# 		if (z0[i] != zwtnew[ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']): # check this
+	# 			ka[i] = ka[i]+1
+	# 		# Then find the vertical relative position in the grid cell	by adding on the bit of grid cell
+	# 		zstart0[i] = ka[i] - abs(z0[i]-zwtnew[ia[i],ja[i],ka[i]]) \
+	# 							/abs(zwtnew[ia[i],ja[i],ka[i]-1]-zwtnew[ia[i],ja[i],ka[i]])
+
+# Find initial cell depths to concatenate to beginning of drifter tracks later
+zsave = zwtnew[ia.astype(int),ja.astype(int),ka.astype(int)]
 
 j = 0 # index for number of saved steps for drifters
 # Loop through model outputs. tinds is in proper order for moving forward
 # or backward in time, I think.
 for tind in tinds:
-	# pdb.set_trace()
+
 	# Move previous new time step to old time step info
-	uflux[:,:,:,0] = uflux[:,:,:,1]
-	vflux[:,:,:,0] = vflux[:,:,:,1]
-	dzt[:,:,:,0] = dzt[:,:,:,1]
+	ufold = ufnew
+	vfold = vfnew
+	dztold = dztnew
+	zrtold = zrtnew
+	zwtold = zwtnew
 
 	# Read stuff in for next time loop
-	uflux[:,:,:,1],vflux[:,:,:,1],dzt[:,:,:,1] = readfields(tind+1,grid,nc)
-	# pdb.set_trace()
+	if is_string_like(z0): # isoslice case
+		ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tind+1,grid,nc,z0,zpar)
+	else: # 3d case
+		ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tind+1,grid,nc)
 
 	print j
 	#  flux fields at starting time for this step
@@ -204,18 +246,34 @@ for tind in tinds:
 		zstart = zstart0
 		# TODO: Do a check to make sure all drifter starting locations are within domain
 		ind = (flag[:] == 0) # indices where the drifters are inside the domain to start
-		# t0[0] = tseas/nsteps # want to start time at the first moved step, will add on initial zero at the end
 
 	# Find drifter locations
-	# pdb.set_trace()
 	# only send unmasked values to step
 	if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
 		break
 	else:
+		# Combine times for arrays for input to tracmass
+		# from [ixjxk] to [ixjxkxt]
+		uflux = np.concatenate((ufold.reshape(np.append(ufold.shape,1)), \
+								ufnew.reshape(np.append(ufnew.shape,1))), \
+								axis=ufold.ndim)
+		vflux = np.concatenate((vfold.reshape(np.append(vfold.shape,1)), \
+								vfnew.reshape(np.append(vfnew.shape,1))), \
+								axis=vfold.ndim)
+		dzt = np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
+								dztnew.reshape(np.append(dztnew.shape,1))), \
+								axis=dztold.ndim)
+
+		# Change the horizontal indices from python to fortran indexing 
+		# (vertical are zero-based in tracmass)
+		xstart,ystart,ia,ja = convert_indices('py2f',xstart,ystart,ia,ja)
+
+		# km that is sent to tracmass is determined from uflux (see tracmass?)
+		# so it will be the correct value for whether we are doing the 3D
+		# or isoslice case.
 		xend[j*nsteps:j*nsteps+nsteps,ind],\
 			yend[j*nsteps:j*nsteps+nsteps,ind],\
 			zend[j*nsteps:j*nsteps+nsteps,ind], \
-			zp[j*nsteps:j*nsteps+nsteps,ind],\
 			iend[j*nsteps:j*nsteps+nsteps,ind],\
 			jend[j*nsteps:j*nsteps+nsteps,ind],\
 			kend[j*nsteps:j*nsteps+nsteps,ind],\
@@ -225,17 +283,26 @@ for tind in tinds:
 					np.ma.compressed(zstart),np.ma.compressed(ia),np.ma.compressed(ja),
 					np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
 					dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av)#dz.data,dxdy)
-		# if np.sum(flag)>0:
-		# pdb.set_trace()
-		t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps)    #tseas/float(nsteps) # update time in seconds to match drifters
+
+		# Change the horizontal indices from python to fortran indexing
+		xend,yend,iend,jend = convert_indices('f2py',xend,yend,iend,jend)
+
+		# Calculate times for the output frequency
+		t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+		# Calculate real z position
+		r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
+		# Interpolate the drifter vertical depth in cell using the depths from the initial and later
+		# time step.
+		zp[j*nsteps:j*nsteps+nsteps,ind] = ((1.-r)*zwtold[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+														jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+														kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T \
+											+ r*zwtnew[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+														jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+														kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
 
 	j = j + 1
 
 nc.close()
-# grid.close()
-
-# # Add on time for first time step
-# t0=np.concatenate((0,t0),axis=0)
 
 t = t + t0save # add back in base time in seconds
 
@@ -243,7 +310,7 @@ t = t + t0save # add back in base time in seconds
 xg=np.concatenate((xstart0.reshape(1,xstart0.size),xend),axis=0)
 yg=np.concatenate((ystart0.reshape(1,ystart0.size),yend),axis=0)
 # Concatenate zp with initial real space positions
-zp=np.concatenate((z0.reshape(1,zstart0.size),zp),axis=0)
+zp=np.concatenate((zsave.reshape(1,zstart0.size),zp),axis=0)
 
 # Recreate Cartesian particle locations from their index-relative locations
 # just by interpolating. These are in tracmass ordering
@@ -269,5 +336,3 @@ plot(grid['xr'][:,-1],grid['yr'][:,-1],'k:')
 show()
 toc = time.time()
 print "run time:",toc-tic
-# if __name__=='__main__':
-# 	run()

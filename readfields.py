@@ -1,9 +1,11 @@
 import netCDF4 as netCDF
 import numpy as np
 import pdb
-from octant import depths
+import octant
+from matplotlib.pyplot import *
+import op
 
-def readfields(tind,grid,nc):
+def readfields(tind,grid,nc,z0=None,zpar=None):
 	'''
 	readfields()
 	Kristen Thyng, March 2013
@@ -20,11 +22,20 @@ def readfields(tind,grid,nc):
 	 tind 	Single time index for model output to read in
      grid   Dictionary containing all necessary time-independent grid fields
 	 nc 	NetCDF object for relevant files
+	 z0 	(optional) if doing 2d isoslice, z0 contains string saying which kind
+	 zpar 	(optional) if doing 2d isoslice, zpar is the depth/level/density
+	 		at which we are to get the level
 
     Output:
      uflux1 	Zonal (x) flux at tind
      vflux1 	Meriodional (y) flux at tind
      dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
+     zrt 		Time-dependent depths of cells on vertical rho grid (meters).
+     			For the isoslice case, zrt ends up with 1 vertical level which contains
+     			the depths for the vertical center of the cell for that level.
+     zwt 		Time-dependent depths of cells on vertical w grid (meters). zwt always
+     			contains the depths at the vertical cell edges for the whole 3D grid
+     			and the correct depths can be accessed using the drifter indices.
 
     Array descriptions:
      u,v 		Zonal (x) and meridional (y) velocities [imt,jmt,km] (m/s)
@@ -43,9 +54,14 @@ def readfields(tind,grid,nc):
 	'''
 
 	# Read in model output for index tind
-	u = nc.variables['u'][tind,:,:,:] 
-	v = nc.variables['v'][tind,:,:,:]
-	ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+	if z0 == 's': # read in less model output to begin with, to save time
+		u = nc.variables['u'][tind,zpar,:,:] 
+		v = nc.variables['v'][tind,zpar,:,:]
+		ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+	else:
+		u = nc.variables['u'][tind,:,:,:] 
+		v = nc.variables['v'][tind,:,:,:]
+		ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
 
 	# make arrays in same order as is expected in the fortran code
 	# ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
@@ -61,8 +77,8 @@ def readfields(tind,grid,nc):
 	# This is code from tracmass itself, which is being replaced by Rob's octant code
 	# # Copy calculations from rutgersNWA/readfields.f95
 	# dzt = np.ones((grid['imt'],grid['jmt'],grid['km']))*np.nan
-	dzu = np.ones((grid['imt']-1,grid['jmt'],grid['km']))*np.nan
-	dzv = np.ones((grid['imt'],grid['jmt']-1,grid['km']))*np.nan
+	# dzu = np.ones((grid['imt']-1,grid['jmt'],grid['km']))*np.nan
+	# dzv = np.ones((grid['imt'],grid['jmt']-1,grid['km']))*np.nan
 	# for k in xrange(grid['km']):
 	# 	dzt0 = (grid['sc_r'][k]-grid['Cs_r'][k])*grid['hc'] \
 	# 			+ grid['Cs_r'][k]*grid['h']
@@ -74,23 +90,77 @@ def readfields(tind,grid,nc):
 
 	# Use octant to calculate depths for the appropriate vertical grid parameters
 	# have to transform a few back to ROMS coordinates and python ordering for this
-	zt = depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+	zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
 					grid['h'].T.copy(order='c'), 
 					grid['hc'], zeta=ssh.T.copy(order='c'), Hscale=3)
 	# Change dzt to tracmass/fortran ordering
-	zt = zt.T.copy(order='f')
-	dzt = zt[:,:,1:] - zt[:,:,:-1]
+	zwt = zwt.T.copy(order='f')
+	dzt = zwt[:,:,1:] - zwt[:,:,:-1]
 	# pdb.set_trace()
 
-	dzu[0:grid['imt']-1,:,:] = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
-	dzv[:,0:grid['jmt']-1,:] = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
+	# also want depths on rho grid
+	zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+					grid['h'].T.copy(order='c'), 
+					grid['hc'], zeta=ssh.T.copy(order='c'), Hscale=3)
+	# Change dzt to tracmass/fortran ordering
+	zrt = zrt.T.copy(order='f')
+
+	dzu = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
+	dzv = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
+	# dzu[0:grid['imt']-1,:,:] = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
+	# dzv[:,0:grid['jmt']-1,:] = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
 	# pdb.set_trace()
-	uflux1 = np.ones((grid['imt']-1,grid['jmt'],grid['km']))*np.nan
-	vflux1 = np.ones((grid['imt'],grid['jmt']-1,grid['km']))*np.nan
-	for k in xrange(grid['km']):
+
+	# Change order back to ROMS/python for this calculation
+	u = u.T.copy(order='c')
+	v = v.T.copy(order='c')
+	dzu = dzu.T.copy(order='c')
+	dzv = dzv.T.copy(order='c')
+	dzt = dzt.T.copy(order='c')
+	dyu = grid['dyu'].T.copy(order='c')
+	dxv = grid['dxv'].T.copy(order='c')
+	zrt = zrt.T.copy(order='c')
+
+	# I think I can avoid this loop for the isoslice case
+	if z0 == None: # 3d case
+		uflux1 = u*dzu*dyu
+		vflux1 = v*dzv*dxv
+	elif z0 == 's': # want a specific s level zpar
+		uflux1 = u*dzu[zpar,:,:]*dyu
+		vflux1 = v*dzv[zpar,:,:]*dxv
+		dzt = dzt[zpar,:,:]
+		zrt = zrt[zpar,:,:]
+	elif z0 == 'rho' or z0 == 'salt' or z0 == 'temp':
+		# the vertical setup we're selecting an isovalue of
+		vert = nc.variables[z0][tind,:,:,:]
 		# pdb.set_trace()
-		uflux1[:,:,k] = u[:,:,k]*dzu[:,:,k]*grid['dyu']
-		vflux1[:,:,k] = v[:,:,k]*dzv[:,:,k]*grid['dxv']
+		# Calculate flux and then take slice
+		uflux1 = octant.tools.isoslice(u*dzu*dyu,op.resize(vert,2),zpar)
+		vflux1 = octant.tools.isoslice(v*dzv*dxv,op.resize(vert,1),zpar)
+		dzt = octant.tools.isoslice(dzt,vert,zpar)
+		zrt = octant.tools.isoslice(zrt,vert,zpar)
+		pdb.set_trace()
+	elif z0 == 'z':
+		# Calculate flux and then take slice
+		uflux1 = octant.tools.isoslice(u*dzu*dyu,op.resize(zrt,2),zpar)
+		vflux1 = octant.tools.isoslice(v*dzv*dxv,op.resize(zrt,1),zpar)
+		dzt = octant.tools.isoslice(zrt,dzt,zpar)
+		zrt = np.ones(uflux1.shape)*zpar # array of the input desired depth
+
+	# Change all back to tracmass/fortran ordering if being used again
+	uflux1 = uflux1.T.copy(order='f')
+	vflux1 = vflux1.T.copy(order='f')
+	dzt = dzt.T.copy(order='f')
+	zrt = zrt.T.copy(order='f')
+
+
+	# make sure that all fluxes have a placeholder for depth
+	if is_string_like(z0):
+		uflux1 = uflux1.reshape(np.append(uflux1.shape,1))
+		vflux1 = vflux1.reshape(np.append(vflux1.shape,1))
+		dzt = dzt.reshape(np.append(dzt.shape,1))
+		zrt = zrt.reshape(np.append(zrt.shape,1))
+
 
 	# # Flip vertical dimension because in ROMS surface is at k=-1 
 	# # and in tracmass surface is at 1
@@ -102,4 +172,4 @@ def readfields(tind,grid,nc):
 	# vflux1 = np.flipud(vflux1)
 	# dzt = np.flipud(dzt)
 
-	return uflux1, vflux1, dzt
+	return uflux1, vflux1, dzt, zrt, zwt

@@ -49,7 +49,7 @@ F95COMPILER        = "gfortran"
 # KMT: Use the twodim flag when you want drifters to stay at their starting 
 # vertical position in grid space. Their real space position may change with the
 # free surface changes, but their grid space vertical position will stay the same.
-# fl13  = -Dtwodim         # Turn off vertical velocities.
+fl13  = -Dtwodim         # Turn off vertical velocities.
 # KMT: The code is not set up to use this
 # fl14  = -Dfull_wflux     # Use a full 3D wflux field.
 # KMT: The code is not set up to use this
@@ -74,7 +74,7 @@ F95COMPILER        = "gfortran"
 # diffusion along an ellipse added in x and y instead of a circle, and
 # does not alter what the diffusion flag does vertically.
 # I couldn't find what the coarse flag does.
- fl23  = -Dturb           # Adds subgrid turbulent velocities 
+ # fl23  = -Dturb           # Adds subgrid turbulent velocities 
  # fl24  = -Ddiffusion      # Adds a diffusion on trajectory
  # fl25  = -Danisodiffusion # Adds an anisotropic diffusion on trajectory
 #  fl26  = -Dcoarse         # Adds a diffusion on trajectory

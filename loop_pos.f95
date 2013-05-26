@@ -46,7 +46,7 @@ subroutine pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,ds
 !    uu             : time-interpolated flux at ia/ja/ka (depending on ijk)
 !    nsm=1,nsp=2    : Time index. nsm picks out the earlier bounding time step and 
 !                     nsp picks out the later bounding time step for interpolation.
-!    im             : generic index for grid index -1 for whichever direction, ijk. 
+!    iam            : generic index for grid index -1 for whichever direction, ijk. 
 !                     Is only used in the i direction for whatever reason.
 !====================================================================
     
@@ -60,11 +60,11 @@ real(kind=8),       intent(in),     dimension(0:km,2)           :: wflux
 real*8, optional,   intent(in),     dimension(6,2)              :: upr  
 integer,            intent(out)                                 :: ib, jb, kb
 real*8,             intent(out)                                 :: x1, y1, z1
-integer                                                         :: nsm=1,nsp=2,im,iam
+integer                                                         :: nsm=1,nsp=2,iam
 real(kind=8)                                                    :: uu, rbg
 real(kind=8),       parameter                                   :: UNDEF=1.d20
 
-im=ia-1
+iam=ia-1
 rbg =1.d0-rb
 
 ! === calculate the new positions ===
@@ -145,7 +145,7 @@ else if(ds==dss) then ! southward grid-cell exit
        
 elseif(ds==dsu) then ! upward grid-cell exit
 !        scrivi=.false.
-    call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+    call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
 ! #ifdef full_wflux
 !        uu=wflux(ia,ja,ka,nsm)
 ! #else
@@ -169,7 +169,7 @@ elseif(ds==dsu) then ! upward grid-cell exit
 
 elseif(ds==dsd) then ! downward grid-cell exit
 !        scrivi=.false.
-    call vertvel(rr,ia,iam,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+    call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
        
 ! #ifdef full_wflux
 !        if(wflux(ia,ja,ka-1,nsm).lt.0.d0) kb=ka-1

@@ -1,6 +1,6 @@
 SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
-                & ntractot,xend,yend,zend,zp,iend,jend,kend,flag,ttend,iter,ah,av)
+                & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend,iter,ah,av)
 
 !============================================================================
 ! Loop to step a numerical drifter forward for the time tseas between two 
@@ -48,9 +48,6 @@ SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
 !    xend           : the new grid fraction position of drifters in x/y/z [iter,ntractot]
 !    yend       
 !    zend       
-!    zp             : the new z position in real space (meters). This is currently
-!                     calculated in this code because all the necessary info is 
-!                     available.
 !    iend           : the new grid index position of drifters in x/y/z [iter,ntractot]
 !    jend       
 !    kend       
@@ -150,17 +147,16 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
-real*8,     intent(out),    dimension(iter,ntractot)    :: xend, yend, zend, zp
+real*8,     intent(out),    dimension(iter,ntractot)    :: xend, yend, zend
 integer,    intent(out),    dimension(iter,ntractot)    :: iend, jend, kend, ttend
 
 real*8,                     dimension(0:km,2)           :: wflux
-real*8,                     dimension(imt,jmt,km)       :: dzttemp
 real*8                                                  :: rr, rg, rbg, rb, dsc, &
                                                            dstep, dtmin, dxyz, dt, &
                                                            dsmin, ds, dse, dsw, dsn, &
                                                            dss, dsd, dsu, &
                                                            x0, y0, z0, x1, y1, z1, &
-                                                           tt, tss, ts, t0
+                                                           tt, tss, ts
 integer                                                 :: ntrac, niter, ia, ja, ka, &
                                                            iam, ib, jb, kb, errCode
 integer                                                 :: nsm=1,nsp=2
@@ -193,7 +189,7 @@ ntracLoop: do ntrac=1,ntractot
     x1 = xstart(ntrac)
     y1 = ystart(ntrac)
     z1 = zstart(ntrac)
-    tt = t0 !+ 0.d0 !time of trajectory in seconds... start at zero for this test case
+    tt = 0 !+ 0.d0 !time of trajectory in seconds... start at zero for this test case
     ts = 0.d0 ! model dataset time step of trajectory... start at zero for this test case
     tss = 0.d0
     ib = istart(ntrac)
@@ -356,8 +352,15 @@ ntracLoop: do ntrac=1,ntractot
   call turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
 #endif /*turb*/
 
-        ! === calculate the vertical velocity ===
+!         ! === calculate the vertical velocity ===
+!         print *,'before vertvel ========================================'  
+!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+!             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+!         print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
+!             ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
+!         print *,'imt=',imt,' size(uflux)=',size(uflux,1),' size(vflux)=',size(vflux,1)
         call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+!         print *,'returned from vertvel ========================================'
 !         print *,'wflux=',wflux
 
 !  print *,'ja=',ja,' jb=',jb,x1,y1
@@ -421,7 +424,12 @@ ntracLoop: do ntrac=1,ntractot
 !         print *,'After calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dt=',dt,' dtmin=',dtmin
 
         ! === calculate the new positions ===
-        ! === of the trajectory           ===    
+        ! === of the trajectory           ===  
+!         print *,'before pos'  
+!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+!             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+!         print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
+!             ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
 #ifdef turb
 ! print *,'using turb'
         call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
@@ -430,6 +438,7 @@ ntracLoop: do ntrac=1,ntractot
         call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,imt,jmt,km,rr,rb,uflux,vflux,wflux)
 #endif /*turb*/
+        print *,'after pos'
         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
 ! !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
@@ -551,11 +560,7 @@ ntracLoop: do ntrac=1,ntractot
          endif
 
 !         call errorCheck('cornerError', errCode)
-            ! problems if trajectory is in the exact location of a corner
-            ! KMT added the second set of conditions, which aren't used now
          if(x1 == dble(idint(x1)) .and. y1 == dble(idint(y1)))  then
-!          if((x1 == dble(idint(x1)) .and. y1 == dble(idint(y1))) .or. &
-!             ((abs(x1-dble(idint(x1))) <= 0.001) .and. (abs(y1-dble(idint(y1))) <= 0.001))) then
             print *,'corner problem'
             !print *,'corner problem',ntrac,x1,x0,y1,y0,ib,jb
             !print *,'ds=',ds,dse,dsw,dsn,dss,dsu,dsd,dsmin
@@ -633,19 +638,6 @@ ntracLoop: do ntrac=1,ntractot
           jend(idint(tss),ntrac) = jb
           kend(idint(tss),ntrac) = kb
           ttend(idint(tss),ntrac) = tt
-          ! KMT: Calculate real space z position in here since I have all the information
-          ! interpolate dzt in time and add up vertical levels from surface down to cell
-          ! above drifter's cell, then account for the distance in the cell too
-          rg=1.d0-rr
-          ! KMT: dzttemp is the time-interpolated dzt since I need it twice here
-          dzttemp = rg*dzt(:,:,:,nsp)+rr*dzt(:,:,:,nsm)
-          ! first term is adding up the depth levels between grid cell above drifter's cell and
-          ! the surface and the second term is finding the difference into the cell the
-          ! drifter is to account for that
-          ! I have to set the dimension that the sum acts along as 1 since only the vertical
-          ! direction has more than one element
-          ! Ends up being as depth below the surface in meters
-          zp(idint(tss),ntrac) = -(sum(dzttemp(ib,jb,kb+1:km),1) + (dble(kb)-z1)*dzttemp(ib,jb,kb))
         endif
 !         print *,'x1=',x1,' y1=',y1,' tt=',tt
 

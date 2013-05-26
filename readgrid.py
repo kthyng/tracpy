@@ -32,7 +32,12 @@ def readgrid(loc,nc):
      mask           Land/sea mask [imt,jmt] 
      pm,pn          Difference in horizontal grid spacing in x and y [imt,jmt]
      kmt            Number of vertical levels in horizontal space [imt,jmt]
-     dzt0           Depth in meters of grid at each k-level without free surface. Surface is at km [imt,jmt,km]
+     dzt0           Thickness in meters of grid at each k-level with time-independent free surface. 
+                    Surface is at km [imt,jmt,km].
+     zrt0           Depth in meters of grid at each k-level on vertical rho grid with time-independent 
+                    free surface. Surface is at km [imt,jmt,km]
+     zwt0           Depth in meters of grid at each k-level on vertical w grid with time-independent 
+                    free surface. Surface is at km [imt,jmt,km]
      xr,yr          Rho grid zonal (x) and meriodional (y) coordinates [imt,jmt]
      xu,yu          U grid zonal (x) and meriodional (y) coordinates [imt,jmt]
      xv,yv          V grid zonal (x) and meriodional (y) coordinates [imt,jmt]
@@ -157,14 +162,18 @@ def readgrid(loc,nc):
 
     # Use octant to calculate depths/thicknesses for the appropriate vertical grid parameters
     # have to transform a few back to ROMS coordinates and python ordering for this
-    zt = depths.get_zw(1, 1, km+1, theta_s, theta_b, 
+    zwt0 = depths.get_zw(1, 1, km+1, theta_s, theta_b, 
+                    h.T.copy(order='c'), 
+                    hc, zeta=0, Hscale=3)
+    zrt0 = depths.get_zrho(1, 1, km, theta_s, theta_b, 
                     h.T.copy(order='c'), 
                     hc, zeta=0, Hscale=3)
     # Change dzt to tracmass/fortran ordering
-    zt = zt.T.copy(order='f')
+    zwt0 = zwt0.T.copy(order='f')
+    zrt0 = zrt0.T.copy(order='f')
     # this should be the base grid layer thickness that doesn't change in time because it 
     # is for the reference vertical level
-    dzt0 = zt[:,:,1:] - zt[:,:,:-1]
+    dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
     # # Copy calculations from rutgersNWA/readfields.f95
     # dzt0 = np.ones((imt,jmt,km))*np.nan
@@ -184,6 +193,7 @@ def readgrid(loc,nc):
     grid = {'imt':imt,'jmt':jmt,'km':km, 
     	'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
     	'mask':mask,'kmt':kmt,'dzt0':dzt0,
+        'zrt0':zrt0,'zwt0':zwt0,
         'pm':pm,'pn':pn,'tri':tri,'tric':tric,
     	'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
     	'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,

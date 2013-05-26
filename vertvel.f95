@@ -22,7 +22,7 @@ subroutine vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
 !    um             : time-interpolated flux at ia-1/ja-1/ka-1 (depending on ijk)
 !    nsm=1,nsp=2    : Time index. nsm picks out the earlier bounding time step and 
 !                     nsp picks out the later bounding time step for interpolation.
-!    im             : generic index for grid index -1 for whichever direction, ijk. 
+!    iam            : generic index for grid index -1 for whichever direction, ijk. 
 !                     Is only used in the i direction for whatever reason.
 !    k              : Index for looping through depth layers
 !    n              : Index for looping through times (1 and 2)
@@ -44,12 +44,19 @@ real(kind=8),   intent(in),     dimension(imt-1,jmt,km,2)       :: uflux
 real(kind=8),   intent(in),     dimension(imt,jmt-1,km,2)       :: vflux
 real(kind=8),   intent(out),    dimension(0:km,2)               :: wflux
 real(kind=8)                                                    :: uu,um,rg
-integer                                                         :: nsm=1,nsp=2,k,n,im,iam
+integer                                                         :: nsm=1,nsp=2,k,n,iam
    
 
 rg=1.d0-rr
 wflux=0.d0
-im=ia-1 
+iam=ia-1 
+
+! print *,'in vertvel'
+! print '(a,i3,a,i3,a,i3)','ia=',ia,&
+!     ' ja=',ja,' ka=',ka
+! print *,'imt=',imt,' jmt=',jmt,' km=',km
+! print *,'size(uflux)=',size(uflux,1),' size(vflux)=',size(vflux,1)
+
 
 #ifdef twodim
     return
