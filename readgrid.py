@@ -70,7 +70,10 @@ def readgrid(loc,nc):
                  area_thresh=area_thresh)
 
     # Read in grid parameters and find x and y in domain on different grids
-    gridfile = netCDF.Dataset(loc + 'grid.nc')
+    if len(loc) == 2:
+        gridfile = netCDF.Dataset(loc[1])
+    else:
+        gridfile = netCDF.Dataset(loc + 'grid.nc')
     lonu = gridfile.variables['lon_u'][:]
     latu = gridfile.variables['lat_u'][:]
     xu, yu = basemap(lonu,latu)

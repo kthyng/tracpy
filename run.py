@@ -18,7 +18,182 @@ import time
 from matplotlib.mlab import *
 from convert_indices import *
 
-def run():
+'''
+
+Make a new init_* for your application.
+
+loc 	Path to directory of grid and output files
+nsteps 	Number of steps to do between model outputs (iter in tracmass)
+ndays 	number of days to track the particles from start date
+ff 		ff=1 to go forward in time and ff=-1 for backward in time
+date 	Start date in datetime object
+tseas	Time between outputs in seconds
+ah 		Horizontal diffusion in m^2/s. 
+		See project values of 350, 100, 0, 2000. For -turb,-diffusion
+av 		Vertical diffusion in m^2/s.
+lon0 	Drifter starting locations in x/zonal direction.
+lat0 	Drifter starting locations in y/meridional direction.
+z0/zpar For 3D drifter movement, turn off twodim flag in makefile.
+		Then z0 should be an array of initial drifter depths. 
+		The array should be the same size as lon0 and be negative
+		for under water. Currently drifter depths need to be above 
+		the seabed for every x,y particle location for the script to run.
+		To do 3D but start at surface, use z0=zeros(ia.shape) and have
+		 either zpar='fromMSL'
+		choose fromMSL to have z0 starting depths be for that depth below the base 
+		time-independent sea level (or mean sea level).
+		choose 'fromZeta' to have z0 starting depths be for that depth below the
+		time-dependent sea surface. Haven't quite finished the 'fromZeta' case.
+		For 2D drifter movement, turn on twodim flag in makefile.
+		Then: 
+		set z0 to 's' for 2D along a terrain-following slice
+		 and zpar to be the index of s level you want to use (0 to km-1)
+		 z0='s' is currently not working correctly!!!
+		set z0 to 'rho' for 2D along a density surface
+		 and zpar to be the density value you want to use
+		 Can do the same thing with salinity ('salt') or temperature ('temp')
+		 The model output doesn't currently have density though.
+		set z0 to 'z' for 2D along a depth slice
+		 and zpar to be the constant (negative) depth value you want to use
+		To simulate drifters at the surface, set z0 to 's' 
+		 and zpar = grid['km']-1 to put them in the upper s level
+		 z0='s' is currently not working correctly!!!
+		 In the meantime, do surface using the 3d set up option but with 2d flag set
+xp 		x-locations in x,y coordinates for drifters
+yp 		y-locations in x,y coordinates for drifters
+zp 		z-locations (depths from mean sea level) for drifters
+t 		time for drifter tracks
+
+'''
+
+def init_test1():
+	'''
+	A drifter test using TXLA model output. 
+	This simulation is 2D (set twodim flag) with no turbulence (no turb flags).
+	Drifters are started at 10 meters below the sea level and run forward
+	for two days from 11/30/09. Compare results with figure in examples/test1.png.
+
+	'''
+
+	# Location of TXLA model output
+	# file and then grid
+	loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
+			'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+
+	# Initialize parameters
+	nsteps = 10
+	ndays = 2
+	ff = 1
+	# Start date
+	date = datetime(2009,11, 30, 0)
+	# Time between outputs
+	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
+	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
+	ah = 100.
+	av = 1.e-5 # m^2/s, or try 5e-6
+
+	## Input starting locations as real space lon,lat locations
+	lon0,lat0 = np.meshgrid(np.linspace(-94,-93,5), 
+							np.linspace(28,29,5))
+	lon0 = lon0.flatten()
+	lat0 = lat0.flatten()
+
+	## Choose method for vertical placement of drifters
+	# Also update makefile accordingly. Choose the twodim flag for isoslice.
+	# See above for more notes, but do the following two lines for an isoslice
+	z0 = 'z' #'salt' #'s' 
+	zpar = -10 #grid['km']-1 # 30 #grid['km']-1
+	# Do the following two for a 3d simulation
+	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
+	# zpar = 'fromMSL' 
+	# pdb.set_trace()
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+
+def init_test2():
+	'''
+	A drifter test using TXLA model output. 
+	This simulation is 3D (comment out twodim flag) with turbulence added in.
+	(uncomment turb flag).
+	Drifters are started at 10 meters below the mean sea level and run forward
+	for two days from 11/30/09. Compare results with figure in examples/test2.png.
+	GIVING WEIRD RESULTS CURRENTLY.
+	'''
+
+	# Location of TXLA model output
+	# file and then grid
+	loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
+			'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+
+	# Initialize parameters
+	nsteps = 10
+	ndays = 2
+	ff = 1
+	# Start date
+	date = datetime(2009,11, 30, 0)
+	# Time between outputs
+	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
+	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
+	ah = 100.
+	av = 1.e-5 # m^2/s, or try 5e-6
+
+	## Input starting locations as real space lon,lat locations
+	lon0,lat0 = np.meshgrid(np.linspace(-94,-93,5), 
+							np.linspace(28,29,5))
+	lon0 = lon0.flatten()
+	lat0 = lat0.flatten()
+
+	## Choose method for vertical placement of drifters
+	# # Also update makefile accordingly. Choose the twodim flag for isoslice.
+	# # See above for more notes, but do the following two lines for an isoslice
+	# z0 = 'z' #'salt' #'s' 
+	# zpar = -10 #grid['km']-1 # 30 #grid['km']-1
+	# Do the following two for a 3d simulation
+	z0 = np.ones(lon0.shape)*-10 #  below the surface
+	zpar = 'fromMSL' 
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+
+def init_hab1b():
+	'''
+	Initialize a drifter run using the starting locations from 
+	HAB experiment 1b.
+	'''
+
+	if 'rainier' in os.uname():
+		loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+	elif 'hafen.tamu.edu' in os.uname():
+		loc = '/home/kthyng/shelf/' # for model outputs
+
+	# Initialize parameters
+	nsteps = 10
+	ndays = 2
+	ff = 1
+	# Start date
+	date = datetime(2009,11, 30, 0)
+	# Time between outputs
+	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
+	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
+	ah = 100.
+	av = 1.e-5 # m^2/s, or try 5e-6
+
+	## Input starting locations as real space lon,lat locations
+	# Read in starting locations from HAB experiment to test
+	d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
+	lon0 = d['lon0']
+	lat0 = d['lat0']
+
+	## Choose method for vertical placement of drifters
+	# Also update makefile accordingly. Choose the twodim flag for isoslice.
+	# See above for more notes, but do the following two lines for an isoslice
+	z0 = 's' #'salt' #'s' 
+	zpar = 29 #grid['km']-1 # 30 #grid['km']-1
+	# Do the following two for a 3d simulation
+	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
+	# zpar = 'fromMSL' 
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+
+def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 	'''
 
 	To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -36,73 +211,75 @@ def run():
 
 	     hs 			Two time steps of ssh [imt,jmt,2] (m)
 
-	# Vertical location of drifters:
-	# z0 can be an array of starting depths (negative to be
-	# below the surface). 
-	# Or, if a 2D simulation is desired, make sure the 2dflag
-	# has been chosen for the simulation in the makefile and:
-	# set z0 to 's' for 2D along a terrain-following slice
-	#  and zpar to be the index of s level you want to use (0 to km-1)
-	# set z0 to 'rho' for 2D along a density surface
-	#  and zpar to be the density value you want to use
-	#  Can do the same thing with salinity ('salt') or temperature ('temp')
-	#  The model output doesn't currently have density though.
-	# set z0 to 'z' for 2D along a depth slice
-	#  and zpar to be the constant (negative) depth value you want to use
-	# To simulate drifters at the surface, set z0 to 's' 
-	#  and zpar = grid['km']-1 to put them in the upper s level
-	# To do 3D but start at surface, use z0=zeros(ia.shape) and have
-	#  either zpar='fromMSL'
-	# choose fromMSL to have z0 starting depths be for that depth below the base 
-	# time-independent sea level (or mean sea level).
-	# choose 'fromZeta' to have z0 starting depths be for that depth below the
-	# time-dependent sea surface. Haven't quite finished the 'fromZeta' case.
+	Vertical location of drifters:
+	z0 can be an array of starting depths (negative to be
+	below the surface). 
+	Or, if a 2D simulation is desired, make sure the 2dflag
+	has been chosen for the simulation in the makefile and:
+	set z0 to 's' for 2D along a terrain-following slice
+	 and zpar to be the index of s level you want to use (0 to km-1)
+	set z0 to 'rho' for 2D along a density surface
+	 and zpar to be the density value you want to use
+	 Can do the same thing with salinity ('salt') or temperature ('temp')
+	 The model output doesn't currently have density though.
+	set z0 to 'z' for 2D along a depth slice
+	 and zpar to be the constant (negative) depth value you want to use
+	To simulate drifters at the surface, set z0 to 's' 
+	 and zpar = grid['km']-1 to put them in the upper s level
+	To do 3D but start at surface, use z0=zeros(ia.shape) and have
+	 either zpar='fromMSL'
+	choose fromMSL to have z0 starting depths be for that depth below the base 
+	time-independent sea level (or mean sea level).
+	choose 'fromZeta' to have z0 starting depths be for that depth below the
+	time-dependent sea surface. Haven't quite finished the 'fromZeta' case.
+
 	'''
+
 	tic = time.time()
 	# Units for time conversion with netCDF.num2date and .date2num
 	units = 'seconds since 1970-01-01'
 
 
-	##### Necessary User Input #####
+	# ##### Necessary User Input #####
 
-	if 'rainier' in os.uname():
-		loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
-	elif 'hafen.tamu.edu' in os.uname():
-		loc = '/home/kthyng/shelf/' # for model outputs
+	# if 'rainier' in os.uname():
+	# 	loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+	# elif 'hafen.tamu.edu' in os.uname():
+	# 	loc = '/home/kthyng/shelf/' # for model outputs
 
-	# Initialize parameters
-	# do2d = 1 # if do2d=1, 
-	nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
-	ndays = .75 # number of days to track the particles
-	ff = 1 # 1 forward, -1 backward
-	# Start date
-	date = datetime(2009,11, 30, 0)
-	# Time between outputs
-	Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
-	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
-	ah = 100. # horizontal diffusion in m^2/s. See project values of 350, 100, 0, 2000. For -turb,-diffusion
-	av = 1.e-5 # m^2/s, or try 5e-6
+	# # Initialize parameters
+	# # do2d = 1 # if do2d=1, 
+	# nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
+	# ndays = .75 # number of days to track the particles
+	# ff = 1 # 1 forward, -1 backward
+	# # Start date
+	# date = datetime(2009,11, 30, 0)
+	# # Time between outputs
+	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
+	# tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
+	# ah = 100. # horizontal diffusion in m^2/s. See project values of 350, 100, 0, 2000. For -turb,-diffusion
+	# av = 1.e-5 # m^2/s, or try 5e-6
 
-	## Input starting locations as real space x,y locations
-	# Read in starting locations from HAB experiment to test
-	d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
-	lon0 = d['lon0']
-	lat0 = d['lat0']
+	# ## Input starting locations as real space x,y locations
+	# # Read in starting locations from HAB experiment to test
+	# d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
+	# lon0 = d['lon0']
+	# lat0 = d['lat0']
 
-	## Choose method for vertical placement of drifters
-	# Also update makefile accordingly. Choose the twodim flag for isoslice.
-	# See above for more notes, but do the following two lines for an isoslice
-	z0 = 'salt' #'s' #'salt' #'s' 
-	zpar = 35 #grid['km']-1 # 30 #grid['km']-1
-	# Do the following two for a 3d simulation
-	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
-	# zpar = 'fromMSL' 
+	# ## Choose method for vertical placement of drifters
+	# # Also update makefile accordingly. Choose the twodim flag for isoslice.
+	# # See above for more notes, but do the following two lines for an isoslice
+	# z0 = 'salt' #'s' #'salt' #'s' 
+	# zpar = 35 #grid['km']-1 # 30 #grid['km']-1
+	# # Do the following two for a 3d simulation
+	# # z0 = np.ones(xstart0.shape)*-40 #  below the surface
+	# # zpar = 'fromMSL' 
 
 
-	##### End of necessary user input #####
+	# ##### End of necessary user input #####
 
 	# Number of model outputs to use
-	tout = np.int((ndays*(24*3600))/Dt)
+	tout = np.int((ndays*(24*3600))/tseas)
 
 	# Convert date to number
 	date = netCDF.date2num(date,units)
@@ -131,7 +308,7 @@ def run():
 	ja = np.ceil(ystart0) #[57]#,40]
 
 	dates = nc.variables['ocean_time'][:]	
-	t0save = dates[0] # time at start of file in seconds since 1970-01-01, add this on at the end since it is big
+	t0save = dates[tinds[0]] # time at start of drifter test from file in seconds since 1970-01-01, add this on at the end since it is big
 
 	# Initialize drifter grid positions and indices
 	xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
@@ -204,6 +381,7 @@ def run():
 		# 							/abs(zwtnew[ia[i],ja[i],ka[i]-1]-zwtnew[ia[i],ja[i],ka[i]])
 
 	# Find initial cell depths to concatenate to beginning of drifter tracks later
+	# pdb.set_trace()
 	zsave = zwtnew[ia.astype(int),ja.astype(int),ka.astype(int)]
 
 	j = 0 # index for number of saved steps for drifters
@@ -337,3 +515,20 @@ def run():
 	show()
 	toc = time.time()
 	print "run time:",toc-tic
+
+	return xp,yp,zp,t
+
+def start_run():
+	'''
+	Choose what initialization from above and then run.
+	'''
+
+	# Choose which initialization to use
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test1()
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test2()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_hab1b()
+
+	# Run tracmass!
+	xp,yp,zp,t = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar)
+
+	return xp,yp,zp,t

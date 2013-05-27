@@ -120,7 +120,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	dyu = grid['dyu'].T.copy(order='c')
 	dxv = grid['dxv'].T.copy(order='c')
 	zrt = zrt.T.copy(order='c')
-
+	# pdb.set_trace()
 	# I think I can avoid this loop for the isoslice case
 	if z0 == None: # 3d case
 		uflux1 = u*dzu*dyu
@@ -139,7 +139,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 		vflux1 = octant.tools.isoslice(v*dzv*dxv,op.resize(vert,1),zpar)
 		dzt = octant.tools.isoslice(dzt,vert,zpar)
 		zrt = octant.tools.isoslice(zrt,vert,zpar)
-		pdb.set_trace()
+		# pdb.set_trace()
 	elif z0 == 'z':
 		# Calculate flux and then take slice
 		uflux1 = octant.tools.isoslice(u*dzu*dyu,op.resize(zrt,2),zpar)

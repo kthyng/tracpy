@@ -438,9 +438,9 @@ ntracLoop: do ntrac=1,ntractot
         call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,imt,jmt,km,rr,rb,uflux,vflux,wflux)
 #endif /*turb*/
-        print *,'after pos'
-        print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-            ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+!         print *,'after pos'
+!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+!             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
 ! !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
 !       print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2),' dxyz=',dxyz
 !       print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
