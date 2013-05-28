@@ -144,7 +144,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 		# Calculate flux and then take slice
 		uflux1 = octant.tools.isoslice(u*dzu*dyu,op.resize(zrt,2),zpar)
 		vflux1 = octant.tools.isoslice(v*dzv*dxv,op.resize(zrt,1),zpar)
-		dzt = octant.tools.isoslice(zrt,dzt,zpar)
+		dzt = octant.tools.isoslice(dzt,zrt,zpar)
 		zrt = np.ones(uflux1.shape)*zpar # array of the input desired depth
 
 	# Change all back to tracmass/fortran ordering if being used again

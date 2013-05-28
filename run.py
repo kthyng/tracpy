@@ -48,7 +48,6 @@ z0/zpar For 3D drifter movement, turn off twodim flag in makefile.
 		Then: 
 		set z0 to 's' for 2D along a terrain-following slice
 		 and zpar to be the index of s level you want to use (0 to km-1)
-		 z0='s' is currently not working correctly!!!
 		set z0 to 'rho' for 2D along a density surface
 		 and zpar to be the density value you want to use
 		 Can do the same thing with salinity ('salt') or temperature ('temp')
@@ -85,7 +84,7 @@ def init_test1():
 	ndays = 2
 	ff = 1
 	# Start date
-	date = datetime(2009,11, 30, 0)
+	date = datetime(2009,11, 20, 0)
 	# Time between outputs
 	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
 	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
@@ -101,8 +100,8 @@ def init_test1():
 	## Choose method for vertical placement of drifters
 	# Also update makefile accordingly. Choose the twodim flag for isoslice.
 	# See above for more notes, but do the following two lines for an isoslice
-	z0 = 'z' #'salt' #'s' 
-	zpar = -10 #grid['km']-1 # 30 #grid['km']-1
+	z0 = 's' #'z' #'salt' #'s' 
+	zpar = 29 #-10 #grid['km']-1 # 30 #grid['km']-1
 	# Do the following two for a 3d simulation
 	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
 	# zpar = 'fromMSL' 
@@ -116,7 +115,6 @@ def init_test2():
 	(uncomment turb flag).
 	Drifters are started at 10 meters below the mean sea level and run forward
 	for two days from 11/30/09. Compare results with figure in examples/test2.png.
-	GIVING WEIRD RESULTS CURRENTLY.
 	'''
 
 	# Location of TXLA model output
@@ -129,7 +127,7 @@ def init_test2():
 	ndays = 2
 	ff = 1
 	# Start date
-	date = datetime(2009,11, 30, 0)
+	date = datetime(2009,11, 20, 0)
 	# Time between outputs
 	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
 	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
@@ -148,7 +146,7 @@ def init_test2():
 	# z0 = 'z' #'salt' #'s' 
 	# zpar = -10 #grid['km']-1 # 30 #grid['km']-1
 	# Do the following two for a 3d simulation
-	z0 = np.ones(lon0.shape)*-10 #  below the surface
+	z0 = np.ones(lon0.shape)*-1 #  below the surface
 	zpar = 'fromMSL' 
 
 	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
@@ -388,7 +386,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 	# Loop through model outputs. tinds is in proper order for moving forward
 	# or backward in time, I think.
 	for tind in tinds:
-
+		# pdb.set_trace()
 		# Move previous new time step to old time step info
 		ufold = ufnew
 		vfold = vfnew
@@ -442,6 +440,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 			dzt = np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
 									dztnew.reshape(np.append(dztnew.shape,1))), \
 									axis=dztold.ndim)
+			# pdb.set_trace()
 
 			# Change the horizontal indices from python to fortran indexing 
 			# (vertical are zero-based in tracmass)
@@ -462,9 +461,14 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 						np.ma.compressed(zstart),np.ma.compressed(ia),np.ma.compressed(ja),
 						np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
 						dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av)#dz.data,dxdy)
-
 			# Change the horizontal indices from python to fortran indexing
-			xend,yend,iend,jend = convert_indices('f2py',xend,yend,iend,jend)
+			xend[j*nsteps:j*nsteps+nsteps,ind], \
+				yend[j*nsteps:j*nsteps+nsteps,ind], \
+				iend[j*nsteps:j*nsteps+nsteps,ind], \
+				jend[j*nsteps:j*nsteps+nsteps,ind] = convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
+																			yend[j*nsteps:j*nsteps+nsteps,ind], \
+																			iend[j*nsteps:j*nsteps+nsteps,ind], \
+																			jend[j*nsteps:j*nsteps+nsteps,ind])
 
 			# Calculate times for the output frequency
 			t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
@@ -524,7 +528,7 @@ def start_run():
 	'''
 
 	# Choose which initialization to use
-	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test1()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test1()
 	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test2()
 	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_hab1b()
 
