@@ -49,7 +49,7 @@ F95COMPILER        = "gfortran"
 # KMT: Use the twodim flag when you want drifters to stay at their starting 
 # vertical position in grid space. Their real space position may change with the
 # free surface changes, but their grid space vertical position will stay the same.
-# fl13  = -Dtwodim         # Turn off vertical velocities.
+fl13  = -Dtwodim         # Turn off vertical velocities.
 # KMT: The code is not set up to use this
 # fl14  = -Dfull_wflux     # Use a full 3D wflux field.
 # KMT: The code is not set up to use this

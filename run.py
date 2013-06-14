@@ -65,6 +65,54 @@ t 		time for drifter tracks
 
 '''
 
+def init_galveston():
+	'''
+	Start drifters outside Galveston Bay and see where they move backward in time.
+
+	'''
+
+	# Location of TXLA model output
+	if 'rainier' in os.uname():
+		loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+	elif 'hafen.tamu.edu' in os.uname():
+		loc = '/home/kthyng/shelf/' # for model outputs
+
+	# Initialize parameters
+	nsteps = 10
+	ndays = 2
+	ff = -1
+	# Start date
+	date = datetime(2009,11, 30, 0)
+	# Time between outputs
+	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
+	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
+	ah = 100.
+	av = 1.e-5 # m^2/s, or try 5e-6
+
+	## Input starting locations as real space lon,lat locations
+	lon0,lat0 = np.meshgrid(np.linspace(-95.3,-94.3,10), 
+							np.linspace(28.6,29.6,10))
+	# pdb.set_trace()
+	lon0 = lon0.flatten()
+	lat0 = lat0.flatten()
+
+	## Choose method for vertical placement of drifters
+	# Also update makefile accordingly. Choose the twodim flag for isoslice.
+	# See above for more notes, but do the following two lines for an isoslice
+	z0 = 's' #'z' #'salt' #'s' 
+	zpar = 29 #-10 #grid['km']-1 # 30 #grid['km']-1
+	# Do the following two for a 3d simulation
+	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
+	# zpar = 'fromMSL' 
+	# pdb.set_trace()
+
+	# ## Set flags
+	
+	# # for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
+	# do3d = 0
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+
 def init_test1():
 	'''
 	A drifter test using TXLA model output. 
@@ -164,7 +212,7 @@ def init_hab1b():
 
 	# Initialize parameters
 	nsteps = 10
-	ndays = 2
+	ndays = 1
 	ff = 1
 	# Start date
 	date = datetime(2009,11, 30, 0)
@@ -305,6 +353,13 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 	ia = np.ceil(xstart0) #[253]#,525]
 	ja = np.ceil(ystart0) #[57]#,40]
 
+	# don't use nan's
+	ind2 = ~np.isnan(ia) * ~np.isnan(ja)
+	ia = ia[ind2]
+	ja = ja[ind2]
+	xstart0 = xstart0[ind2]
+	ystart0 = ystart0[ind2]
+
 	dates = nc.variables['ocean_time'][:]	
 	t0save = dates[tinds[0]] # time at start of drifter test from file in seconds since 1970-01-01, add this on at the end since it is big
 
@@ -382,10 +437,12 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 	# pdb.set_trace()
 	zsave = zwtnew[ia.astype(int),ja.astype(int),ka.astype(int)]
 
-	j = 0 # index for number of saved steps for drifters
+	# j = 0 # index for number of saved steps for drifters
+	tic_read = np.ones(len(tinds))
+	toc_read = np.ones(len(tinds))
 	# Loop through model outputs. tinds is in proper order for moving forward
 	# or backward in time, I think.
-	for tind in tinds:
+	for j,tind in enumerate(tinds):
 		# pdb.set_trace()
 		# Move previous new time step to old time step info
 		ufold = ufnew
@@ -394,11 +451,14 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 		zrtold = zrtnew
 		zwtold = zwtnew
 
+		tic_read[j] = time.time()
 		# Read stuff in for next time loop
 		if is_string_like(z0): # isoslice case
 			ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tind+1,grid,nc,z0,zpar)
 		else: # 3d case
 			ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tind+1,grid,nc)
+		toc_read[j] = time.time()
+		# print "readfields run time:",toc_read-tic_read
 
 		print j
 		#  flux fields at starting time for this step
@@ -483,7 +543,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 															jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
 
-		j = j + 1
+		# j = j + 1
 
 	nc.close()
 
@@ -519,6 +579,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 	show()
 	toc = time.time()
 	print "run time:",toc-tic
+	print "sum of readfields:", np.sum(toc_read-tic_read)
+	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
 
 	return xp,yp,zp,t
 
@@ -529,8 +591,9 @@ def start_run():
 
 	# Choose which initialization to use
 	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test1()
-	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test2()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test2()
 	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_hab1b()
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_galveston()
 
 	# Run tracmass!
 	xp,yp,zp,t = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar)
