@@ -127,9 +127,9 @@ def init_galveston():
 def init_test1():
 	'''
 	A drifter test using TXLA model output. 
-	This simulation is 2D (set twodim flag) with no turbulence (no turb flags).
-	Drifters are started at 10 meters below the sea level and run forward
-	for two days from 11/30/09. Compare results with figure in examples/test1.png.
+	The comparison case for this simulation is 2D with no turbulence/diffusion.
+	Drifters are started at the surface and run forward
+	for five days from 11/25/09. Compare results with figure in examples/test1.png.
 
 	'''
 
@@ -140,10 +140,10 @@ def init_test1():
 
 	# Initialize parameters
 	nsteps = 10
-	ndays = 2
+	ndays = 5
 	ff = 1
 	# Start date
-	date = datetime(2009,11, 20, 0)
+	date = datetime(2009,11, 25, 0)
 	# Time between outputs
 	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
 	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
@@ -151,8 +151,11 @@ def init_test1():
 	av = 1.e-5 # m^2/s, or try 5e-6
 
 	## Input starting locations as real space lon,lat locations
-	lon0,lat0 = np.meshgrid(np.linspace(-94,-93,5), 
-							np.linspace(28,29,5))
+	# lon0,lat0 = np.meshgrid(-95.498218005315309,23.142258627126882) # [0,0] (SE) corner
+	# lon0,lat0 = np.meshgrid(-97.748582291691989,23.000027311710628) # [-1,0] (SW) corner
+	# lon0,lat0 = np.meshgrid(-87.757124031927574,29.235771320764623) # [0,-1] (NE) corner
+	# lon0,lat0 = np.meshgrid(-88.3634073986196,30.388542615201313) # [-1,-1] (NW) corner
+	lon0,lat0 = np.meshgrid(np.linspace(-94,-93,5),np.linspace(28,29,5)) # grid outside Galveston Bay
 	lon0 = lon0.flatten()
 	lat0 = lat0.flatten()
 
@@ -165,15 +168,23 @@ def init_test1():
 	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
 	# zpar = 'fromMSL' 
 	# pdb.set_trace()
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+
+	# for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
+	do3d = 0
+	# turbulence/diffusion flag. doturb=0 means no turb/diffusion,
+	# doturb=1 means adding parameterized turbulence
+	# doturb=2 means adding diffusion on a circle
+	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+	doturb = 0
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
 
 def init_test2():
 	'''
 	A drifter test using TXLA model output. 
-	This simulation is 3D (comment out twodim flag) with turbulence added in.
-	(uncomment turb flag).
-	Drifters are started at 10 meters below the mean sea level and run forward
-	for two days from 11/30/09. Compare results with figure in examples/test2.png.
+	This simulation is 3D with turbulence (doturb=1) added in.
+	Drifters are started at 10 meters below the mean sea level and run backward
+	for five days from 11/25/09. Compare results with figure in examples/test2.png.
 	'''
 
 	# Location of TXLA model output
@@ -183,10 +194,10 @@ def init_test2():
 
 	# Initialize parameters
 	nsteps = 10
-	ndays = 2
+	ndays = 5
 	ff = 1
 	# Start date
-	date = datetime(2009,11, 20, 0)
+	date = datetime(2009,11, 25, 0)
 	# Time between outputs
 	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
 	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
@@ -205,10 +216,18 @@ def init_test2():
 	# z0 = 'z' #'salt' #'s' 
 	# zpar = -10 #grid['km']-1 # 30 #grid['km']-1
 	# Do the following two for a 3d simulation
-	z0 = np.ones(lon0.shape)*-1 #  below the surface
+	z0 = np.ones(lon0.shape)*-10 #  below the surface
 	zpar = 'fromMSL' 
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+	# for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
+	do3d = 1
+	# turbulence/diffusion flag. doturb=0 means no turb/diffusion,
+	# doturb=1 means adding parameterized turbulence
+	# doturb=2 means adding diffusion on a circle
+	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+	doturb = 1
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
 
 def init_hab1b():
 	'''
@@ -223,7 +242,7 @@ def init_hab1b():
 
 	# Initialize parameters
 	nsteps = 10
-	ndays = 1
+	ndays = 10
 	ff = 1
 	# Start date
 	date = datetime(2009,11, 30, 0)
@@ -248,7 +267,16 @@ def init_hab1b():
 	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
 	# zpar = 'fromMSL' 
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+
+	# for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
+	do3d = 0
+	# turbulence/diffusion flag. doturb=0 means no turb/diffusion,
+	# doturb=1 means adding parameterized turbulence
+	# doturb=2 means adding diffusion on a circle
+	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+	doturb = 0
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
 
 def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb):
 	'''
@@ -551,6 +579,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb):
 												+ r*zwtnew[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
+			# pdb.set_trace()
 
 		# j = j + 1
 
@@ -566,8 +595,10 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb):
 
 	# Recreate Cartesian particle locations from their index-relative locations
 	# just by interpolating. These are in tracmass ordering
-	fxr = grid['tri'].nn_interpolator(grid['xr'].flatten())
-	fyr = grid['tri'].nn_interpolator(grid['yr'].flatten())
+	fxr = grid['tri'].nn_interpolator(grid['xpsi'].flatten())
+	fyr = grid['tri'].nn_interpolator(grid['ypsi'].flatten())
+	# fxr = grid['tri'].nn_interpolator(grid['xr'].flatten())
+	# fyr = grid['tri'].nn_interpolator(grid['yr'].flatten())
 	xp = fxr(xg,yg)
 	yp = fyr(xg,yg)
 
@@ -582,9 +613,22 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb):
 	plot(xp,yp,'g.')
 	# Outline numerical domain
 	plot(grid['xr'][0,:],grid['yr'][0,:],'k:')
-	#ax1.plot(grid['xr'][-1,:],grid['yr'][-1,:],'k:')
+	plot(grid['xr'][-1,:],grid['yr'][-1,:],'k:')
 	plot(grid['xr'][:,0],grid['yr'][:,0],'k:')
 	plot(grid['xr'][:,-1],grid['yr'][:,-1],'k:')
+
+	# # get psi mask from rho mask
+	# # maskp = grid['mask'][1:,1:]*grid['mask'][:-1,1:]* \
+ # #               grid['mask'][1:,:-1]*grid['mask'][:-1,:-1] 
+	# # ind = maskp
+	# # ind[ind==0] = np.nan
+	# # plot(grid['xpsi']*ind,grid['ypsi']*ind,'k', \
+	# # 		(grid['xpsi']*ind).T,(grid['ypsi']*ind).T,'k')
+	# plot(grid['xpsi'],grid['ypsi'],'k', \
+	# 		(grid['xpsi']).T,(grid['ypsi']).T,'k')
+
+	# 16 is (lower) one that is near islands, 41 is higher one
+
 	show()
 	toc = time.time()
 	print "run time:",toc-tic
@@ -600,10 +644,10 @@ def start_run():
 	'''
 
 	# Choose which initialization to use
-	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test1()
-	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test2()
-	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_hab1b()
-	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_galveston()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_test1()
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_test2()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_hab1b()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_galveston()
 
 	# Run tracmass!
 	xp,yp,zp,t = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb)

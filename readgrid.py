@@ -57,7 +57,7 @@ def readgrid(loc,nc):
     '''
 
     # Basemap parameters.
-    llcrnrlon=-98; llcrnrlat=22.9; urcrnrlon=-87.5; urcrnrlat=30.5; projection='lcc'
+    llcrnrlon=-98.5; llcrnrlat=22.5; urcrnrlon=-87.5; urcrnrlat=31.0; projection='lcc'
     lat_0=30; lon_0=-94; resolution='i'; area_thresh=0.
     basemap = Basemap(llcrnrlon=llcrnrlon,
                  llcrnrlat=llcrnrlat,
@@ -122,12 +122,17 @@ def readgrid(loc,nc):
     km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
     # Index grid, for interpolation between real and grid space
-    # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
-    Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
+    # this is for psi grid, so that middle of grid is min + .5 value
+    # X goes from 0 to imt-2 and Y goes from 0 to jmt-2
+    Y, X = np.meshgrid(np.arange(jmt-1),np.arange(imt-1)) # grid in index coordinates, without ghost cells
+    # # This is for rho
+    # # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
+    # Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
     # Triangulation for grid space to curvilinear space
     tri = delaunay.Triangulation(X.flatten(),Y.flatten())
     # Triangulation for curvilinear space to grid space
-    tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
+    tric = delaunay.Triangulation(xpsi.flatten(),ypsi.flatten())
+    # tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
 
     # tracmass ordering.
     # Not sure how to convert this to pm, pn with appropriate shift
@@ -154,16 +159,17 @@ def readgrid(loc,nc):
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()
+    mask2 = mask.copy()
     kmt = np.ones((imt,jmt))*km
-    ind = (mask[1:imt,:]==1)
-    mask[0:imt-1,ind] = 1
-    ind = (mask[:,1:jmt]==1)
-    mask[ind,0:jmt-1] = 1
+    ind = (mask2[1:imt,:]==1)
+    mask2[0:imt-1,ind] = 1
+    ind = (mask2[:,1:jmt]==1)
+    mask2[ind,0:jmt-1] = 1
     # ind = (mask[1:imt-1,:]==1)
     # mask[0:imt-2,ind] = 1
     # ind = (mask[:,1:imt-1]==1)
     # mask[:,0:jmt-2] = 1
-    ind = (mask==0)
+    ind = (mask2==0)
     kmt[ind] = 0
 
     # Use octant to calculate depths/thicknesses for the appropriate vertical grid parameters

@@ -435,11 +435,13 @@ ntracLoop: do ntrac=1,ntractot
 
         ! === calculate the new positions ===
         ! === of the trajectory           ===  
-!         print *,'before pos'  
-!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-!         print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
-!             ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
+!         if(ntrac==42) then
+!             print *,'before pos'  
+!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+!             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
+!                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
+!         endif
 
         if(doturb==1) then
             call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
@@ -448,14 +450,21 @@ ntracLoop: do ntrac=1,ntractot
             call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,do3d,doturb)
         endif
-!         print *,'after pos'
-!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-! !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
-!       print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2),' dxyz=',dxyz
-!       print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
-!         print '(a,f7.1,a,f6.1,a,f5.2,a,f5.2)', 'tt=',tt,' dt=',dt,' ts=',ts,' tss=',tss
-!         print *,''
+
+!         if(ntrac==42) then
+!             print *,'after pos'
+!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+!             !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
+!             print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=', &
+!                 uflux(ia ,ja,ka,2),' dxyz=',dxyz
+!             print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia-1,ja,ka,1)=',uflux(ia-1,ja,ka,1),' uflux(ia-1 ,ja,ka,2)=', &
+!                 uflux(ia-1 ,ja,ka,2)
+!             print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
+!             print '(a,f8.1,a,f8.1,a)','vflux(ia,ja-1,ka,1)=',vflux(ia,ja-1,ka,1),' vflux(ia ,ja-1,ka,2)=',vflux(ia ,ja-1,ka,2)
+!             print '(a,f7.1,a,f6.1,a,f5.2,a,f5.2)', 'tt=',tt,' dt=',dt,' ts=',ts,' tss=',tss
+!             print *,''
+!         endif
 !         === make sure that trajectory ===
         ! === is inside ib,jb,kb box    ===
 !         print *,'ib=',ib,' jb=',jb,' x1=',x1,' idint(x1)=',idint(x1)
@@ -610,15 +619,21 @@ ntracLoop: do ntrac=1,ntractot
 !  print *,'ja=',ja,' jb=',jb,x1,y1
 
         ! Need to add other conditions to this. Checking to see if drifter has exited domain.
-        ! KMT: Maybe can change these to be closer to the edges
+        ! KMT: Need to have one value in the positive direction from drifter cell
+        ! for calculations, hence the -1's
         ! Do we want to keep the drifters at the edges if they have exited? Or change to nan's?
-        if(x1<=2.d0 .or. x1>=imt-2.d0 .or. y1<=2.d0 .or. y1>=jmt-2.d0) then
+        if(x1<=1.d0 .or. x1>=imt-1 .or. y1<=1.d0 .or. y1>=jmt-1) then
+!         if(x1<=2.d0 .or. x1>=imt-2.d0 .or. y1<=2.d0 .or. y1>=jmt-2.d0) then
             print *, 'Stopping trajectory due to domain'
 !             print *, 'x1=',x1,' y1=',y1
-            if(x1<=2.d0) x1=2.d0
-            if(x1>=imt) x1=dble(imt)
-            if(y1<=2.d0) y1=2.d0
-            if(y1>=jmt) y1=dble(jmt)
+            if(x1<=1.d0) x1=1.d0
+            if(x1>=imt-1) x1=dble(imt-1)
+            if(y1<=1.d0) y1=1.d0
+            if(y1>=jmt-1) y1=dble(jmt-1)
+!             if(x1<=2.d0) x1=2.d0
+!             if(x1>=imt) x1=dble(imt)
+!             if(y1<=2.d0) y1=2.d0
+!             if(y1>=jmt) y1=dble(jmt)
             ! Don't write here since the timing of the location would probably be off
 !             xend(idint(tss),ntrac) = x1
 !             yend(idint(tss),ntrac) = y1
