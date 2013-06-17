@@ -41,40 +41,8 @@ integer                                         				:: nsm=1,nsp=2
 
 rg=1.d0-rr
 
-
-
 ! T-box volume in m3
-#ifdef zgrid3Dt 
-!     dxyz=rg*dxyzarray(ib,jb,kb,nsp)+rr*dxyzarray(ib,jb,kb,nsm)
-    dxyz=rg*dzt(ib,jb,kb,nsp)+rr*dzt(ib,jb,kb,nsm)
-! #elif  zgrid3D
-! ! 	print *,'this is happening in cakc_dxyz'
-!     dxyz=dzt(ib,jb,kb)
-! #ifdef freesurface
-!     if(kb == km) dxyz=dxyz+rg*hs(ib,jb,nsp)+rr*hs(ib,jb,nsm)
-! #endif /*freesurface*/
-! #else
-!     print *,'kb = ',kb, ' dz = ',dz
-!     dxyz=dz(kb)
-! #ifdef varbottombox
-!     if(kb == km+1-kmt(ib,jb) ) dxyz=dztb(ib,jb,1)
-! #endif /*varbottombox*/
-! #ifdef freesurface
-!     if(kb == km) dxyz=dxyz+rg*hs(ib,jb,nsp)+rr*hs(ib,jb,nsm)
-! #endif /*freesurface*/
-#endif /*zgrid3Dt*/
-    dxyz=dxyz*dxdy(ib,jb)
-!     if (dxyz<0) then
-!        print *,'====================================='
-!        print *,'ERROR: Negative box volume           '
-!        print *,'-------------------------------------'
-!        print *,'dzt  = ', dxyz/dxdy(ib,jb),dz(kb),hs(ib,jb,:)
-!        print *,'dxdy = ', dxdy(ib,jb)
-!        print *,'ib  = ', ib, ' jb  = ', jb, ' kb  = ', kb 
-!        print *,'-------------------------------------'
-!        print *,'The run is terminated'
-!        print *,'====================================='
-! !        errCode = -60
-!        stop
-!     end if
+dxyz=rg*dzt(ib,jb,kb,nsp)+rr*dzt(ib,jb,kb,nsm)
+dxyz=dxyz*dxdy(ib,jb)
+
 end subroutine calc_dxyz

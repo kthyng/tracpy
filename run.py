@@ -31,6 +31,12 @@ tseas	Time between outputs in seconds
 ah 		Horizontal diffusion in m^2/s. 
 		See project values of 350, 100, 0, 2000. For -turb,-diffusion
 av 		Vertical diffusion in m^2/s.
+do3d 	for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
+doturb	turbulence/diffusion flag. 
+		doturb=0 means no turb/diffusion,
+		doturb=1 means adding parameterized turbulence
+		doturb=2 means adding diffusion on a circle
+		doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 lon0 	Drifter starting locations in x/zonal direction.
 lat0 	Drifter starting locations in y/meridional direction.
 z0/zpar For 3D drifter movement, turn off twodim flag in makefile.
@@ -106,12 +112,17 @@ def init_galveston():
 	# zpar = 'fromMSL' 
 	# pdb.set_trace()
 
-	# ## Set flags
+	## Set flags
 	
-	# # for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
-	# do3d = 0
+	# for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
+	do3d = 0
+	# turbulence/diffusion flag. doturb=0 means no turb/diffusion,
+	# doturb=1 means adding parameterized turbulence
+	# doturb=2 means adding diffusion on a circle
+	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+	doturb = 3
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
 
 def init_test1():
 	'''
@@ -239,7 +250,7 @@ def init_hab1b():
 
 	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar
 
-def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
+def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb):
 	'''
 
 	To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -254,8 +265,6 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 	such that the output is the position for the drifters at the time corresponding to the
 	second velocity time. Each drifter may take some number of steps in between, but those
 	are not saved.
-
-	     hs 			Two time steps of ssh [imt,jmt,2] (m)
 
 	Vertical location of drifters:
 	z0 can be an array of starting depths (negative to be
@@ -520,7 +529,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 					tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
 						np.ma.compressed(zstart),np.ma.compressed(ia),np.ma.compressed(ja),
 						np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
-						dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av)#dz.data,dxdy)
+						dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av,do3d,doturb)#dz.data,dxdy)
 			# Change the horizontal indices from python to fortran indexing
 			xend[j*nsteps:j*nsteps+nsteps,ind], \
 				yend[j*nsteps:j*nsteps+nsteps,ind], \
@@ -579,6 +588,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar):
 	show()
 	toc = time.time()
 	print "run time:",toc-tic
+	print "list of readfields times", toc_read-tic_read
 	print "sum of readfields:", np.sum(toc_read-tic_read)
 	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
 
@@ -593,9 +603,9 @@ def start_run():
 	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test1()
 	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_test2()
 	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_hab1b()
-	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar = init_galveston()
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_galveston()
 
 	# Run tracmass!
-	xp,yp,zp,t = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar)
+	xp,yp,zp,t = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb)
 
 	return xp,yp,zp,t

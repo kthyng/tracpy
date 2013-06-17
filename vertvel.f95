@@ -1,4 +1,4 @@
-subroutine vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+subroutine vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,do3d,wflux)
 !====================================================================
 ! Calculate the vertical flux based on the uflux and vflux
 !
@@ -11,6 +11,7 @@ subroutine vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
 !    ff             : time direction. ff=1 forward, ff=-1 backward
 !    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
 !    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
+!    do3d           : Flag to set whether to use 3d velocities or not
 !
 !  Output:
 !    wflux          : w velocity (vertical) flux field, two time steps [kxt]
@@ -33,12 +34,11 @@ subroutine vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
 !    This is set up to use neither the -full_wflux nor -explicit_w flags currently, 
 !    just the default w flux option.
 !====================================================================
-
-#ifndef explicit_w
   
 implicit none
   
 integer,        intent(in)                                      :: ff,ia,ja,ka,imt,jmt,km
+integer,        intent(in)                                      :: do3d
 real(kind=8),   intent(in)                                      :: rr
 real(kind=8),   intent(in),     dimension(imt-1,jmt,km,2)       :: uflux
 real(kind=8),   intent(in),     dimension(imt,jmt-1,km,2)       :: vflux
@@ -58,11 +58,11 @@ iam=ia-1
 ! print *,'size(uflux)=',size(uflux,1),' size(vflux)=',size(vflux,1)
 
 
-#ifdef twodim
+if(do3d==0) then
     return
   
 ! start 3D code
-#else
+else
     kloop: do k=1,ka
   ! these only need to be defined if we use full_wflux, which we aren't doing right now
 !      uu=rg*uflux(ia ,ja  ,k,nsp)+rr*uflux(ia ,ja  ,k,nsm)
@@ -93,12 +93,9 @@ iam=ia-1
 !end ocean code
     end do kloop
 
-#endif
+endif
 ! end 3D code
   
 !#endif
   return
-#endif
 end subroutine vertvel
-
- 

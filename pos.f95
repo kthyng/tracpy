@@ -1,5 +1,5 @@
-subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr)
-#ifndef timeanalyt 
+subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr)
+
 !====================================================================
 ! computes new position (r0 --> r1) of trajectory after time ds
 ! the new coordinate is still on one of the faces of box at ia,ja,ka
@@ -20,6 +20,8 @@ subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr
 !    ff             : time direction. ff=1 forward, ff=-1 backward
 !    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
 !                     horizontal and vertical rho grid [scalar]
+!    do3d           : Flag to set whether to use 3d velocities or not
+!    doturb         : Flag to set whether or not to use turb/diff and which kind if so
 !    upr            : parameterized turbulent velocities u', v', and w'
 !                     optional because only used if using turb flag for diffusion
 !                     size [6,2]. The 2nd dimension is for two time steps.
@@ -44,6 +46,7 @@ subroutine pos_orgn(ijk,ia,ja,ka,r0,r1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr
 implicit none
 
 integer,            intent(in)                                  :: ijk,ia,ja,ka,ff,imt,jmt,km
+integer,            intent(in)                                  :: do3d, doturb
 real(kind=8),       intent(in)                                  :: r0,rr,ds
 real(kind=8),       intent(in),     dimension(imt-1,jmt,km,2)   :: uflux
 real(kind=8),       intent(in),     dimension(imt,jmt-1,km,2)   :: vflux
@@ -55,12 +58,12 @@ integer                                                         :: ii,im,nsm=1,n
 
 rg=1.d0-rr
 
-#ifdef twodim   
+if(do3d==0) then   
     if(ijk.eq.3) then
         r1=r0
         return
     endif
-#endif
+endif
 
 
 if(ijk.eq.1) then
@@ -73,42 +76,42 @@ if(ijk.eq.1) then
     uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff
     um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
 
-#ifdef turb    
-    if(r0.ne.dble(ii)) then
-        uu=uu+upr(1,2)  
-    else
-        uu=uu+upr(1,1)  
-        ! add u' from previous iterative time step if on box wall
+    if(doturb==1) then    
+        if(r0.ne.dble(ii)) then
+            uu=uu+upr(1,2)  
+        else
+            uu=uu+upr(1,1)  
+            ! add u' from previous iterative time step if on box wall
+        endif
+        if(r0.ne.dble(im)) then
+            um=um+upr(2,2)
+        else
+            um=um+upr(2,1)  
+            ! add u' from previous iterative time step if on box wall
+        endif
     endif
-    if(r0.ne.dble(im)) then
-        um=um+upr(2,2)
-    else
-        um=um+upr(2,1)  
-        ! add u' from previous iterative time step if on box wall
-    endif
-#endif
 
 else if(ijk.eq.2) then
     ii=ja
     uu=(rg*vflux(ia,ja  ,ka,nsp)+rr*vflux(ia,ja  ,ka,nsm))*ff
     um=(rg*vflux(ia,ja-1,ka,nsp)+rr*vflux(ia,ja-1,ka,nsm))*ff
 
-#ifdef turb    
-    if(r0.ne.dble(ja  )) then
-        uu=uu+upr(3,2)  
-    else
-        uu=uu+upr(3,1)  
-        ! add u' from previous iterative time step if on box wall
+    if(doturb==1) then    
+        if(r0.ne.dble(ja  )) then
+            uu=uu+upr(3,2)  
+        else
+            uu=uu+upr(3,1)  
+            ! add u' from previous iterative time step if on box wall
+        endif
+        if(r0.ne.dble(ja-1)) then
+            um=um+upr(4,2)
+        else
+            um=um+upr(4,1)  
+            ! add u' from previous iterative time step if on box wall
+        endif
     endif
-    if(r0.ne.dble(ja-1)) then
-        um=um+upr(4,2)
-    else
-        um=um+upr(4,1)  
-        ! add u' from previous iterative time step if on box wall
-    endif
-#endif
 
-elseif(ijk.eq.3) then
+else if(ijk.eq.3) then
     ii=ka
 ! #ifdef full_wflux
 !      uu=wflux(ia ,ja ,ka   ,nsm)
@@ -118,22 +121,20 @@ elseif(ijk.eq.3) then
     um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
 ! #endif
 
-#ifndef twodim   
-#ifdef turb    
-    if(r0.ne.dble(ka  )) then
-        uu=uu+upr(5,2)  
-    else
-        uu=uu+upr(5,1)  
-        ! add u' from previous iterative time step if on box wall
+    if(do3d==1 .and. doturb==1) then
+        if(r0.ne.dble(ka  )) then
+            uu=uu+upr(5,2)  
+        else
+            uu=uu+upr(5,1)  
+            ! add u' from previous iterative time step if on box wall
+        endif
+        if(r0.ne.dble(ka-1)) then
+            uu=uu+upr(6,2)  
+        else
+            uu=uu+upr(6,1)  
+            ! add u' from previous iterative time step if on box wall
+        endif
     endif
-    if(r0.ne.dble(ka-1)) then
-        uu=uu+upr(6,2)  
-    else
-        uu=uu+upr(6,1)  
-        ! add u' from previous iterative time step if on box wall
-    endif
-#endif
-#endif
 endif
 
 !
@@ -153,5 +154,4 @@ endif
 !if(abs(um/(uu-um)).gt.1.d10) print *,'possible precision problem?',um/(uu-um),uu,um,ijk,ia,ja,ka,r0,r1,ds,rr
 
 return
-#endif
 end subroutine pos_orgn

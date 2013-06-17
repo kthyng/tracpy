@@ -20,7 +20,7 @@ F95COMPILER        = "gfortran"
 
 # KMT: Always use timestep. We can assume that the fields are stationary for dtmin
 # which is the step between interpolated fields between model outputs
-   fl01   = -Dtimestep       # Analytical time scheme used to solve the differential Eqs.
+   # fl01   = -Dtimestep       # Analytical time scheme used to solve the differential Eqs.
 # KMT: I took out code for the timeanalyt flag since it isn't as robust and we 
 # currently do not plan to use that.
 #  fl01   = -Dtimeanalyt    # Time steps with analytical stationary scheme. 
@@ -49,7 +49,7 @@ F95COMPILER        = "gfortran"
 # KMT: Use the twodim flag when you want drifters to stay at their starting 
 # vertical position in grid space. Their real space position may change with the
 # free surface changes, but their grid space vertical position will stay the same.
-fl13  = -Dtwodim         # Turn off vertical velocities.
+# fl13  = -Dtwodim         # Turn off vertical velocities.
 # KMT: The code is not set up to use this
 # fl14  = -Dfull_wflux     # Use a full 3D wflux field.
 # KMT: The code is not set up to use this
@@ -61,7 +61,7 @@ fl13  = -Dtwodim         # Turn off vertical velocities.
   # fl17  = -Dfreesurface    # Variable bottom box to match actual depth
 #   fl18  = -Dzvec1D         # Cell depths defined as vector (for z-coord?)
  # fl18  = -Dzgrid3D        # Cell depths defined as 3D grid (for sigma)
- fl18  = -Dzgrid3Dt       # Cell depths 3D and time interp. (for atm)
+ # fl18  = -Dzgrid3Dt       # Cell depths 3D and time interp. (for atm)
 #------------------------------------------------------------------------
 # KMT: None of this code was retained since we can do this stuff in python
 #  fl20  = -Dselect         # Select only one trajectory (for debugging)
@@ -74,7 +74,7 @@ fl13  = -Dtwodim         # Turn off vertical velocities.
 # diffusion along an ellipse added in x and y instead of a circle, and
 # does not alter what the diffusion flag does vertically.
 # I couldn't find what the coarse flag does.
- fl23  = -Dturb           # Adds subgrid turbulent velocities 
+ # fl23  = -Dturb           # Adds subgrid turbulent velocities 
  # fl24  = -Ddiffusion      # Adds a diffusion on trajectory
  # fl25  = -Danisodiffusion # Adds an anisotropic diffusion on trajectory
 #  fl26  = -Dcoarse         # Adds a diffusion on trajectory

@@ -1,4 +1,4 @@
-subroutine turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
+subroutine turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,do3d,upr)
 !====================================================================
 ! computes the paramterised turbulent velocities u' and v' into upr
 !
@@ -16,6 +16,7 @@ subroutine turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
 !    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
 !    wflux          : w velocity (vertical) flux field, two time steps [kxt]
 !    ff             : time direction. ff=1 forward, ff=-1 backward
+!    do3d           : Flag to set whether to use 3d velocities or not
 !
 !  Output:
 !    upr            : parameterized turbulent velocities u', v', and w'
@@ -39,12 +40,11 @@ subroutine turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
 !    amp            : amplitude of turbulence correction
 !====================================================================
 
-!KMT had to move this inside subroutine
-#ifdef turb    
   
 implicit none
  
 integer,        intent(in)                                      :: ia,ja,ka, ff, imt,jmt,km
+integer,        intent(in)                                      :: do3d
 real*8,         intent(in)                                      :: rr, dtmin,ah
 real(kind=8),   intent(in),     dimension(imt-1,jmt,km,2)       :: uflux
 real(kind=8),   intent(in),     dimension(imt,jmt-1,km,2)       :: vflux
@@ -86,13 +86,11 @@ im=ia-1
 !   if(im.eq.0) im=IMT 
 jm=ja-1
   
-#if defined timestep
-    ! time interpolated velocities
-    uv(1)=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! western u
-    uv(2)=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff ! eastern u
-    uv(3)=(rg*vflux(ia,ja,ka,nsp)+rr*vflux(ia,ja,ka,nsm))*ff ! northern v
-    uv(4)=(rg*vflux(ia,jm,ka,nsp)+rr*vflux(ia,jm,ka,nsm))*ff ! southern v
-#endif  
+! time interpolated velocities
+uv(1)=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! western u
+uv(2)=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff ! eastern u
+uv(3)=(rg*vflux(ia,ja,ka,nsp)+rr*vflux(ia,ja,ka,nsm))*ff ! northern v
+uv(4)=(rg*vflux(ia,jm,ka,nsp)+rr*vflux(ia,jm,ka,nsm))*ff ! southern v
 
 !   upr(:,1)=upr(:,2) ! store u' from previous time iteration step (this makes it unstable!)
    
@@ -108,8 +106,8 @@ upr(4,2)=uv(4)*qran(3)
 
 !  upr(:,1)=upr(:,2) ! impose same velocities for t-1 and t (this makes it unstable! but why? K.Döös)
   
-#ifdef turb 
-#ifndef twodim   
+if(do3d==1) then
+
     ! === Calculates the w' at the top of the box from 
     ! === the divergence of u' and v' in order
     ! === to respect the continuity equation even 
@@ -143,11 +141,9 @@ upr(4,2)=uv(4)*qran(3)
         endif
 
     enddo
-#endif
-#endif
+endif
  
  
  return
-#endif ! KMT had to move this inside subroutine
 end subroutine turbuflux
 !_______________________________________________________________________

@@ -1,4 +1,4 @@
-subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr)
+subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb,upr)
   
 !====================================================================
 ! subroutine to compute time (sp,sn) when trajectory 
@@ -21,6 +21,8 @@ subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr)
 !    ff             : time direction. ff=1 forward, ff=-1 backward
 !    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
 !                     horizontal and vertical rho grid [scalar]
+!    do3d           : Flag to set whether to use 3d velocities or not
+!    doturb         : Flag to set whether or not to use turb/diff and which kind if so
 !    upr            : parameterized turbulent velocities u', v', and w'
 !                     optional because only used if using turb flag for diffusion
 !                     size [6,2]. The 2nd dimension is for two time steps.
@@ -44,6 +46,7 @@ subroutine cross(ijk,ia,ja,ka,r0,sp,sn,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr)
 implicit none
 
 integer,            intent(in)                                      :: ijk,ia,ja,ka,ff,imt,jmt,km
+integer,            intent(in)                                      :: do3d, doturb
 real(kind=8),       intent(in)                                      :: r0,rr
 real(kind=8),       intent(in),     dimension(imt-1,jmt,km,2)       :: uflux
 real(kind=8),       intent(in),     dimension(imt,jmt-1,km,2)       :: vflux
@@ -69,38 +72,38 @@ if(ijk.eq.1) then
     uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
     um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
 
-#ifdef turb   
-    if(r0.ne.dble(ii)) then
-        uu=uu+upr(1,2)  
-    else
-        uu=uu+upr(1,1)  ! add u' from previous iterative time step if on box wall
+    if(doturb==1) then   
+        if(r0.ne.dble(ii)) then
+            uu=uu+upr(1,2)  
+        else
+            uu=uu+upr(1,1)  ! add u' from previous iterative time step if on box wall
+        endif
+        if(r0.ne.dble(im)) then
+            um=um+upr(2,2)
+        else
+            um=um+upr(2,1)  ! add u' from previous iterative time step if on box wall
+        endif
     endif
-    if(r0.ne.dble(im)) then
-        um=um+upr(2,2)
-    else
-        um=um+upr(2,1)  ! add u' from previous iterative time step if on box wall
-    endif
-#endif
 
 else if(ijk.eq.2) then
     ii=ja
     uu=(rg*vflux(ia,ja  ,ka,nsp)+rr*vflux(ia,ja  ,ka,nsm))*ff
     um=(rg*vflux(ia,ja-1,ka,nsp)+rr*vflux(ia,ja-1,ka,nsm))*ff
 
-#ifdef turb    
-    if(r0.ne.dble(ja  )) then
-        uu=uu+upr(3,2)  
-    else
-        uu=uu+upr(3,1)  ! add u' from previous iterative time step if on box wall
+    if(doturb==1) then   
+        if(r0.ne.dble(ja  )) then
+            uu=uu+upr(3,2)  
+        else
+            uu=uu+upr(3,1)  ! add u' from previous iterative time step if on box wall
+        endif
+        if(r0.ne.dble(ja-1)) then
+            um=um+upr(4,2)
+        else
+            um=um+upr(4,1)  ! add u' from previous iterative time step if on box wall
+        endif
     endif
-    if(r0.ne.dble(ja-1)) then
-        um=um+upr(4,2)
-    else
-        um=um+upr(4,1)  ! add u' from previous iterative time step if on box wall
-    endif
-#endif
 
-elseif(ijk.eq.3) then
+else if(ijk.eq.3) then
     ii=ka
 ! #ifdef full_wflux
 !       uu=wflux(ia ,ja ,ka   ,nsm)
@@ -110,21 +113,18 @@ elseif(ijk.eq.3) then
     um=rg*wflux(ka-1,nsp)+rr*wflux(ka-1,nsm)
 ! #endif
 
-! #ifndef twodim && turb   ! master code at tracmass github has this change
-#ifndef twodim
-#ifdef turb
-    if(r0.ne.dble(ka  )) then
-        uu=uu+upr(5,2)  
-    else
-        uu=uu+upr(5,1)  ! add u' from previous iterative time step if on box wall
+    if(do3d==0 .and. doturb==1) then
+        if(r0.ne.dble(ka  )) then
+            uu=uu+upr(5,2)  
+        else
+            uu=uu+upr(5,1)  ! add u' from previous iterative time step if on box wall
+        endif
+        if(r0.ne.dble(ka-1)) then
+            uu=uu+upr(6,2)  
+        else
+            uu=uu+upr(6,1)  ! add u' from previous iterative time step if on box wall
+        endif
     endif
-    if(r0.ne.dble(ka-1)) then
-        uu=uu+upr(6,2)  
-    else
-        uu=uu+upr(6,1)  ! add u' from previous iterative time step if on box wall
-    endif
-#endif
-#endif
 endif
 
 ! east, north or upward crossing

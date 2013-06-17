@@ -145,9 +145,12 @@ def readgrid(loc,nc):
 
     # Change dxv,dyu to be correct u and v grid size after having 
     # them be too big for dxdy calculation. This is not in the 
-    # rutgersNWA example and I am not sure why.
-    dxv = dxv[:,:-1]
-    dyu = dyu[:-1,:]
+    # rutgersNWA example and I am not sure why. [i,j]
+    dxv = 0.5*(dxv[:,:-1]+dxv[:,1:])
+    dyu = 0.5*(dyu[:-1,:]+dyu[1:,:])
+    # # These should be interpolated
+    # dxv = dxv[:,:-1]
+    # dyu = dyu[:-1,:]
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()

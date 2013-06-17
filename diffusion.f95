@@ -1,6 +1,4 @@
-subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av)
-!kmT had to move inside subroutine
-#ifdef diffusion 
+subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av,do3d,doturb)
 
 !============================================================================
 ! Add a small displacement to a particle s.t. it is still in the model area.
@@ -17,6 +15,8 @@ subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av
 !    ah             : horizontal diffusion in m^2/s. Input parameter.
 !                   : For -turb and -diffusion flags
 !    av             : vertical diffusion in m^2/s. Input parameter. For -diffusion flag.
+!    do3d           : Flag to set whether to use 3d velocities or not
+!    doturb         : Flag to set whether or not to use turb/diff and which kind if so
 !
 !  Input/Output:
 !    x1, y1, z1     : Current positions of the particle. Are updated by the subroutine.
@@ -32,10 +32,12 @@ subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av
   
 implicit none
 
-integer,        intent(in),     dimension(imt,jmt)          :: kmt,h
+integer,        intent(in),     dimension(imt,jmt)          :: kmt
+integer,        intent(in)                                  :: do3d, doturb
 real(kind=8),   intent(in)                                  :: ah,av,dt
-integer,        intent(in),     dimension(imt-1,jmt)        :: dyu
-integer,        intent(in),     dimension(imt,jmt-1)        :: dxv
+real*8,         intent(in),     dimension(imt-1,jmt)        :: dyu
+real*8,         intent(in),     dimension(imt,jmt-1)        :: dxv
+real*8,         intent(in),     dimension(imt,jmt)          :: h
 real(kind=8),   intent(in),     dimension(imt,jmt,km,2)     :: dzt
 integer,        intent(in)                                  :: imt,jmt,km           
 real(kind=8),   intent(in out)                              :: x1, y1, z1
@@ -60,7 +62,7 @@ itno=0
 do while(tryAgain)
     itno=itno+1
     ! find random displacement 
-    call displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu)
+    call displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu,do3d,doturb)
 !     CALL displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,kmt,h,ah,av)
 !     print *,'xd=',xd,' yd=',yd,' zd=',zd
 !     print *,'dzt(ib,jb,:,1)=',dzt(ib,jb,:,1)
@@ -92,7 +94,7 @@ do while(tryAgain)
     ! KMT: this is the same check as above that looks wrong and I changed
 !     if( 1<=tmpi .AND. tmpi<=imt .AND. 1<=tmpj .AND. tmpj<=jmt .AND. km+1-kmt(tmpi,tmpj)<=tmpk .AND. tmpk>=1 ) then
     if(tmpi>=1 .AND. tmpi<=imt .AND. tmpj>=1 .AND. tmpj<=jmt .AND. km>=tmpk .AND. tmpk>=1 ) then
-        print *,'km=',km,' km+1-kmt(tmpi,tmpj)=',km+1-kmt(tmpi,tmpj),' tmpk=',tmpk
+!         print *,'km=',km,' km+1-kmt(tmpi,tmpj)=',km+1-kmt(tmpi,tmpj),' tmpk=',tmpk
         tryAgain = .FALSE. 
         ! if false then a new position for the particle has been found and we exit the loop
     end if 
@@ -117,18 +119,16 @@ x1 = tmpX
 y1 = tmpY
 ib = tmpi
 jb = tmpj
-#ifndef twodim   
+
+if(do3d==1) then
     z1 = tmpZ
     kb = tmpk
-#endif  
+endif  
 
 if(x1.ne.dble(idint(x1))) ib=idint(x1)+1 ! make sure the index corresponds to the right grid cell
 
 !print *,'slut',itno,kmt(ib,jb),ib,jb,kb,x1,y1,z1
   
-#endif 
-!KMT had to move inside subroutine (from very bottom of script)
-
 end subroutine diffuse
 
 !===============================================================================
@@ -143,22 +143,22 @@ end subroutine diffuse
 ! xd, yd, zd : Variables in which the displacement will be stored
 ! dt: Model time step
 !===============================================================================
-subroutine displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu) 
+subroutine displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu,do3d,doturb) 
 
 implicit none
   
 integer,        intent(in)                          :: ib,jb,kb,imt,jmt   ! box indices
+integer,        intent(in)                          :: do3d, doturb
 real(kind=8),   intent(in)                          :: dt,ah,av
-integer,        intent(in), dimension(imt,jmt)      :: h
-integer,        intent(in), dimension(imt-1,jmt)    :: dyu
-integer,        intent(in), dimension(imt,jmt-1)    :: dxv
+real*8,         intent(in), dimension(imt,jmt)      :: h
+real*8,         intent(in), dimension(imt-1,jmt)    :: dyu
+real*8,         intent(in), dimension(imt,jmt-1)    :: dxv
 real(kind=8),   intent(out)                         :: xd, yd, zd
 real(kind=8),   parameter                           :: pi = 3.14159265358979323846
 real(kind=8)                                        :: q1, q2, q3, q4, r, elip, xx, yy, hp, hm
-#ifdef anisodiffusion   
-real(kind=8)                                        :: rx, ry, grdx, grdy, grad, theta
+
+real(kind=8)                                        :: grdx, grdy, grad, theta
 integer                                             :: ip,im,jp,jm
-#endif
     
 ! random generated numbers between 0 and 1
 q1 = rand() 
@@ -172,14 +172,14 @@ xd = R * cos(2*PI*q2)
 yd = R * sin(2*PI*q2)
 
 ! Vertical displacement in meters
-#ifndef twodim   
+if(do3d==1) then
     R = sqrt(-4*av*dt*log(1-q3))
     zd = R*cos(2*PI*q4)
-#else
+else
     zd = 0.
-#endif
+endif
 
-#ifdef anisodiffusion
+if(doturb==3) then
     !_______________________________________________________________________________
     ! The diffusion is here set on an ellipse instead of a circle
     ! so that the diffusion is higher along the isobaths and weaker
@@ -219,8 +219,13 @@ yd = R * sin(2*PI*q2)
     ! grdy=float(kmt(ib,jp)-kmt(ib,jm)) ! meridional depth gradient
     ! KMT: switching the bathymetry/depths array and grid distances in here
     ! since user manual (pg 21) shows grdx=\Delta h/\Delta x, for example
-    grdx=float(h(ip,jb)-h(im,jb))/float(xr(ip,jb)-xr(im,jb)) ! zonal depth gradient
-    grdy=float(h(ib,jp)-h(ib,jm))/float(yr(ib,jp)-yr(ib,jm)) ! meridional depth gradient
+!     grdx=(h(ip,jb)-h(im,jb))/(0.5*(dxv(im,jb)+dxv(ib,jb))+0.5*(dxv(ib,jb)+dxv(ip,jb))) ! zonal depth gradient
+    ! Same as easier-to-read previous line but more efficient:
+    grdx=(h(ip,jb)-h(im,jb))/(0.5*dxv(im,jb) + 0.5*dxv(ip,jb) + dxv(ib,jb)) ! zonal depth gradient
+
+!     grdy=(h(ib,jp)-h(ib,jm))/(0.5*(dyu(ib,jm)+dyu(ib,jb)) + 0.5*(dyu(ib,jb)+dyu(ib,jp))) ! meridional depth gradient
+    ! Same as easier-to-read previous line but more efficient:
+    grdy=(h(ib,jp)-h(ib,jm))/(0.5*dyu(ib,jm) + dyu(ib,jb) + 0.5*dyu(ib,jp)) ! meridional depth gradient
 
     grad=dsqrt(grdx**2+grdy**2)       ! total depth gradient
 
@@ -260,7 +265,7 @@ yd = R * sin(2*PI*q2)
 
     !if(jb.gt.400) stop 3096
     !_______________________________________________________________________________
-#endif
+endif
 
 end subroutine displacement
 

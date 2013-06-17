@@ -1,5 +1,5 @@
 subroutine pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                &ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,upr)
+                &ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,do3d,doturb,upr)
 !====================================================================
 ! calculate the new positions of the trajectory with pos_orgn()   
 !
@@ -28,6 +28,8 @@ subroutine pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,ds
 !    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
 !    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
 !    wflux          : w velocity (vertical) flux field, two time steps [kxt]
+!    do3d           : Flag to set whether to use 3d velocities or not
+!    doturb         : Flag to set whether or not to use turb/diff and which kind if so
 !    upr            : parameterized turbulent velocities u', v', and w'
 !                     optional because only used if using turb flag for diffusion
 !                     size [6,2]. The 2nd dimension is for two time steps.
@@ -53,6 +55,7 @@ subroutine pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,ds
 implicit none
 
 integer,            intent(in)                                  :: ia, ja, ka, imt, jmt, km,ff
+integer,            intent(in)                                  :: do3d, doturb
 real*8,             intent(in)                                  :: x0, y0, z0,ds,dse,dsw,dss,dsn,dsd,dsu,dsmin,dsc,rb, rr
 real(kind=8),       intent(in),     dimension(imt-1,jmt,km,2)   :: uflux
 real(kind=8),       intent(in),     dimension(imt,jmt-1,km,2)   :: vflux
@@ -85,14 +88,16 @@ if(ds==dse) then ! eastward grid-cell exit
         ! Is this where it should be enforced?
 !         if(ib.gt.imt) ib=ib-imt ! imt is a grid parameter
     endif
+
     x1=dble(ia)
-#ifdef turb
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) 
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr)
-#else
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) 
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km)
-#endif /*turb*/
+
+    if(doturb==1) then
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr)
+    else
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb)
+    endif
 
 else if(ds==dsw) then ! westward grid-cell exit
 !        scrivi=.false.
@@ -100,14 +105,16 @@ else if(ds==dsw) then ! westward grid-cell exit
     if(uu.lt.0.d0) then
         ib=iam
     endif
+
     x1=dble(iam)
-#ifdef turb
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! meridional position
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! vertical position
-#else
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! meridional position
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! vertical position
-#endif /*turb*/
+
+    if(doturb==1) then
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! meridional position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! vertical position
+    else
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! meridional position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! vertical position
+    endif
 !       scrivi=.true.      
 
 else if(ds==dsn) then ! northward grid-cell exit
@@ -116,14 +123,16 @@ else if(ds==dsn) then ! northward grid-cell exit
     if(uu.gt.0.d0) then
         jb=ja+1
     endif
+
     y1=dble(ja)
-#ifdef turb
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! zonal position
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! vertical position
-#else
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! zonal position
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! vertical position
-#endif /*turb*/
+
+    if(doturb==1) then
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! zonal position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! vertical position
+    else
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! zonal position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! vertical position
+    endif
 
 else if(ds==dss) then ! southward grid-cell exit       
 !        scrivi=.false.
@@ -134,18 +143,20 @@ else if(ds==dss) then ! southward grid-cell exit
 !     if(jb==0) stop 34578
 ! #endif
     endif
+
     y1=dble(ja-1)
-#ifdef turb
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! zonal position
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! vertical position
-#else
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! zonal position
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! vertical position
-#endif /*turb*/
+
+    if(doturb==1) then
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! zonal position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! vertical position
+    else
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! zonal position
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! vertical position
+    endif
        
-elseif(ds==dsu) then ! upward grid-cell exit
+else if(ds==dsu) then ! upward grid-cell exit
 !        scrivi=.false.
-    call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+    call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,do3d,wflux)
 ! #ifdef full_wflux
 !        uu=wflux(ia,ja,ka,nsm)
 ! #else
@@ -154,22 +165,25 @@ elseif(ds==dsu) then ! upward grid-cell exit
     if(uu.gt.0.d0) then
         kb=ka+1
     endif
+
     z1=dble(ka)
+
     if(kb==km+1) then    ! prevent "evaporation" and put particle from the surface
         kb=km           
         z1=dble(km)-0.5d0 ! to the middle of the surface layer
     endif
-#ifdef turb
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! zonal position
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! meridional position
-#else
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! zonal position
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! meridional position
-#endif /*turb*/
 
-elseif(ds==dsd) then ! downward grid-cell exit
+    if(doturb==1) then
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! zonal position
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! meridional position
+    else
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! zonal position
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! meridional position
+    endif
+
+else if(ds==dsd) then ! downward grid-cell exit
 !        scrivi=.false.
-    call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+    call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,do3d,wflux)
        
 ! #ifdef full_wflux
 !        if(wflux(ia,ja,ka-1,nsm).lt.0.d0) kb=ka-1
@@ -177,47 +191,39 @@ elseif(ds==dsd) then ! downward grid-cell exit
     if(rbg*wflux(ka-1,nsp)+rb*wflux(ka-1,nsm).lt.0.d0) kb=ka-1
 ! #endif              
     z1=dble(ka-1)
-#ifdef turb
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! zonal position
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! meridional position
-#else
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! zonal position
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! meridional position
-#endif /*turb*/
+    if(doturb==1) then
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! zonal position
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! meridional position
+    else
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! zonal position
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! meridional position
+    endif
 
 else if( ds==dsc .or. ds==dsmin) then  
-       ! shortest time is the time-steping 
+   ! shortest time is the time-steping 
 !        scrivi=.true.
-       ! If there is no spatial solution, 
-       ! which should correspond to a convergence zone
-        if(dse==UNDEF .and. dsw==UNDEF .and. dsn==UNDEF .and. & 
-          dss==UNDEF .and. dsu==UNDEF .and. dsd==UNDEF ) then
-          
-            ! move if atmosphere, freeze if ocean
-            ib=ia ; jb=ja ; kb=ka
+   ! If there is no spatial solution, 
+   ! which should correspond to a convergence zone
+    if(dse==UNDEF .and. dsw==UNDEF .and. dsn==UNDEF .and. & 
+      dss==UNDEF .and. dsu==UNDEF .and. dsd==UNDEF ) then
+      
+        ! move if atmosphere, freeze if ocean
+        ib=ia ; jb=ja ; kb=ka
 
-!#ifdef ifs
-!          call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr) ! zonal crossing 
-!          call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr) ! merid. crossing 
-!          call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr) ! vert. crossing 
-!#else
-!          x1=x0 ; y1=y0 ; z1=z0 
-!          print *,ib,jb,kb,x1,y1,z1
-!#endif  
-        ! If there is at least one spatial solution 
-        ! but the shortest cross time is the time step
-        endif
+    ! If there is at least one spatial solution 
+    ! but the shortest cross time is the time step
+    endif
 !       else
 
-#ifdef turb
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! zonal crossing 
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! merid. crossing 
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,upr) ! vert. crossing 
-#else
-    call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! zonal crossing 
-    call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! merid. crossing 
-    call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km) ! vert. crossing 
-#endif /*turb*/
+    if(doturb==1) then
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! zonal crossing 
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! merid. crossing 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb,upr) ! vert. crossing 
+    else
+        call pos_orgn(1,ia,ja,ka,x0,x1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! zonal crossing 
+        call pos_orgn(2,ia,ja,ka,y0,y1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! merid. crossing 
+        call pos_orgn(3,ia,ja,ka,z0,z1,ds,rr,uflux,vflux,wflux,ff,imt,jmt,km,do3d,doturb) ! vert. crossing 
+    endif
 !       endif
 endif
     

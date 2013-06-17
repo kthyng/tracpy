@@ -1,6 +1,7 @@
 SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
-                & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend,iter,ah,av)
+                & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
+                & iter,ah,av,do3d,doturb)
 
 !============================================================================
 ! Loop to step a numerical drifter forward for the time tseas between two 
@@ -40,6 +41,13 @@ SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
 !    ah             : horizontal diffusion in m^2/s. Input parameter.
 !                   : For -turb and -diffusion flags
 !    av             : vertical diffusion in m^2/s. Input parameter. For -diffusion flag.
+!    do3d           : Flag to set whether to use 3d velocities or not. 
+!                   : do3d=0 makes the run 2d and do3d=1 makes the run 3d
+!    doturb         : Flag to set whether or not to use turb/diff and which kind if so
+!                   : doturb=0 means no turb/diffusion,
+!                   : doturb=1 means adding parameterized turbulence
+!                   : doturb=2 means adding diffusion on a circle
+!                   : doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 !
 !  Output:
 !
@@ -135,10 +143,11 @@ SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
 implicit none
 
 integer,    intent(in)                                  :: ff, imt, jmt, km, ntractot, iter
+integer,    intent(in)                                  :: do3d, doturb
 integer,    intent(in),     dimension(ntractot)         :: istart, jstart, kstart
 integer,    intent(in),     dimension(imt,jmt)          :: kmt
-integer,    intent(in),     dimension(imt-1,jmt)        :: dyu
-integer,    intent(in),     dimension(imt,jmt-1)        :: dxv
+real*8,     intent(in),     dimension(imt-1,jmt)        :: dyu
+real*8,     intent(in),     dimension(imt,jmt-1)        :: dxv
 real*8,     intent(in),     dimension(ntractot)         :: xstart, ystart, zstart
 real*8,     intent(in),     dimension(imt-1,jmt,km,2)   :: uflux
 real*8,     intent(in),     dimension(imt,jmt-1,km,2)   :: vflux
@@ -161,9 +170,10 @@ integer                                                 :: ntrac, niter, ia, ja,
                                                            iam, ib, jb, kb, errCode
 integer                                                 :: nsm=1,nsp=2
 real*8,     parameter                                   :: UNDEF=1.d20
-#ifdef  turb
-    real*8, dimension(6,2)                              :: upr  
-#endif /*turb*/
+
+! if(doturb==1) then
+real*8, dimension(6,2)                                    :: upr  
+! end if
 
 
 
@@ -256,42 +266,42 @@ ntracLoop: do ntrac=1,ntractot
         ! ===  Check that coordinates belongs to   ===
         ! ===  correct box. Valuable for debugging ===
         if( dble(ib-1).gt.x1 .or. dble(ib).lt.x1 )  then
-           print *,'========================================'
-           print *,'ERROR: Particle overshoot in i direction'
-           print *,'----------------------------------------'
-           print *,ib-1,x1,ib,ntrac,ib,jb,kb
-           x1=dble(ib-1)+0.5d0
-           ib=idint(x1)+1
-           print *,'error i',ib-1,x1,ib,ntrac,ib,jb,kb
-           print *,y1,z1
-           print *,'-------------------------------------'
-           print *,'The run is terminated'
-           print *,'====================================='             
-           errCode = -42
-           stop
-        elseif( dble(jb-1).gt.y1 .or. dble(jb).lt.y1 )  then
-           print *,'========================================'
-           print *,'ERROR: Particle overshoot in j direction'
-           print *,'----------------------------------------'
-           print *,'error j',jb-1,y1,jb,ntrac,x1,z1
-           print *,'error j',jb-1,y1,jb,ntrac,ib,jb,kb
-           print *,'-------------------------------------'
-           print *,'The run is terminated'
-           print *,'====================================='    
-           errCode = -44
-           stop
-        elseif((dble(kb-1).gt.z1.and.kb.ne.km).or. & 
+            print *,'========================================'
+            print *,'ERROR: Particle overshoot in i direction'
+            print *,'----------------------------------------'
+            print *,ib-1,x1,ib,ntrac,ib,jb,kb
+            x1=dble(ib-1)+0.5d0
+            ib=idint(x1)+1
+            print *,'error i',ib-1,x1,ib,ntrac,ib,jb,kb
+            print *,y1,z1
+            print *,'-------------------------------------'
+            print *,'The run is terminated'
+            print *,'====================================='             
+            errCode = -42
+            stop
+        else if( dble(jb-1).gt.y1 .or. dble(jb).lt.y1 )  then
+            print *,'========================================'
+            print *,'ERROR: Particle overshoot in j direction'
+            print *,'----------------------------------------'
+            print *,'error j',jb-1,y1,jb,ntrac,x1,z1
+            print *,'error j',jb-1,y1,jb,ntrac,ib,jb,kb
+            print *,'-------------------------------------'
+            print *,'The run is terminated'
+            print *,'====================================='    
+            errCode = -44
+            stop
+        else if((dble(kb-1).gt.z1.and.kb.ne.km).or. & 
              dble(kb).lt.z1 ) then
-           print *,'========================================'
-           print *,'ERROR: Particle overshoot in k direction'
-           print *,'----------------------------------------'
-           print *,'error k',kb-1,z1,kb,ntrac,x1,y1
-           print *,'error k',kb-1,z1,kb,ntrac,ib,jb,kb
-           print *,'-------------------------------------'
-           print *,'The run is terminated'
-           print *,'====================================='
-           errCode = -46
-           stop
+            print *,'========================================'
+            print *,'ERROR: Particle overshoot in k direction'
+            print *,'----------------------------------------'
+            print *,'error k',kb-1,z1,kb,ntrac,x1,y1
+            print *,'error k',kb-1,z1,kb,ntrac,ib,jb,kb
+            print *,'-------------------------------------'
+            print *,'The run is terminated'
+            print *,'====================================='
+            errCode = -46
+            stop
         end if
 
 !         call errorCheck('infLoopError'  ,errCode)
@@ -348,9 +358,9 @@ ntracLoop: do ntrac=1,ntractot
 !         print *,'dsmin=',dsmin,' dtmin=',dtmin,' dxyz=',dxyz
 
         ! ! === calculate the turbulent velocities ===
-#ifdef turb
-  call turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
-#endif /*turb*/
+        if(doturb==1) then
+            call turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
+        end if
 
 !         ! === calculate the vertical velocity ===
 !         print *,'before vertvel ========================================'  
@@ -359,20 +369,20 @@ ntracLoop: do ntrac=1,ntractot
 !         print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
 !             ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
 !         print *,'imt=',imt,' size(uflux)=',size(uflux,1),' size(vflux)=',size(vflux,1)
-        call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,wflux)
+        call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,do3d,wflux)
 !         print *,'returned from vertvel ========================================'
 !         print *,'wflux=',wflux
 
 !  print *,'ja=',ja,' jb=',jb,x1,y1
-#ifdef turb
-        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr) ! zonal
-        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr) ! meridional
-        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt,upr) ! vertical
-#else 
-        call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! zonal
-        call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! meridional
-        call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt) ! vertical
-#endif /*turb*/
+        if(doturb==1) then
+            call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb,upr) ! zonal
+            call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb,upr) ! meridional
+            call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb,upr) ! vertical
+        else 
+            call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb) ! zonal
+            call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb) ! meridional
+            call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb) ! vertical
+        endif
 !         print *, 'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,' dsmin=',dsmin
           ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
 !         print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
@@ -430,14 +440,14 @@ ntracLoop: do ntrac=1,ntractot
 !             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
 !         print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
 !             ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
-#ifdef turb
-! print *,'using turb'
-        call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,upr)
-#else
-        call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
-                ff,imt,jmt,km,rr,rb,uflux,vflux,wflux)
-#endif /*turb*/
+
+        if(doturb==1) then
+            call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
+                ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,do3d,doturb,upr)
+        else
+            call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
+                ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,do3d,doturb)
+        endif
 !         print *,'after pos'
 !         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
 !             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
@@ -456,21 +466,21 @@ ntracLoop: do ntrac=1,ntractot
 !         call errorCheck('boundError', errCode)
         if(ia>imt .or. ib>imt .or. ja>jmt .or. jb>jmt &
              .or. ia<1 .or. ib<1 .or. ja<1 .or. jb<1) then
-              print *,'====================================='
-              print *,'Warning: Trajectory leaving model area'
-              print *,'-------------------------------------'
+            print *,'====================================='
+            print *,'Warning: Trajectory leaving model area'
+            print *,'-------------------------------------'
     !           print *,'iaib',ia,ib,ja,jb,ka,kb
     !           print *,'xyz',x0,x1,y0,y1,z0,z1
     !           print *,'ds',dse,dsw,dsn,dss,dsu,dsd
     !           print *,'dsmin=',ds,dsmin,dtmin,dxyz
     !           print *,'tt=',tt,ts
     !           print *,'ntrac=',ntrac
-              print *,'-------------------------------------'
-              print *,'The trajectory is killed'
-              print *,'====================================='
+            print *,'-------------------------------------'
+            print *,'The trajectory is killed'
+            print *,'====================================='
 !            nerror=nerror+1
 !            boundError = boundError +1
-           errCode = -50
+            errCode = -50
 !            if (strict==1) stop
 !             xend(ntrac) = x1
 !             yend(ntrac) = y1
@@ -498,9 +508,7 @@ ntracLoop: do ntrac=1,ntractot
 !           print *,'tt=',tt,ts,tt/tday,t0/tday
 !           print *,'ntrac=',ntrac
 !           print *,'niter=',niter
-! ! #ifdef turb
-! !           print *,'upr=',upr
-! ! #endif
+
 !           print *,'-------------------------------------'
 !           print *,'The trajectory is killed'
 !           print *,'====================================='
@@ -568,20 +576,20 @@ ntracLoop: do ntrac=1,ntractot
             ! corner problems may be solved the following way 
             ! but should really not happen at all
             if(ds == dse .or. ds == dsw) then
-               if(y1.ne.y0) then
-                  y1=y0 ; jb=ja
-               else
-                  y1=dble(jb)-0.5d0
-               endif
-            elseif(ds == dsn .or. ds == dss) then
-               if(y1.ne.y0) then
-                  x1=x0 ; ib=ia 
-               else
-                  x1=dble(ib)-0.5d0
-               endif
+                if(y1.ne.y0) then
+                    y1=y0 ; jb=ja
+                else
+                    y1=dble(jb)-0.5d0
+                endif
+            else if(ds == dsn .or. ds == dss) then
+                if(y1.ne.y0) then
+                    x1=x0 ; ib=ia 
+                else
+                    x1=dble(ib)-0.5d0
+                endif
             else
-               x1=dble(ib)-0.5d0
-               y1=dble(jb)-0.5d0
+                x1=dble(ib)-0.5d0
+                y1=dble(jb)-0.5d0
             endif
             errCode = -54
          endif
@@ -592,12 +600,9 @@ ntracLoop: do ntrac=1,ntractot
         ! === diffusion, which adds a random position ===
         ! === position to the new trajectory          ===
 
-#ifdef diffusion     
-! #if defined diffusion     
-! print *,'using diffusion'
-           call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av)
-#endif /*diffusion*/
-! #endif
+        if(doturb==2 .or. doturb==3) then
+            call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av)
+        endif
         !         nout=nout+1 ! number of trajectories that have exited the space and time domain
 
         ! === end trajectory if outside chosen domain ===
@@ -631,13 +636,13 @@ ntracLoop: do ntrac=1,ntractot
         ! If no errors have caught the loop, and it is at an interpolation step,
         ! write to array to save drifter location
         if(dmod(tss,dble(idint(tss)))<0.00001d0) then
-          xend(idint(tss),ntrac) = x1
-          yend(idint(tss),ntrac) = y1
-          zend(idint(tss),ntrac) = z1
-          iend(idint(tss),ntrac) = ib
-          jend(idint(tss),ntrac) = jb
-          kend(idint(tss),ntrac) = kb
-          ttend(idint(tss),ntrac) = tt
+            xend(idint(tss),ntrac) = x1
+            yend(idint(tss),ntrac) = y1
+            zend(idint(tss),ntrac) = z1
+            iend(idint(tss),ntrac) = ib
+            jend(idint(tss),ntrac) = jb
+            kend(idint(tss),ntrac) = kb
+            ttend(idint(tss),ntrac) = tt
         endif
 !         print *,'x1=',x1,' y1=',y1,' tt=',tt
 
@@ -661,24 +666,6 @@ ntracLoop: do ntrac=1,ntractot
 !             print *,'xend=',xend,' flag=',flag
             exit niterLoop
         endif
-
-
-
-!         print *, 'x0[',niter,']=', x0, ' y0[',niter,']=',y0
-!         print *, 'x1[',niter,']=', x1, ' y1[',niter,']=',y1
-!         print *,'ts=',ts,' rg=',rg,' rr=',rr
-!     print *,'tt=',tt,' t0=',t0,' tseas=',tseas
-
-! ! this is for shortening the loop for troubleshooting
-!         if(niter .gt. 0) then
-!             xend(ntrac) = x1
-!             yend(ntrac) = y1
-!             zend(ntrac) = z1
-!             exit niterLoop
-!         endif
-
-
-
          
     end do niterLoop
     !         nout=nout+1 ! ' trajectories exited the space and time domain'

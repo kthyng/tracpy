@@ -54,7 +54,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
      vflux1 	Meriodional (y) fluxes [imt,jmt-1,km] (m^3/s)?
 	'''
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	# Read in model output for index tind
 	if z0 == 's': # read in less model output to begin with, to save time
 		u = nc.variables['u'][tind,zpar,:,:] 
@@ -64,7 +64,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 		u = nc.variables['u'][tind,:,:,:] 
 		v = nc.variables['v'][tind,:,:,:]
 		ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
-	time_read = time.time()-tic_temp
+	# time_read = time.time()-tic_temp
 
 	# tic_temp = time.time()
 	# # make arrays in same order as is expected in the fortran code
@@ -93,7 +93,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	# dzt[:,:,0:grid['km']-1] = dzt[:,:,1:grid['km']] - dzt[:,:,0:grid['km']-1]
 	# dzt[:,:,grid['km']-1] = ssh - dzt0
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	h = grid['h'].T.copy(order='c')
 	# Use octant to calculate depths for the appropriate vertical grid parameters
 	# have to transform a few back to ROMS coordinates and python ordering for this
@@ -104,17 +104,17 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	# dzt = zwt[:,:,1:] - zwt[:,:,:-1]
 	dzt = zwt[1:,:,:] - zwt[:-1,:,:]
 	# pdb.set_trace()
-	time_zw = time.time()-tic_temp
+	# time_zw = time.time()-tic_temp
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	# also want depths on rho grid
 	zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
 					h, grid['hc'], zeta=ssh, Hscale=3)
 	# Change dzt to tracmass/fortran ordering
 	# zrt = zrt.T.copy(order='f')
-	time_zr = time.time()-tic_temp
+	# time_zr = time.time()-tic_temp
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	dzu = .5*(dzt[:,:,0:grid['imt']-1] + dzt[:,:,1:grid['imt']])
 	dzv = .5*(dzt[:,0:grid['jmt']-1,:] + dzt[:,1:grid['jmt'],:])
 	# dzu = .5*(dzt[0:grid['imt']-1,:,:] + dzt[1:grid['imt'],:,:])
@@ -124,9 +124,9 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	# dzu[0:grid['imt']-1,:,:] = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
 	# dzv[:,0:grid['jmt']-1,:] = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
 	# pdb.set_trace()
-	time_interp = time.time()-tic_temp
+	# time_interp = time.time()-tic_temp
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	# Change order back to ROMS/python for this calculation
 	# u = u.T.copy(order='c')
 	# v = v.T.copy(order='c')
@@ -136,10 +136,10 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	dyu = grid['dyu'].T.copy(order='c')
 	dxv = grid['dxv'].T.copy(order='c')
 	# zrt = zrt.T.copy(order='c')
-	time_flip2 = time.time()-tic_temp
+	# time_flip2 = time.time()-tic_temp
 	# pdb.set_trace()
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	# I think I can avoid this loop for the isoslice case
 	if z0 == None: # 3d case
 		uflux1 = u*dzu*dyu
@@ -165,9 +165,9 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 		vflux1 = octant.tools.isoslice(v*dzv*dxv,op.resize(zrt,1),zpar)
 		dzt = octant.tools.isoslice(dzt,zrt,zpar)
 		zrt = np.ones(uflux1.shape)*zpar # array of the input desired depth
-	time_flux = time.time()-tic_temp
+	# time_flux = time.time()-tic_temp
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	# Change all back to tracmass/fortran ordering if being used again
 	uflux1 = uflux1.T.copy(order='f')
 	vflux1 = vflux1.T.copy(order='f')
@@ -175,17 +175,17 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	zrt = zrt.T.copy(order='f')
 	ssh = ssh.T.copy(order='f')
 	zwt = zwt.T.copy(order='f')
-	time_flip3 = time.time()-tic_temp
+	# time_flip3 = time.time()-tic_temp
 
 
-	tic_temp = time.time()
+	# tic_temp = time.time()
 	# make sure that all fluxes have a placeholder for depth
 	if is_string_like(z0):
 		uflux1 = uflux1.reshape(np.append(uflux1.shape,1))
 		vflux1 = vflux1.reshape(np.append(vflux1.shape,1))
 		dzt = dzt.reshape(np.append(dzt.shape,1))
 		zrt = zrt.reshape(np.append(zrt.shape,1))
-	time_reshape = time.time()-tic_temp
+	# time_reshape = time.time()-tic_temp
 
 
 	# # Flip vertical dimension because in ROMS surface is at k=-1 
@@ -199,14 +199,14 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	# dzt = np.flipud(dzt)
 
 
-	print "time to read=",time_read
-	# print "time to flip=",time_flip1
-	print "time to get zw=",time_zw
-	print "time to get zr=",time_zr
-	print "time to interp=",time_interp
-	print "time to flip2=",time_flip2
-	print "time to flux=",time_flux
-	print "time to flip3=",time_flip3
-	print "time to reshape=",time_reshape
+	# print "time to read=",time_read
+	# # print "time to flip=",time_flip1
+	# print "time to get zw=",time_zw
+	# print "time to get zr=",time_zr
+	# print "time to interp=",time_interp
+	# print "time to flip2=",time_flip2
+	# print "time to flux=",time_flux
+	# print "time to flip3=",time_flip3
+	# print "time to reshape=",time_reshape
 
 	return uflux1, vflux1, dzt, zrt, zwt
