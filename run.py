@@ -17,6 +17,7 @@ from mpl_toolkits.basemap import Basemap
 import time
 from matplotlib.mlab import *
 from convert_indices import *
+from savetracks import *
 
 '''
 
@@ -122,7 +123,10 @@ def init_galveston():
 	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 	doturb = 3
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
+	# simulation name, used for saving results into netcdf file
+	name = 'galveston'
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
 
 def init_test1():
 	'''
@@ -140,7 +144,7 @@ def init_test1():
 
 	# Initialize parameters
 	nsteps = 10
-	ndays = 5
+	ndays = 2
 	ff = 1
 	# Start date
 	date = datetime(2009,11, 25, 0)
@@ -177,7 +181,10 @@ def init_test1():
 	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 	doturb = 0
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
+	# simulation name, used for saving results into netcdf file
+	name = 'test1'
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
 
 def init_test2():
 	'''
@@ -227,7 +234,10 @@ def init_test2():
 	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 	doturb = 1
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
+	# simulation name, used for saving results into netcdf file
+	name = 'test2'
+
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
 
 def init_hab1b():
 	'''
@@ -276,9 +286,12 @@ def init_hab1b():
 	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 	doturb = 0
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb
+	# simulation name, used for saving results into netcdf file
+	name = 'hab1b'
 
-def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb):
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
+
+def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name):
 	'''
 
 	To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -636,7 +649,11 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb):
 	print "sum of readfields:", np.sum(toc_read-tic_read)
 	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
 
-	return xp,yp,zp,t
+	# Save results to netcdf file
+	# DO I NEED TO CHANGE THINGS BACK TO C ORDERING?
+	# pdb.set_trace()
+	savetracks(xp,yp,zp,t,name)
+	# return xp,yp,zp,t
 
 def start_run():
 	'''
@@ -644,12 +661,13 @@ def start_run():
 	'''
 
 	# Choose which initialization to use
-	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_test1()
-	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_test2()
-	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_hab1b()
-	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb = init_galveston()
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init_test1()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init_test2()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init_hab1b()
+	# loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init_galveston()
 
 	# Run tracmass!
-	xp,yp,zp,t = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb)
+	# xp,yp,zp,t = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
+	run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
-	return xp,yp,zp,t
+	# return xp,yp,zp,t
