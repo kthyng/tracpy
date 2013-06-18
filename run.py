@@ -144,7 +144,7 @@ def init_test1():
 
 	# Initialize parameters
 	nsteps = 10
-	ndays = 2
+	ndays = 5
 	ff = 1
 	# Start date
 	date = datetime(2009,11, 25, 0)
@@ -335,45 +335,6 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# Units for time conversion with netCDF.num2date and .date2num
 	units = 'seconds since 1970-01-01'
 
-
-	# ##### Necessary User Input #####
-
-	# if 'rainier' in os.uname():
-	# 	loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
-	# elif 'hafen.tamu.edu' in os.uname():
-	# 	loc = '/home/kthyng/shelf/' # for model outputs
-
-	# # Initialize parameters
-	# # do2d = 1 # if do2d=1, 
-	# nsteps = 10 # Number of steps to do between model outputs (iter in tracmass)
-	# ndays = .75 # number of days to track the particles
-	# ff = 1 # 1 forward, -1 backward
-	# # Start date
-	# date = datetime(2009,11, 30, 0)
-	# # Time between outputs
-	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
-	# tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
-	# ah = 100. # horizontal diffusion in m^2/s. See project values of 350, 100, 0, 2000. For -turb,-diffusion
-	# av = 1.e-5 # m^2/s, or try 5e-6
-
-	# ## Input starting locations as real space x,y locations
-	# # Read in starting locations from HAB experiment to test
-	# d = np.load(loc + 'hab/data/exp1b/starting_locations.npz')
-	# lon0 = d['lon0']
-	# lat0 = d['lat0']
-
-	# ## Choose method for vertical placement of drifters
-	# # Also update makefile accordingly. Choose the twodim flag for isoslice.
-	# # See above for more notes, but do the following two lines for an isoslice
-	# z0 = 'salt' #'s' #'salt' #'s' 
-	# zpar = 35 #grid['km']-1 # 30 #grid['km']-1
-	# # Do the following two for a 3d simulation
-	# # z0 = np.ones(xstart0.shape)*-40 #  below the surface
-	# # zpar = 'fromMSL' 
-
-
-	# ##### End of necessary user input #####
-
 	# Number of model outputs to use
 	tout = np.int((ndays*(24*3600))/tseas)
 
@@ -488,8 +449,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	zsave = zwtnew[ia.astype(int),ja.astype(int),ka.astype(int)]
 
 	# j = 0 # index for number of saved steps for drifters
-	tic_read = np.ones(len(tinds))
-	toc_read = np.ones(len(tinds))
+	tic_read = np.zeros(len(tinds))
+	toc_read = np.zeros(len(tinds))
 	# Loop through model outputs. tinds is in proper order for moving forward
 	# or backward in time, I think.
 	for j,tind in enumerate(tinds):
@@ -541,15 +502,17 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 		else:
 			# Combine times for arrays for input to tracmass
 			# from [ixjxk] to [ixjxkxt]
-			uflux = np.concatenate((ufold.reshape(np.append(ufold.shape,1)), \
+			# Change ordering for these three arrays here instead of in readfields since
+			# concatenate does not seem to preserve ordering
+			uflux = np.asfortranarray(np.concatenate((ufold.reshape(np.append(ufold.shape,1)), \
 									ufnew.reshape(np.append(ufnew.shape,1))), \
-									axis=ufold.ndim)
-			vflux = np.concatenate((vfold.reshape(np.append(vfold.shape,1)), \
+									axis=ufold.ndim))
+			vflux = np.asfortranarray(np.concatenate((vfold.reshape(np.append(vfold.shape,1)), \
 									vfnew.reshape(np.append(vfnew.shape,1))), \
-									axis=vfold.ndim)
-			dzt = np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
+									axis=vfold.ndim))
+			dzt = np.asfortranarray(np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
 									dztnew.reshape(np.append(dztnew.shape,1))), \
-									axis=dztold.ndim)
+									axis=dztold.ndim))
 			# pdb.set_trace()
 
 			# Change the horizontal indices from python to fortran indexing 

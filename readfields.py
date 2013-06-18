@@ -169,12 +169,28 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 
 	# tic_temp = time.time()
 	# Change all back to tracmass/fortran ordering if being used again
-	uflux1 = uflux1.T.copy(order='f')
-	vflux1 = vflux1.T.copy(order='f')
-	dzt = dzt.T.copy(order='f')
-	zrt = zrt.T.copy(order='f')
-	ssh = ssh.T.copy(order='f')
-	zwt = zwt.T.copy(order='f')
+	# tic = time.time()
+	# uflux1 = uflux1.T.copy(order='f')
+	# vflux1 = vflux1.T.copy(order='f')
+	# dzt = dzt.T.copy(order='f')
+	# zrt = zrt.T.copy(order='f')
+	# ssh = ssh.T.copy(order='f')
+	# zwt = zwt.T.copy(order='f')
+	# print "copy time",time.time()-tic
+	# tic = time.time()
+    # This is faster than copying arrays
+    # Don't bother changing order of these arrays since I have to change it in 
+    # run.py anyway (concatenate appears not to preserve ordering)
+	uflux1 = uflux1.T
+	vflux1 = vflux1.T
+	dzt = np.asfortranarray(dzt.T)
+	# uflux1 = np.asfortranarray(uflux1.T)
+	# vflux1 = np.asfortranarray(vflux1.T)
+	# dzt = np.asfortranarray(dzt.T)
+	zrt = np.asfortranarray(zrt.T)
+	ssh = np.asfortranarray(ssh.T)
+	zwt = np.asfortranarray(zwt.T)
+	# print "fortran time",time.time()-tic
 	# time_flip3 = time.time()-tic_temp
 
 

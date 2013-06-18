@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import delaunay
 import pdb
 from octant import depths
+import time
 
 def readgrid(loc,nc):
     '''
@@ -54,6 +55,9 @@ def readgrid(loc,nc):
                     that says whether the coordinate will be focused at the surface 
                     (theta_b -> 1.0) or split evenly between surface and bottom (theta_b -> 0)
      basemap        Basemap object
+
+    Note: all are in fortran ordering and tracmass ordering except for X, Y, tri, and tric
+    To test: [array].flags['F_CONTIGUOUS'] will return true if it is fortran ordering
     '''
 
     # Basemap parameters.
@@ -101,18 +105,37 @@ def readgrid(loc,nc):
     # make arrays in same order as is expected in the fortran code
     # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
     # change these arrays to be fortran-directioned instead of python
-    mask = mask.T.copy(order='f')
-    xr = xr.T.copy(order='f')
-    yr = yr.T.copy(order='f')
-    xu = xu.T.copy(order='f')
-    yu = yu.T.copy(order='f')
-    xv = xv.T.copy(order='f')
-    yv = yv.T.copy(order='f')
-    xpsi = xpsi.T.copy(order='f')
-    ypsi = ypsi.T.copy(order='f')
-    pm = pm.T.copy(order='f')
-    pn = pn.T.copy(order='f')
-    h = h.T.copy(order='f')
+    # tic = time.time()
+    # mask = mask.T.copy(order='f')
+    # xr = xr.T.copy(order='f')
+    # yr = yr.T.copy(order='f')
+    # xu = xu.T.copy(order='f')
+    # yu = yu.T.copy(order='f')
+    # xv = xv.T.copy(order='f')
+    # yv = yv.T.copy(order='f')
+    # xpsi = xpsi.T.copy(order='f')
+    # ypsi = ypsi.T.copy(order='f')
+    # pm = pm.T.copy(order='f')
+    # pn = pn.T.copy(order='f')
+    # h = h.T.copy(order='f')
+    # print "copy time ",time.time()-tic
+
+    # tic = time.time()
+    # This is faster than copying arrays. To test: .flags['F_CONTIGUOUS']
+    mask = np.asfortranarray(mask.T)
+    xr = np.asfortranarray(xr.T)
+    yr = np.asfortranarray(yr.T)
+    xu = np.asfortranarray(xu.T)
+    yu = np.asfortranarray(yu.T)
+    xv = np.asfortranarray(xv.T)
+    yv = np.asfortranarray(yv.T)
+    xpsi = np.asfortranarray(xpsi.T)
+    ypsi = np.asfortranarray(ypsi.T)
+    pm = np.asfortranarray(pm.T)
+    pn = np.asfortranarray(pn.T)
+    h = np.asfortranarray(h.T)
+    # print "fortran time ",time.time()-tic
+    # pdb.set_trace()
 
     # Basing this on setupgrid.f95 for rutgersNWA example project from Bror
     # Grid sizes
@@ -136,8 +159,8 @@ def readgrid(loc,nc):
 
     # tracmass ordering.
     # Not sure how to convert this to pm, pn with appropriate shift
-    dxv = 1/pm.copy() # pm is 1/\Delta x at cell centers
-    dyu = 1/pn.copy() # pn is 1/\Delta y at cell centers
+    dxv = 1/pm #.copy() # pm is 1/\Delta x at cell centers
+    dyu = 1/pn #.copy() # pn is 1/\Delta y at cell centers
 
     # dxv = xr.copy()
     # dxv[0:imt-2,:] = dxv[1:imt-1,:] - dxv[0:imt-2,:]
@@ -160,7 +183,7 @@ def readgrid(loc,nc):
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()
     mask2 = mask.copy()
-    kmt = np.ones((imt,jmt))*km
+    kmt = np.ones((imt,jmt),order='f')*km
     ind = (mask2[1:imt,:]==1)
     mask2[0:imt-1,ind] = 1
     ind = (mask2[:,1:jmt]==1)
