@@ -10,14 +10,10 @@ from matplotlib import delaunay
 from matplotlib.pyplot import *
 import glob
 from datetime import datetime, timedelta
-from readfields import *
-from setupROMSfiles import *
-from readgrid import *
 from mpl_toolkits.basemap import Basemap
 import time
 from matplotlib.mlab import *
-from convert_indices import *
-from savetracks import *
+import inout
 
 '''
 
@@ -144,7 +140,7 @@ def init_test1():
 
 	# Initialize parameters
 	nsteps = 10
-	ndays = 5
+	ndays = 2
 	ff = 1
 	# Start date
 	date = datetime(2009,11, 25, 0)
@@ -342,10 +338,10 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	date = netCDF.date2num(date,units)
 
 	# Figure out what files will be used for this tracking
-	nc,tinds = setupROMSfiles(loc,date,ff,tout)
+	nc,tinds = inout.setupROMSfiles(loc,date,ff,tout)
 
 	# Read in grid parameters into dictionary, grid
-	grid = readgrid(loc,nc)
+	grid = inout.readgrid(loc,nc)
 
 	# Change input lat/lon into x,y then grid space
 	# The basemap is set up for the northwestern Gulf of Mexico currently.
@@ -390,9 +386,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# Read initial field in - to 'new' variable since will be moved
 	# at the beginning of the time loop ahead
 	if is_string_like(z0): # isoslice case
-		ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tinds[0],grid,nc,z0,zpar)
+		ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[0],grid,nc,z0,zpar)
 	else: # 3d case
-		ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tinds[0],grid,nc)
+		ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[0],grid,nc)
 
 	## Find zstart0 and ka
 	# The k indices and z grid ratios should be on a wflux vertical grid,
@@ -465,9 +461,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 		tic_read[j] = time.time()
 		# Read stuff in for next time loop
 		if is_string_like(z0): # isoslice case
-			ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tind+1,grid,nc,z0,zpar)
+			ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tind+1,grid,nc,z0,zpar)
 		else: # 3d case
-			ufnew,vfnew,dztnew,zrtnew,zwtnew = readfields(tind+1,grid,nc)
+			ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tind+1,grid,nc)
 		toc_read[j] = time.time()
 		# print "readfields run time:",toc_read-tic_read
 
@@ -517,7 +513,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
 			# Change the horizontal indices from python to fortran indexing 
 			# (vertical are zero-based in tracmass)
-			xstart,ystart,ia,ja = convert_indices('py2f',xstart,ystart,ia,ja)
+			xstart,ystart,ia,ja = inout.convert_indices('py2f',xstart,ystart,ia,ja)
 
 			# km that is sent to tracmass is determined from uflux (see tracmass?)
 			# so it will be the correct value for whether we are doing the 3D
@@ -538,7 +534,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			xend[j*nsteps:j*nsteps+nsteps,ind], \
 				yend[j*nsteps:j*nsteps+nsteps,ind], \
 				iend[j*nsteps:j*nsteps+nsteps,ind], \
-				jend[j*nsteps:j*nsteps+nsteps,ind] = convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
+				jend[j*nsteps:j*nsteps+nsteps,ind] = inout.convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
 																			yend[j*nsteps:j*nsteps+nsteps,ind], \
 																			iend[j*nsteps:j*nsteps+nsteps,ind], \
 																			jend[j*nsteps:j*nsteps+nsteps,ind])
@@ -613,9 +609,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
 
 	# Save results to netcdf file
-	# DO I NEED TO CHANGE THINGS BACK TO C ORDERING?
 	# pdb.set_trace()
-	savetracks(xp,yp,zp,t,name)
+	inout.savetracks(xp,yp,zp,t,name)
 	# return xp,yp,zp,t
 
 def start_run():
