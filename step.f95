@@ -189,6 +189,7 @@ flag = 0
 !=======================================================
 
 ntracLoop: do ntrac=1,ntractot  
+!     print *,'ntractot=',ntractot
     ! start track off with no error
 !     errCode = 0
     ! Counter for sub-interations for each drifter. In the source, this was read in but I am not sure why.
@@ -259,7 +260,7 @@ ntracLoop: do ntrac=1,ntractot
 !             iend(ntrac) = ib
 !             jend(ntrac) = jb
 !             kend(ntrac) = kb
-            flag(ntrac) = 1 ! want to continue drifters if time was the limiting factor here
+            flag(ntrac) = 1 
         end if
 
 !         call errorCheck('coordBoxError' ,errCode)
@@ -359,10 +360,12 @@ ntracLoop: do ntrac=1,ntractot
 
         ! ! === calculate the turbulent velocities ===
         if(doturb==1) then
-            call turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,upr)
+            call turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,do3d,upr)
         end if
 
 !         ! === calculate the vertical velocity ===
+!              print *,''
+!            print *,'ntrac=',ntrac
 !         print *,'before vertvel ========================================'  
 !         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
 !             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
@@ -436,7 +439,8 @@ ntracLoop: do ntrac=1,ntractot
         ! === calculate the new positions ===
         ! === of the trajectory           ===  
 !         if(ntrac==42) then
-!             print *,'before pos'  
+!              print *,''
+!            print *,'before pos'  
 !             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
 !                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
 !             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
@@ -450,6 +454,9 @@ ntracLoop: do ntrac=1,ntractot
             call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,do3d,doturb)
         endif
+
+!         print *,''
+!         print *,'x1/x0=',x1/x0,' y1/y0=',y1/y0
 
 !         if(ntrac==42) then
 !             print *,'after pos'
@@ -471,6 +478,12 @@ ntracLoop: do ntrac=1,ntractot
         if(x1.ne.dble(idint(x1))) ib=idint(x1)+1 ! index for correct cell?
         if(y1.ne.dble(idint(y1))) jb=idint(y1)+1 ! index for correct cell?
 !         print *,'ib=',ib,' jb=',jb
+
+!             print *,'after box check'  
+!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+!             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
+!                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
 
 !         call errorCheck('boundError', errCode)
         if(ia>imt .or. ib>imt .or. ja>jmt .or. jb>jmt &
@@ -610,13 +623,19 @@ ntracLoop: do ntrac=1,ntractot
         ! === position to the new trajectory          ===
 
         if(doturb==2 .or. doturb==3) then
-            call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av)
+            call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av,do3d,doturb)
         endif
         !         nout=nout+1 ! number of trajectories that have exited the space and time domain
 
         ! === end trajectory if outside chosen domain ===
 
 !  print *,'ja=',ja,' jb=',jb,x1,y1
+
+!             print *,'end of loop'  
+!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
+!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
+!             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
+!                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
 
         ! Need to add other conditions to this. Checking to see if drifter has exited domain.
         ! KMT: Need to have one value in the positive direction from drifter cell

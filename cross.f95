@@ -72,6 +72,9 @@ if(ijk.eq.1) then
     uu=(rg*uflux(ia,ja,ka,nsp)+rr*uflux(ia,ja,ka,nsm))*ff ! this is interpolation between time fields
     um=(rg*uflux(im,ja,ka,nsp)+rr*uflux(im,ja,ka,nsm))*ff
 
+!     print *,'x: before adding in turb vels'
+!     print *,'uu=',uu,' um=',um
+
     if(doturb==1) then   
         if(r0.ne.dble(ii)) then
             uu=uu+upr(1,2)  
@@ -85,10 +88,16 @@ if(ijk.eq.1) then
         endif
     endif
 
+!     print *,'x: after adding in turb vels'
+!     print *,'uu=',uu,' um=',um
+
 else if(ijk.eq.2) then
     ii=ja
     uu=(rg*vflux(ia,ja  ,ka,nsp)+rr*vflux(ia,ja  ,ka,nsm))*ff
     um=(rg*vflux(ia,ja-1,ka,nsp)+rr*vflux(ia,ja-1,ka,nsm))*ff
+
+!     print *,'y: before adding in turb vels'
+!     print *,'uu=',uu,' um=',um
 
     if(doturb==1) then   
         if(r0.ne.dble(ja  )) then
@@ -102,6 +111,9 @@ else if(ijk.eq.2) then
             um=um+upr(4,1)  ! add u' from previous iterative time step if on box wall
         endif
     endif
+
+!     print *,'y: after adding in turb vels'
+!     print *,'uu=',uu,' um=',um
 
 else if(ijk.eq.3) then
     ii=ka

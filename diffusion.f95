@@ -46,16 +46,21 @@ integer                                                     :: itno,tmpi, tmpj, 
 real(kind=8)                                                :: xd, yd, zd, tmpX, tmpY, tmpZ
 logical                                                     :: tryAgain       
 
+! print *,''
+! print *,'start of diffusion'
+! print *,'x1=',x1,' y1=',y1,' ib=',ib,' jb=',jb
+
 tryAgain = .FALSE.
   
 ! Is particle within model area?
 ! KMT: I do not understand how the vertical checks are correct here, so I am changing them
 
 !   if(ib>=1 .AND. ib<=imt .AND. jb>=1 .AND. jb<=jmt .AND. km+1-kmt(ib,jb)<=kb .AND. kb>=1 ) then
-if(ib>=1 .AND. ib<=imt .AND. jb>=1 .AND. jb<=jmt .AND. km>=kb .AND. kb>=1 ) then
+if(ib>1 .AND. ib<imt .AND. jb>1 .AND. jb<jmt .AND. km>=kb .AND. kb>=1 ) then
     tryAgain = .TRUE.
 else
-    print *,'outside model domain in diffusion',ib,jb,km+1-kmt(ib,jb),kb
+    print *,'outside model domain in diffusion',ib,jb,km,kb
+!     print *,'outside model domain in diffusion',ib,jb,km+1-kmt(ib,jb),kb
 end if
   
 itno=0
@@ -71,6 +76,8 @@ do while(tryAgain)
     xd = xd/dxv(ib,jb)
     yd = yd/dyu(ib,jb)
     zd = zd/dzt(ib,jb,kb,1) !KMT: this should be better than dz()
+!     print *,'dzt(ib,jb,kb,1)=',dzt(ib,jb,kb,1)
+
     ! TO DO: improve so that dzt is calculated including free surface and for correct time
 !     zd = zd/dz(kb) !should be replaced for bottom box and include ssh (original note)
 
@@ -84,21 +91,31 @@ do while(tryAgain)
     tmpi = int(tmpX) + 1
     tmpj = int(tmpY) + 1
     tmpk = int(tmpZ) + 1
+!     print *,'temp dzt(ib,jb,kb,1)=',dzt(tmpi,tmpj,tmpk,1)
 
-    ! Check if particle is on an open boundary. Using rco example.
-    if(tmpi==1 .AND. tmpj>=1 .AND. tmpj<=jmt .AND. km+1-kmt(tmpi,tmpj)<=tmpk .AND. tmpk>=1 ) then
-        tryAgain = .FALSE.
-    end if
+!     ! Check if particle is on an open boundary. Using rco example.
+!     if(tmpi==1 .AND. tmpj>=1 .AND. tmpj<=jmt .AND. km+1-kmt(tmpi,tmpj)<=tmpk .AND. tmpk>=1 ) then
+!         tryAgain = .FALSE.
+!     end if
 
     ! check that column is deep enough  
     ! KMT: this is the same check as above that looks wrong and I changed
 !     if( 1<=tmpi .AND. tmpi<=imt .AND. 1<=tmpj .AND. tmpj<=jmt .AND. km+1-kmt(tmpi,tmpj)<=tmpk .AND. tmpk>=1 ) then
-    if(tmpi>=1 .AND. tmpi<=imt .AND. tmpj>=1 .AND. tmpj<=jmt .AND. km>=tmpk .AND. tmpk>=1 ) then
+    if(tmpi>1 .AND. tmpi<imt .AND. tmpj>1 .AND. tmpj<jmt .AND. km>=tmpk .AND. tmpk>=1 ) then
 !         print *,'km=',km,' km+1-kmt(tmpi,tmpj)=',km+1-kmt(tmpi,tmpj),' tmpk=',tmpk
         tryAgain = .FALSE. 
+!         print *,'found new position for drifter that is within model domain, so move on.'
         ! if false then a new position for the particle has been found and we exit the loop
     end if 
-    
+
+    ! KMT: Need to check to see if new position is on masked land.
+    ! Can do this by checking dzt at the new position, which is zero when on land.
+    ! If we are on land, keep tryAgain = .TRUE. so that this displacement choice is
+    ! not used. This can alter the value of tryAgain just given above.
+    if(dzt(tmpi,tmpj,tmpk,1)==0.) then
+        tryAgain = .TRUE.
+    endif
+
     ! If tryAgain is still true, the particle is outside model area. The
     ! displacement is not saved, but we make a new try to displace.
     
@@ -119,6 +136,9 @@ x1 = tmpX
 y1 = tmpY
 ib = tmpi
 jb = tmpj
+
+! print *,'After diffusion'
+! print *,'x1=',x1,' y1=',y1,' ib=',ib,' jb=',jb
 
 if(do3d==1) then
     z1 = tmpZ
@@ -178,6 +198,10 @@ if(do3d==1) then
 else
     zd = 0.
 endif
+
+! print *,' '
+! print *,'circle'
+! print *,'xd=',xd,' yd=',yd
 
 if(doturb==3) then
     !_______________________________________________________________________________
@@ -259,6 +283,8 @@ if(doturb==3) then
     xd= xx*dcos(theta)-yy*dsin(theta)
     yd=-xx*dsin(theta)+yy*dcos(theta)
 
+!     print *,'ellipse'
+!     print *,'xd=',xd,' yd=',yd
     ! print *,'theta=',theta,' xx=',xx,' yy=',yy,' grdx=',grdx,' grdy=',grdy
 
     !print *,'theta=',theta*180./pi,elip,grdx/grad

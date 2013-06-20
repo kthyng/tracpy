@@ -99,6 +99,8 @@ uv(4)=(rg*vflux(ia,jm,ka,nsp)+rr*vflux(ia,jm,ka,nsm))*ff ! southern v
 ! 4 different random velocities at the 4 walls
 !   upr(:,2)=uv(:)*rand(:) 
 ! or same random velocities at the eastern and western as well as nothern and southern
+
+! print *,'qran(1)=',qran(1),' qran(3)=',qran(3) ! Want qran's to be between -1 and 1
 upr(1,2)=uv(1)*qran(1)
 upr(2,2)=uv(2)*qran(1)
 upr(3,2)=uv(3)*qran(3)

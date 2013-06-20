@@ -65,7 +65,8 @@ import pdb
 import glob
 from datetime import datetime, timedelta
 from matplotlib.mlab import *
-
+import inout
+import tools
 
 def galveston():
 	'''
@@ -126,37 +127,59 @@ def galveston():
 def test1():
 	'''
 	A drifter test using TXLA model output. 
-	The comparison case for this simulation is 2D with no turbulence/diffusion.
+	The comparison case for this simulation is 2D (do3d=0) 
+	with no turbulence/diffusion (doturb=0).
 	Drifters are started at the surface and run forward
-	for five days from 11/25/09. Compare results with figure in examples/test1.png.
+	for ten days (ndays=10) from 11/25/09 (in date). Compare results with figure in examples/test1.png.
 
 	'''
 
 	# Location of TXLA model output
-	# file and then grid
-	loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
-			'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+	# file and then grid. 
+	# 0150 file goes from (2009, 11, 19, 12, 0) to (2009, 12, 6, 0, 0)
+	# loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
+	# 		'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+	# Location of TXLA model output
+	if 'rainier' in os.uname():
+		loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+	elif 'hafen.tamu.edu' in os.uname():
+		loc = '/home/kthyng/shelf/' # for model outputs
 
 	# Initialize parameters
-	nsteps = 10
-	ndays = 2
+	nsteps = 5
+	ndays = 10 #16
 	ff = 1
 	# Start date
 	date = datetime(2009,11, 25, 0)
+	# date = datetime(2009,11, 20, 0)
+
 	# Time between outputs
 	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
 	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
-	ah = 100.
+	ah = 5. #100.
 	av = 1.e-5 # m^2/s, or try 5e-6
+
+	# grid = netCDF.Dataset(loc+'grid.nc')
+	# lonr = grid.variables['lon_rho'][:]
+	# latr = grid.variables['lat_rho'][:]
+	grid = inout.readgrid(loc)
 
 	## Input starting locations as real space lon,lat locations
 	# lon0,lat0 = np.meshgrid(-95.498218005315309,23.142258627126882) # [0,0] (SE) corner
 	# lon0,lat0 = np.meshgrid(-97.748582291691989,23.000027311710628) # [-1,0] (SW) corner
 	# lon0,lat0 = np.meshgrid(-87.757124031927574,29.235771320764623) # [0,-1] (NE) corner
 	# lon0,lat0 = np.meshgrid(-88.3634073986196,30.388542615201313) # [-1,-1] (NW) corner
-	lon0,lat0 = np.meshgrid(np.linspace(-94,-93,5),np.linspace(28,29,5)) # grid outside Galveston Bay
-	lon0 = lon0.flatten()
-	lat0 = lat0.flatten()
+	# lon0,lat0 = np.meshgrid(np.linspace(-94,-93,10),np.linspace(28,29,10)) # grid outside Galveston Bay
+	# lon0,lat0 = np.meshgrid(np.linspace(-95,-91,100),np.linspace(28,29,50)) # rectangle outside Galveston
+
+	# lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,1100),np.linspace(22.5,31,980)) # whole domain, 1 km
+	# lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,220),np.linspace(22.5,31,196)) # whole domain, 5 km
+	# FOR TEST1:
+	lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,110),np.linspace(22.5,31,98)) # whole domain, 10 km
+	# lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,21),np.linspace(22.5,31,20)) # whole domain, 50 km
+
+	# Eliminate points that are outside domain or in masked areas
+	lon0,lat0 = tools.check_points(lon0,lat0,grid)
 
 	## Choose method for vertical placement of drifters
 	# Also update makefile accordingly. Choose the twodim flag for isoslice.
@@ -177,15 +200,20 @@ def test1():
 	doturb = 0
 
 	# simulation name, used for saving results into netcdf file
-	name = 'test1'
+	name = 'test1' #'5_5_D5_F'
+
+	# Save these settings to a file
+	np.savez('tracks/' + name + 'header.in',loc=loc,nsteps=nsteps,ndays=ndays, 
+			ff=ff,date=date,tseas=tseas,ah=ah,av=av,lon0=lon0,lat0=lat0,
+			z0=z0,zpar=zpar,do3d=do3d,doturb=doturb,name=name)
 
 	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
 
 def test2():
 	'''
 	A drifter test using TXLA model output. 
-	This simulation is 3D with turbulence (doturb=1) added in.
-	Drifters are started at 10 meters below the mean sea level and run backward
+	This simulation is 3D (do3d=1) with turbulence (doturb=1) added in.
+	Drifters are started at 10 meters below the mean sea level and run backward (ff=-1)
 	for five days from 11/25/09. Compare results with figure in examples/test2.png.
 	'''
 
@@ -197,7 +225,7 @@ def test2():
 	# Initialize parameters
 	nsteps = 10
 	ndays = 5
-	ff = 1
+	ff = -1
 	# Start date
 	date = datetime(2009,11, 25, 0)
 	# Time between outputs

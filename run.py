@@ -15,6 +15,8 @@ import time
 from matplotlib.mlab import *
 import inout
 import init
+import plotting
+import tools
 
 def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name):
 	'''
@@ -75,6 +77,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# Change input lat/lon into x,y then grid space
 	# The basemap is set up for the northwestern Gulf of Mexico currently.
 	x0,y0 = grid['basemap'](lon0,lat0)
+	# pdb.set_trace()
+
 	# Need to input x,y as relative to their grid box. Let's assume they are at 
 	# some position relative to a grid node
 	# Interpolate to get starting positions in grid space
@@ -242,7 +246,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
 			# Change the horizontal indices from python to fortran indexing 
 			# (vertical are zero-based in tracmass)
-			xstart,ystart,ia,ja = inout.convert_indices('py2f',xstart,ystart,ia,ja)
+			xstart,ystart,ia,ja = tools.convert_indices('py2f',xstart,ystart,ia,ja)
 
 			# km that is sent to tracmass is determined from uflux (see tracmass?)
 			# so it will be the correct value for whether we are doing the 3D
@@ -264,7 +268,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			xend[j*nsteps:j*nsteps+nsteps,ind], \
 				yend[j*nsteps:j*nsteps+nsteps,ind], \
 				iend[j*nsteps:j*nsteps+nsteps,ind], \
-				jend[j*nsteps:j*nsteps+nsteps,ind] = inout.convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
+				jend[j*nsteps:j*nsteps+nsteps,ind] = tools.convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
 																			yend[j*nsteps:j*nsteps+nsteps,ind], \
 																			iend[j*nsteps:j*nsteps+nsteps,ind], \
 																			jend[j*nsteps:j*nsteps+nsteps,ind])
@@ -284,7 +288,6 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			# pdb.set_trace()
 
 	nc.close()
-
 	t = t + t0save # add back in base time in seconds
 
 	# Add on to front location for first time step
@@ -302,42 +305,16 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	xp = fxr(xg,yg)
 	yp = fyr(xg,yg)
 
-	# Plot tracks
-	figure()
-	grid['basemap'].drawcoastlines()
-	grid['basemap'].fillcontinents('0.8')
-	grid['basemap'].drawparallels(np.arange(18, 35), dashes=(1, 0), linewidth=0.15, labels=[1, 0, 0, 0])
-	grid['basemap'].drawmeridians(np.arange(-100, -80), dashes=(1, 0), linewidth=0.15, labels=[0, 0, 0, 1])
-	hold('on')
-	contour(grid['xr'], grid['yr'], grid['h'], np.hstack(([10,20],np.arange(50,500,50))), colors='lightgrey', linewidths=0.15)
-	plot(xp,yp,'g.')
-	# Outline numerical domain
-	plot(grid['xr'][0,:],grid['yr'][0,:],'k:')
-	plot(grid['xr'][-1,:],grid['yr'][-1,:],'k:')
-	plot(grid['xr'][:,0],grid['yr'][:,0],'k:')
-	plot(grid['xr'][:,-1],grid['yr'][:,-1],'k:')
-
-	# # get psi mask from rho mask
-	# # maskp = grid['mask'][1:,1:]*grid['mask'][:-1,1:]* \
- # #               grid['mask'][1:,:-1]*grid['mask'][:-1,:-1] 
-	# # ind = maskp
-	# # ind[ind==0] = np.nan
-	# # plot(grid['xpsi']*ind,grid['ypsi']*ind,'k', \
-	# # 		(grid['xpsi']*ind).T,(grid['ypsi']*ind).T,'k')
-	# plot(grid['xpsi'],grid['ypsi'],'k', \
-	# 		(grid['xpsi']).T,(grid['ypsi']).T,'k')
-
-	# 16 is (lower) one that is near islands, 41 is higher one
-
-	show()
 	toc = time.time()
 	print "run time:",toc-tic
-	print "list of readfields times", toc_read-tic_read
-	print "sum of readfields:", np.sum(toc_read-tic_read)
+	# print "list of readfields times", toc_read-tic_read
+	# print "sum of readfields:", np.sum(toc_read-tic_read)
 	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
 
 	# Save results to netcdf file
 	inout.savetracks(xp,yp,zp,t,name)
+
+	return xp,yp,zp,t,grid
 
 def start_run():
 	'''
@@ -345,7 +322,16 @@ def start_run():
 	'''
 
 	# Choose which initialization to use
-	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init.test1()
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init.test2()
 
 	# Run tracmass!
-	run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
+	xp,yp,zp,t,grid = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
+
+	# pdb.set_trace()
+
+	# Plot tracks
+	plotting.tracks(xp,yp,name,grid=grid)
+
+	# Plot final location (by time index) histogram
+	plotting.hist(xp,yp,name,grid=grid,which='contour')
+	plotting.hist(xp,yp,name,grid=grid,which='pcolor')	

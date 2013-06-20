@@ -5,7 +5,7 @@ Contains:
 	readgrid
 	readfields
 	savetracks
-	convert_indices
+	load tracks
 """
 
 import netCDF4 as netCDF
@@ -19,6 +19,7 @@ import octant
 import time
 from matplotlib.pyplot import *
 import op
+import os
 
 def setupROMSfiles(loc,date,ff,tout):
 	'''
@@ -127,239 +128,250 @@ def setupROMSfiles(loc,date,ff,tout):
 	# pdb.set_trace()
 	return nc, tinds
 
-def readgrid(loc,nc):
-    '''
-    readgrid(loc)
-    Kristen Thyng, March 2013
-    This function should be read in at the beginnind of a run.py call.
-    It reads in all necessary grid information that won't change in time
-    and stores it in a dictionary called grid.
-    All arrays are changed to Fortran ordering (from Python ordering)
-    and to tracmass variables ordering from ROMS ordering 
-    i.e. from [t,k,j,i] to [i,j,k,t]
-    right away after reading in.
+def readgrid(loc,nc=None):
+	'''
+	readgrid(loc)
+	Kristen Thyng, March 2013
+	This function should be read in at the beginnind of a run.py call.
+	It reads in all necessary grid information that won't change in time
+	and stores it in a dictionary called grid.
+	All arrays are changed to Fortran ordering (from Python ordering)
+	and to tracmass variables ordering from ROMS ordering 
+	i.e. from [t,k,j,i] to [i,j,k,t]
+	right away after reading in.
 
-    Input:
-     loc            File location
-     nc             NetCDF object for relevant files
+	Input:
+	 loc            File location
+	 nc             NetCDF object for relevant files
 
-    Output:
-     grid           Dictionary containing all necessary time-independent grid fields
+	Output:
+	 grid           Dictionary containing all necessary time-independent grid fields
 
-    grid dictionary contains: (array sizing is for tracmass ordering)
-     imt,jmt,km     Grid index sizing constants in (x,y,z), are for horizontal rho grid [scalar]
-     dxv            Horizontal grid cell walls areas in x direction [imt,jmt-1]
-     dyu            Horizontal grid cell walls areas in y direction [imt-1,jmt]
-     dxdy           Horizontal area of cells defined at cell centers [imt,jmt]
-     mask           Land/sea mask [imt,jmt] 
-     pm,pn          Difference in horizontal grid spacing in x and y [imt,jmt]
-     kmt            Number of vertical levels in horizontal space [imt,jmt]
-     dzt0           Thickness in meters of grid at each k-level with time-independent free surface. 
-                    Surface is at km [imt,jmt,km].
-     zrt0           Depth in meters of grid at each k-level on vertical rho grid with time-independent 
-                    free surface. Surface is at km [imt,jmt,km]
-     zwt0           Depth in meters of grid at each k-level on vertical w grid with time-independent 
-                    free surface. Surface is at km [imt,jmt,km]
-     xr,yr          Rho grid zonal (x) and meriodional (y) coordinates [imt,jmt]
-     xu,yu          U grid zonal (x) and meriodional (y) coordinates [imt,jmt]
-     xv,yv          V grid zonal (x) and meriodional (y) coordinates [imt,jmt]
-     xpsi,ypsi      Psi grid zonal (x) and meriodional (y) coordinates [imt,jmt]
-     X,Y            Grid index arrays
-     tri,tric       Delaunay triangulations
-     Cs_r,sc_r      Vertical grid streching paramters [km-1]
-     hc             Critical depth [scalar]
-     h              Depths [imt,jmt]
-     theta_s        Vertical stretching parameter [scalar]. A parameter 
-                    (typically 0.0 <= theta_s < 5.0) that defines the amount 
-                    of grid focusing. A higher value for theta_s will focus the grid more.
-     theta_b        Vertical stretching parameter [scalar]. A parameter (0.0 < theta_b < 1.0) 
-                    that says whether the coordinate will be focused at the surface 
-                    (theta_b -> 1.0) or split evenly between surface and bottom (theta_b -> 0)
-     basemap        Basemap object
+	grid dictionary contains: (array sizing is for tracmass ordering)
+	 imt,jmt,km     Grid index sizing constants in (x,y,z), are for horizontal rho grid [scalar]
+	 dxv            Horizontal grid cell walls areas in x direction [imt,jmt-1]
+	 dyu            Horizontal grid cell walls areas in y direction [imt-1,jmt]
+	 dxdy           Horizontal area of cells defined at cell centers [imt,jmt]
+	 mask           Land/sea mask [imt,jmt] 
+	 pm,pn          Difference in horizontal grid spacing in x and y [imt,jmt]
+	 kmt            Number of vertical levels in horizontal space [imt,jmt]
+	 dzt0           Thickness in meters of grid at each k-level with time-independent free surface. 
+					Surface is at km [imt,jmt,km].
+	 zrt0           Depth in meters of grid at each k-level on vertical rho grid with time-independent 
+					free surface. Surface is at km [imt,jmt,km]
+	 zwt0           Depth in meters of grid at each k-level on vertical w grid with time-independent 
+					free surface. Surface is at km [imt,jmt,km]
+	 xr,yr          Rho grid zonal (x) and meriodional (y) coordinates [imt,jmt]
+	 xu,yu          U grid zonal (x) and meriodional (y) coordinates [imt,jmt]
+	 xv,yv          V grid zonal (x) and meriodional (y) coordinates [imt,jmt]
+	 xpsi,ypsi      Psi grid zonal (x) and meriodional (y) coordinates [imt,jmt]
+	 X,Y            Grid index arrays
+	 tri,tric       Delaunay triangulations
+	 Cs_r,sc_r      Vertical grid streching paramters [km-1]
+	 hc             Critical depth [scalar]
+	 h              Depths [imt,jmt]
+	 theta_s        Vertical stretching parameter [scalar]. A parameter 
+					(typically 0.0 <= theta_s < 5.0) that defines the amount 
+					of grid focusing. A higher value for theta_s will focus the grid more.
+	 theta_b        Vertical stretching parameter [scalar]. A parameter (0.0 < theta_b < 1.0) 
+					that says whether the coordinate will be focused at the surface 
+					(theta_b -> 1.0) or split evenly between surface and bottom (theta_b -> 0)
+	 basemap        Basemap object
 
-    Note: all are in fortran ordering and tracmass ordering except for X, Y, tri, and tric
-    To test: [array].flags['F_CONTIGUOUS'] will return true if it is fortran ordering
-    '''
+	Note: all are in fortran ordering and tracmass ordering except for X, Y, tri, and tric
+	To test: [array].flags['F_CONTIGUOUS'] will return true if it is fortran ordering
+	'''
 
-    # Basemap parameters.
-    llcrnrlon=-98.5; llcrnrlat=22.5; urcrnrlon=-87.5; urcrnrlat=31.0; projection='lcc'
-    lat_0=30; lon_0=-94; resolution='i'; area_thresh=0.
-    basemap = Basemap(llcrnrlon=llcrnrlon,
-                 llcrnrlat=llcrnrlat,
-                 urcrnrlon=urcrnrlon,
-                 urcrnrlat=urcrnrlat,
-                 projection=projection,
-                 lat_0=lat_0,
-                 lon_0=lon_0,
-                 resolution=resolution,
-                 area_thresh=area_thresh)
+	# Basemap parameters.
+	llcrnrlon=-98.5; llcrnrlat=22.5; urcrnrlon=-87.5; urcrnrlat=31.0; projection='lcc'
+	lat_0=30; lon_0=-94; resolution='i'; area_thresh=0.
+	basemap = Basemap(llcrnrlon=llcrnrlon,
+				 llcrnrlat=llcrnrlat,
+				 urcrnrlon=urcrnrlon,
+				 urcrnrlat=urcrnrlat,
+				 projection=projection,
+				 lat_0=lat_0,
+				 lon_0=lon_0,
+				 resolution=resolution,
+				 area_thresh=area_thresh)
 
-    # Read in grid parameters and find x and y in domain on different grids
-    if len(loc) == 2:
-        gridfile = netCDF.Dataset(loc[1])
-    else:
-        gridfile = netCDF.Dataset(loc + 'grid.nc')
-    lonu = gridfile.variables['lon_u'][:]
-    latu = gridfile.variables['lat_u'][:]
-    xu, yu = basemap(lonu,latu)
-    lonv = gridfile.variables['lon_v'][:]
-    latv = gridfile.variables['lat_v'][:]
-    xv, yv = basemap(lonv,latv)
-    lonr = gridfile.variables['lon_rho'][:]#[1:-1,1:-1]
-    latr = gridfile.variables['lat_rho'][:]#[1:-1,1:-1]
-    xr, yr = basemap(lonr,latr)
-    lonpsi = gridfile.variables['lon_psi'][:]
-    latpsi = gridfile.variables['lat_psi'][:]
-    xpsi, ypsi = basemap(lonpsi,latpsi)
-    mask = gridfile.variables['mask_rho'][:]#[1:-1,1:-1]
-    pm = gridfile.variables['pm'][:]
-    pn = gridfile.variables['pn'][:]
+	# Read in grid parameters and find x and y in domain on different grids
+	if len(loc) == 2:
+		gridfile = netCDF.Dataset(loc[1])
+	else:
+		gridfile = netCDF.Dataset(loc + 'grid.nc')
+	lonu = gridfile.variables['lon_u'][:]
+	latu = gridfile.variables['lat_u'][:]
+	xu, yu = basemap(lonu,latu)
+	lonv = gridfile.variables['lon_v'][:]
+	latv = gridfile.variables['lat_v'][:]
+	xv, yv = basemap(lonv,latv)
+	lonr = gridfile.variables['lon_rho'][:]#[1:-1,1:-1]
+	latr = gridfile.variables['lat_rho'][:]#[1:-1,1:-1]
+	xr, yr = basemap(lonr,latr)
+	lonpsi = gridfile.variables['lon_psi'][:]
+	latpsi = gridfile.variables['lat_psi'][:]
+	xpsi, ypsi = basemap(lonpsi,latpsi)
+	mask = gridfile.variables['mask_rho'][:]#[1:-1,1:-1]
+	pm = gridfile.variables['pm'][:]
+	pn = gridfile.variables['pn'][:]
+	h = gridfile.variables['h'][:]
 
-    # Vertical grid metrics
-    sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
-    Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
-    hc = nc.variables['hc'][:]
-    h = gridfile.variables['h'][:]
-    theta_s = nc.variables['theta_s'][:]
-    theta_b = nc.variables['theta_b'][:]
+	# Vertical grid metrics
+	if nc is not None:
+		sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
+		Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
+		hc = nc.variables['hc'][:]
+		theta_s = nc.variables['theta_s'][:]
+		theta_b = nc.variables['theta_b'][:]
 
-    # make arrays in same order as is expected in the fortran code
-    # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
-    # change these arrays to be fortran-directioned instead of python
-    # tic = time.time()
-    # mask = mask.T.copy(order='f')
-    # xr = xr.T.copy(order='f')
-    # yr = yr.T.copy(order='f')
-    # xu = xu.T.copy(order='f')
-    # yu = yu.T.copy(order='f')
-    # xv = xv.T.copy(order='f')
-    # yv = yv.T.copy(order='f')
-    # xpsi = xpsi.T.copy(order='f')
-    # ypsi = ypsi.T.copy(order='f')
-    # pm = pm.T.copy(order='f')
-    # pn = pn.T.copy(order='f')
-    # h = h.T.copy(order='f')
-    # print "copy time ",time.time()-tic
+	# make arrays in same order as is expected in the fortran code
+	# ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
+	# change these arrays to be fortran-directioned instead of python
+	# tic = time.time()
+	# This is faster than copying arrays. To test: .flags['F_CONTIGUOUS']
+	mask = np.asfortranarray(mask.T)
+	xr = np.asfortranarray(xr.T)
+	yr = np.asfortranarray(yr.T)
+	xu = np.asfortranarray(xu.T)
+	yu = np.asfortranarray(yu.T)
+	xv = np.asfortranarray(xv.T)
+	yv = np.asfortranarray(yv.T)
+	xpsi = np.asfortranarray(xpsi.T)
+	ypsi = np.asfortranarray(ypsi.T)
+	lonr = np.asfortranarray(lonr.T)
 
-    # tic = time.time()
-    # This is faster than copying arrays. To test: .flags['F_CONTIGUOUS']
-    mask = np.asfortranarray(mask.T)
-    xr = np.asfortranarray(xr.T)
-    yr = np.asfortranarray(yr.T)
-    xu = np.asfortranarray(xu.T)
-    yu = np.asfortranarray(yu.T)
-    xv = np.asfortranarray(xv.T)
-    yv = np.asfortranarray(yv.T)
-    xpsi = np.asfortranarray(xpsi.T)
-    ypsi = np.asfortranarray(ypsi.T)
-    pm = np.asfortranarray(pm.T)
-    pn = np.asfortranarray(pn.T)
-    h = np.asfortranarray(h.T)
-    # print "fortran time ",time.time()-tic
-    # pdb.set_trace()
+	latr = np.asfortranarray(latr.T)
+	lonu = np.asfortranarray(lonu.T)
+	latu = np.asfortranarray(latu.T)
+	lonv = np.asfortranarray(lonv.T)
+	latv = np.asfortranarray(latv.T)
+	lonpsi = np.asfortranarray(lonpsi.T)
+	latpsi = np.asfortranarray(latpsi.T)
+	pm = np.asfortranarray(pm.T)
+	pn = np.asfortranarray(pn.T)
+	h = np.asfortranarray(h.T)
+	# print "fortran time ",time.time()-tic
+	# pdb.set_trace()
 
-    # Basing this on setupgrid.f95 for rutgersNWA example project from Bror
-    # Grid sizes
-    imt = h.shape[0] # 671
-    jmt = h.shape[1] # 191
-    # km = sc_r.shape[0] # 31
-    km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
+	# Basing this on setupgrid.f95 for rutgersNWA example project from Bror
+	# Grid sizes
+	imt = h.shape[0] # 671
+	jmt = h.shape[1] # 191
+	# km = sc_r.shape[0] # 31
+	if nc is not None:
+		km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
-    # Index grid, for interpolation between real and grid space
-    # this is for psi grid, so that middle of grid is min + .5 value
-    # X goes from 0 to imt-2 and Y goes from 0 to jmt-2
-    Y, X = np.meshgrid(np.arange(jmt-1),np.arange(imt-1)) # grid in index coordinates, without ghost cells
-    # # This is for rho
-    # # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
-    # Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
-    # Triangulation for grid space to curvilinear space
-    tri = delaunay.Triangulation(X.flatten(),Y.flatten())
-    # Triangulation for curvilinear space to grid space
-    tric = delaunay.Triangulation(xpsi.flatten(),ypsi.flatten())
-    # tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
+	# Index grid, for interpolation between real and grid space
+	# this is for psi grid, so that middle of grid is min + .5 value
+	# X goes from 0 to imt-2 and Y goes from 0 to jmt-2
+	Y, X = np.meshgrid(np.arange(jmt-1),np.arange(imt-1)) # grid in index coordinates, without ghost cells
+	# # This is for rho
+	# # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
+	# Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
+	# Triangulation for grid space to curvilinear space
+	tri = delaunay.Triangulation(X.flatten(),Y.flatten())
+	# Triangulation for curvilinear space to grid space
+	tric = delaunay.Triangulation(xpsi.flatten(),ypsi.flatten())
+	tricllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
 
-    # tracmass ordering.
-    # Not sure how to convert this to pm, pn with appropriate shift
-    dxv = 1/pm #.copy() # pm is 1/\Delta x at cell centers
-    dyu = 1/pn #.copy() # pn is 1/\Delta y at cell centers
+	# tracmass ordering.
+	# Not sure how to convert this to pm, pn with appropriate shift
+	dxv = 1/pm #.copy() # pm is 1/\Delta x at cell centers
+	dyu = 1/pn #.copy() # pn is 1/\Delta y at cell centers
 
-    # dxv = xr.copy()
-    # dxv[0:imt-2,:] = dxv[1:imt-1,:] - dxv[0:imt-2,:]
-    # dxv[imt-1:imt,:] = dxv[imt-3:imt-2,:]
-    # # pdb.set_trace()
-    # dyu = yr.copy()
-    # dyu[:,0:jmt-2] = dyu[:,1:jmt-1] - dyu[:,0:jmt-2]
-    # dyu[:,jmt-1] = dyu[:,jmt-2]
-    dxdy = dyu*dxv
+	# dxv = xr.copy()
+	# dxv[0:imt-2,:] = dxv[1:imt-1,:] - dxv[0:imt-2,:]
+	# dxv[imt-1:imt,:] = dxv[imt-3:imt-2,:]
+	# # pdb.set_trace()
+	# dyu = yr.copy()
+	# dyu[:,0:jmt-2] = dyu[:,1:jmt-1] - dyu[:,0:jmt-2]
+	# dyu[:,jmt-1] = dyu[:,jmt-2]
+	dxdy = dyu*dxv
 
-    # Change dxv,dyu to be correct u and v grid size after having 
-    # them be too big for dxdy calculation. This is not in the 
-    # rutgersNWA example and I am not sure why. [i,j]
-    dxv = 0.5*(dxv[:,:-1]+dxv[:,1:])
-    dyu = 0.5*(dyu[:-1,:]+dyu[1:,:])
-    # # These should be interpolated
-    # dxv = dxv[:,:-1]
-    # dyu = dyu[:-1,:]
+	# Change dxv,dyu to be correct u and v grid size after having 
+	# them be too big for dxdy calculation. This is not in the 
+	# rutgersNWA example and I am not sure why. [i,j]
+	dxv = 0.5*(dxv[:,:-1]+dxv[:,1:])
+	dyu = 0.5*(dyu[:-1,:]+dyu[1:,:])
+	# # These should be interpolated
+	# dxv = dxv[:,:-1]
+	# dyu = dyu[:-1,:]
 
-    # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
-    # pdb.set_trace()
-    mask2 = mask.copy()
-    kmt = np.ones((imt,jmt),order='f')*km
-    ind = (mask2[1:imt,:]==1)
-    mask2[0:imt-1,ind] = 1
-    ind = (mask2[:,1:jmt]==1)
-    mask2[ind,0:jmt-1] = 1
-    # ind = (mask[1:imt-1,:]==1)
-    # mask[0:imt-2,ind] = 1
-    # ind = (mask[:,1:imt-1]==1)
-    # mask[:,0:jmt-2] = 1
-    ind = (mask2==0)
-    kmt[ind] = 0
+	# Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
+	# pdb.set_trace()
+	if nc is not None:
+		mask2 = mask.copy()
+		kmt = np.ones((imt,jmt),order='f')*km
+		ind = (mask2[1:imt,:]==1)
+		mask2[0:imt-1,ind] = 1
+		ind = (mask2[:,1:jmt]==1)
+		mask2[ind,0:jmt-1] = 1
+		# ind = (mask[1:imt-1,:]==1)
+		# mask[0:imt-2,ind] = 1
+		# ind = (mask[:,1:imt-1]==1)
+		# mask[:,0:jmt-2] = 1
+		ind = (mask2==0)
+		kmt[ind] = 0
 
-    # Use octant to calculate depths/thicknesses for the appropriate vertical grid parameters
-    # have to transform a few back to ROMS coordinates and python ordering for this
-    zwt0 = octant.depths.get_zw(1, 1, km+1, theta_s, theta_b, 
-                    h.T.copy(order='c'), 
-                    hc, zeta=0, Hscale=3)
-    zrt0 = octant.depths.get_zrho(1, 1, km, theta_s, theta_b, 
-                    h.T.copy(order='c'), 
-                    hc, zeta=0, Hscale=3)
-    # Change dzt to tracmass/fortran ordering
-    zwt0 = zwt0.T.copy(order='f')
-    zrt0 = zrt0.T.copy(order='f')
-    # this should be the base grid layer thickness that doesn't change in time because it 
-    # is for the reference vertical level
-    dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
+		# Use octant to calculate depths/thicknesses for the appropriate vertical grid parameters
+		# have to transform a few back to ROMS coordinates and python ordering for this
+		zwt0 = octant.depths.get_zw(1, 1, km+1, theta_s, theta_b, 
+						h.T.copy(order='c'), 
+						hc, zeta=0, Hscale=3)
+		zrt0 = octant.depths.get_zrho(1, 1, km, theta_s, theta_b, 
+						h.T.copy(order='c'), 
+						hc, zeta=0, Hscale=3)
+		# Change dzt to tracmass/fortran ordering
+		zwt0 = zwt0.T.copy(order='f')
+		zrt0 = zrt0.T.copy(order='f')
+		# this should be the base grid layer thickness that doesn't change in time because it 
+		# is for the reference vertical level
+		dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
-    # # Copy calculations from rutgersNWA/readfields.f95
-    # dzt0 = np.ones((imt,jmt,km))*np.nan
-    # for k in xrange(km):
-    #     dzt0[:,:,k] = (sc_r[k]-Cs_r[k])*hc + Cs_r[k]*h
+	# # Copy calculations from rutgersNWA/readfields.f95
+	# dzt0 = np.ones((imt,jmt,km))*np.nan
+	# for k in xrange(km):
+	#     dzt0[:,:,k] = (sc_r[k]-Cs_r[k])*hc + Cs_r[k]*h
 
 
-    # # Flip vertical dimension because in ROMS surface is at k=-1 
-    # # and in tracmass surface is at 1
-    # Cs_r = np.flipud(Cs_r)
-    # sc_r = np.flipud(sc_r)
-    # Cs_r and sc_r are flipped vertically!
+	# # Flip vertical dimension because in ROMS surface is at k=-1 
+	# # and in tracmass surface is at 1
+	# Cs_r = np.flipud(Cs_r)
+	# sc_r = np.flipud(sc_r)
+	# Cs_r and sc_r are flipped vertically!
 
-    # pdb.set_trace()
+	# pdb.set_trace()
 
-    # Fill in grid structure
-    grid = {'imt':imt,'jmt':jmt,'km':km, 
-    	'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
-    	'mask':mask,'kmt':kmt,'dzt0':dzt0,
-        'zrt0':zrt0,'zwt0':zwt0,
-        'pm':pm,'pn':pn,'tri':tri,'tric':tric,
-    	'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
-    	'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,
-    	'Cs_r':Cs_r,'sc_r':sc_r,'hc':hc,'h':h, 
-        'theta_s':theta_s,'theta_b':theta_b,
-        'basemap':basemap}
+	# Fill in grid structure
+	if nc is not None:
+		grid = {'imt':imt,'jmt':jmt,'km':km, 
+			'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
+			'mask':mask,'kmt':kmt,'dzt0':dzt0,
+			'zrt0':zrt0,'zwt0':zwt0,
+			'pm':pm,'pn':pn,'tri':tri,'tric':tric,'tricllrho':tricllrho,
+			'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
+			'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,
+			'lonr':lonr,'lonu':lonu,'lonv':lonv,'lonpsi':lonpsi,
+			'latr':latr,'latu':latu,'latv':yv,'latpsi':latpsi,
+			'Cs_r':Cs_r,'sc_r':sc_r,'hc':hc,'h':h, 
+			'theta_s':theta_s,'theta_b':theta_b,
+			'basemap':basemap}
+	else:
+		grid = {'imt':imt,'jmt':jmt, 
+			'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
+			'mask':mask,
+			'pm':pm,'pn':pn,'tri':tri,'tric':tric,'tricllrho':tricllrho,
+			'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
+			'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,
+			'lonr':lonr,'lonu':lonu,'lonv':lonv,'lonpsi':lonpsi,
+			'latr':latr,'latu':latu,'latv':yv,'latpsi':latpsi,
+			'h':h, 
+			'basemap':basemap}
+ 
+	gridfile.close()
 
-    gridfile.close()
-
-    return grid
+	return grid
 
 
 def readfields(tind,grid,nc,z0=None,zpar=None):
@@ -370,44 +382,44 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	Reads in model output in order to calculate fluxes and z grid 
 	properties to send into step.f95.
 	Should be called initially and then subsequently each time loop.
-    All arrays are changed to Fortran ordering (from Python ordering)
-    and to tracmass variables ordering from ROMS ordering 
-    i.e. from [t,k,j,i] to [i,j,k,t]
-    right away after reading in.
+	All arrays are changed to Fortran ordering (from Python ordering)
+	and to tracmass variables ordering from ROMS ordering 
+	i.e. from [t,k,j,i] to [i,j,k,t]
+	right away after reading in.
 
 	Input:
 	 tind 	Single time index for model output to read in
-     grid   Dictionary containing all necessary time-independent grid fields
+	 grid   Dictionary containing all necessary time-independent grid fields
 	 nc 	NetCDF object for relevant files
 	 z0 	(optional) if doing 2d isoslice, z0 contains string saying which kind
 	 zpar 	(optional) if doing 2d isoslice, zpar is the depth/level/density
-	 		at which we are to get the level
+			at which we are to get the level
 
-    Output:
-     uflux1 	Zonal (x) flux at tind
-     vflux1 	Meriodional (y) flux at tind
-     dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
-     zrt 		Time-dependent depths of cells on vertical rho grid (meters).
-     			For the isoslice case, zrt ends up with 1 vertical level which contains
-     			the depths for the vertical center of the cell for that level.
-     zwt 		Time-dependent depths of cells on vertical w grid (meters). zwt always
-     			contains the depths at the vertical cell edges for the whole 3D grid
-     			and the correct depths can be accessed using the drifter indices.
+	Output:
+	 uflux1 	Zonal (x) flux at tind
+	 vflux1 	Meriodional (y) flux at tind
+	 dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
+	 zrt 		Time-dependent depths of cells on vertical rho grid (meters).
+				For the isoslice case, zrt ends up with 1 vertical level which contains
+				the depths for the vertical center of the cell for that level.
+	 zwt 		Time-dependent depths of cells on vertical w grid (meters). zwt always
+				contains the depths at the vertical cell edges for the whole 3D grid
+				and the correct depths can be accessed using the drifter indices.
 
-    Array descriptions:
-     u,v 		Zonal (x) and meridional (y) velocities [imt,jmt,km] (m/s)
-     ssh 		Free surface [imt,jmt] (m)
-     dz   		Height of k-cells in 1 dim [km]
-     			From coord.f95: z coordinates (z>0 going up) for layers in meters 
+	Array descriptions:
+	 u,v 		Zonal (x) and meridional (y) velocities [imt,jmt,km] (m/s)
+	 ssh 		Free surface [imt,jmt] (m)
+	 dz   		Height of k-cells in 1 dim [km]
+				From coord.f95: z coordinates (z>0 going up) for layers in meters 
 				bottom layer: k=0; surface layer: k=KM and zw=0
 				dz = layer thickness
 	 zt  		Depths (negative) in meters of w vertical grid [imt,jmt,km+1]
-     dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
-     dzt0 		Height of k-cells in 2 dim. [imt,jmt]
-     dzu 	 	Height of each u grid cell [imt-1,jmt,km]
-     dzv 	 	Height of each v grid cell [imt,jmt-1,km]
-     uflux1 	Zonal (x) fluxes [imt-1,jmt,km] (m^3/s)?
-     vflux1 	Meriodional (y) fluxes [imt,jmt-1,km] (m^3/s)?
+	 dzt 		Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
+	 dzt0 		Height of k-cells in 2 dim. [imt,jmt]
+	 dzu 	 	Height of each u grid cell [imt-1,jmt,km]
+	 dzv 	 	Height of each v grid cell [imt,jmt-1,km]
+	 uflux1 	Zonal (x) fluxes [imt-1,jmt,km] (m^3/s)?
+	 vflux1 	Meriodional (y) fluxes [imt,jmt-1,km] (m^3/s)?
 	'''
 
 	# tic_temp = time.time()
@@ -534,9 +546,9 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	# zwt = zwt.T.copy(order='f')
 	# print "copy time",time.time()-tic
 	# tic = time.time()
-    # This is faster than copying arrays
-    # Don't bother changing order of these arrays since I have to change it in 
-    # run.py anyway (concatenate appears not to preserve ordering)
+	# This is faster than copying arrays
+	# Don't bother changing order of these arrays since I have to change it in 
+	# run.py anyway (concatenate appears not to preserve ordering)
 	uflux1 = uflux1.T
 	vflux1 = vflux1.T
 	dzt = np.asfortranarray(dzt.T)
@@ -583,32 +595,6 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 
 	return uflux1, vflux1, dzt, zrt, zwt
 
-def convert_indices(direction,x,y,i,j):
-	'''
-	Converts indices between Python and Fortran indexing, assuming that
-	Python indexing begins at 0 and Fortran (for x and y) begins at 1.
-	In Tracmass, the vertical indexing does begin at zero so this script
-	does nothing to vertical indexing.
-
-	Usage:
-		For before a call to tracmass:
-			xstart,ystart,ia,ja = convert_indices('py2f',xstart,ystart,ia,ja)
-		For after a call to tracmass:
-			xend,yend,iend,jend = convert_indices('f2py',xend,yend,iend,jend)
-	'''
-
-	if direction == 'py2f':
-		x = x+1
-		y = y+1
-		i = i+1
-		j = j+1
-	elif direction == 'f2py':
-		x = x-1
-		y = y-1
-		i = i-1
-		j = j-1
-	return x,y,i,j
-
 def savetracks(xpin,ypin,zpin,tpin,name):
 	"""
 	Save tracks that have been calculated by tracmass into a netcdf file.
@@ -622,8 +608,12 @@ def savetracks(xpin,ypin,zpin,tpin,name):
 	ntrac = xpin.shape[1] # number of drifters
 	nt = xpin.shape[0] # number of time steps (with interpolation steps and starting point)
 
+	# Save file into a local directory called tracks. Make directory if it doesn't exist.
+	if not os.path.exists('tracks'):
+		os.makedirs('tracks')
+
 	# Open file for writing
-	rootgrp = netCDF.Dataset(name + '.nc','w',format='NETCDF4')
+	rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF4')
 
 	# Define dimensions
 	rootgrp.createDimension('ntrac',ntrac)
@@ -642,3 +632,24 @@ def savetracks(xpin,ypin,zpin,tpin,name):
 	tp[:] = tpin
 
 	rootgrp.close()
+
+def loadtracks(name,loc=None):
+	"""
+	Load in track info from netcdf file.
+	Inputs:
+		name 	Name of tracks file
+		loc 	(optional) Tracks file is assumed to be in local tracks directory.
+				Use this to give location if it is not.
+	"""
+
+	if loc is None:
+		nc = netCDF.Dataset('tracks/' + name + '.nc')
+	else:
+		nc = netCDF.Dataset(loc + '/' + name + '.nc')
+
+	xp = nc.variables['xp'][:]
+	yp = nc.variables['yp'][:]
+	zp = nc.variables['zp'][:]
+	tp = nc.variables['tp'][:]
+
+	return xp,yp,zp,tp		
