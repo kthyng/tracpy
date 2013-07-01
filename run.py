@@ -347,7 +347,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
 
 	# Save results to netcdf file
-	inout.savetracks(lonp,latp,zp,t,name,nsteps,ff,tseas,ah,av,do3d,doturb)
+	inout.savetracks(lonp,latp,zp,t,name,nsteps,ff,tseas,ah,av,do3d,doturb,loc)
 
 	return lonp,latp,zp,t,grid
 

@@ -598,7 +598,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 	return uflux1, vflux1, dzt, zrt, zwt
 
 def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
-				ahin,avin,do3din,doturbin):
+				ahin,avin,do3din,doturbin,locin):
 	"""
 	Save tracks that have been calculated by tracmass into a netcdf file.
 
@@ -636,6 +636,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 	av = rootgrp.createVariable('av','f8')
 	do3d = rootgrp.createVariable('do3d','i4')
 	doturb = rootgrp.createVariable('doturb','i4')
+	loc = rootgrp.createVariable('loc','i4')
 
 	# Set some attributes
 	lonp.long_name = 'longitudinal position of drifter'
@@ -649,6 +650,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 	av.long_name = 'vertical diffusion'
 	do3d.long_name = 'flag for running in 3d (1) or 2d (0)'
 	doturb.long_name = 'flag for using no subgrid parameterization (0), added turbulent velocities (1), displacement to particle position on a circle (2), displacement to particle position on an ellipse (3)'
+	loc.long_name = 'location of model output information used for drifter experiment'
 
 	lonp.units = 'degrees'
 	latp.units = 'degrees'
@@ -682,6 +684,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 	av[:] = avin
 	do3d[:] = do3din
 	doturb[:] = doturbin
+	loc[:] = locin
 
 	rootgrp.close()
 
