@@ -17,6 +17,7 @@ import inout
 import init
 import plotting
 import tools
+from scipy import interpolate, ndimage
 
 def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name):
 	'''
@@ -296,15 +297,49 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# Concatenate zp with initial real space positions
 	zp=np.concatenate((zsave.reshape(1,zstart0.size),zp),axis=0)
 
+	## Delaunay interpolation
+	tic = time.time()
 	# Recreate Cartesian particle locations from their index-relative locations
 	# just by interpolating. These are in tracmass ordering
-	fxr = grid['tri'].nn_interpolator(grid['xpsi'].flatten())
-	fyr = grid['tri'].nn_interpolator(grid['ypsi'].flatten())
+	fx = grid['tri'].nn_interpolator(grid['xpsi'].flatten())
+	fy = grid['tri'].nn_interpolator(grid['ypsi'].flatten())
 	# fxr = grid['tri'].nn_interpolator(grid['xr'].flatten())
 	# fyr = grid['tri'].nn_interpolator(grid['yr'].flatten())
-	xp = fxr(xg,yg)
-	yp = fyr(xg,yg)
+	xp = fx(xg,yg)
+	yp = fy(xg,yg)
+	print 'delaunay interpolation time=',time.time()-tic
 
+	# ## RectBivariateSpline interpolation
+	# tic = time.time()
+	# fx = interpolate.RectBivariateSpline(grid['X'][:,0], grid['Y'][0,:], grid['xpsi'],kx=1,ky=1)
+	# fy = interpolate.RectBivariateSpline(grid['X'][:,0], grid['Y'][0,:], grid['ypsi'],kx=1,ky=1)
+	# xp2 = fx(xg,yg)
+	# yp2 = fy(xg,yg)
+	# print 'interp2d time=', time.time()-tic
+
+	## map coordinates interpolation
+	tic = time.time()
+	# The "mode" kwarg here just controls how the boundaries are treated
+	# mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
+	# value of the nearest cell if the point lies outside the grid.  The default is
+	# to treat the values outside the grid as zero, which can cause some edge
+	# effects if you're interpolating points near the edge
+	# The "order" kwarg controls the order of the splines used. The default is 
+	# cubic splines, order=3
+	# pdb.set_trace()
+	xp = ndimage.map_coordinates(grid['xpsi'], np.array([xg.flatten(),yg.flatten()]), order=1, mode='nearest').reshape(xg.shape)
+	yp = ndimage.map_coordinates(grid['ypsi'], np.array([xg.flatten(),yg.flatten()]), order=1, mode='nearest').reshape(yg.shape)
+	print 'map coordinates time=', time.time()-tic
+
+
+	# pdb.set_trace()
+
+	lonp,latp = grid['basemap'](xp,yp,inverse='True')
+	# Need to retain nan's since basemap changes them to values
+	ind = np.isnan(xp)
+	lonp[ind] = np.nan
+	latp[ind] = np.nan
+	# pdb.set_trace()
 	toc = time.time()
 	print "run time:",toc-tic
 	# print "list of readfields times", toc_read-tic_read
@@ -312,9 +347,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
 
 	# Save results to netcdf file
-	inout.savetracks(xp,yp,zp,t,name)
+	inout.savetracks(lonp,latp,zp,t,name,nsteps,ff,tseas,ah,av,do3d,doturb)
 
-	return xp,yp,zp,t,grid
+	return lonp,latp,zp,t,grid
 
 def start_run():
 	'''
@@ -322,16 +357,16 @@ def start_run():
 	'''
 
 	# Choose which initialization to use
-	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init.test2()
+	loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init.test1()
 
 	# Run tracmass!
-	xp,yp,zp,t,grid = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
+	lonp,latp,zp,t,grid = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
 	# pdb.set_trace()
 
 	# Plot tracks
-	plotting.tracks(xp,yp,name,grid=grid)
+	plotting.tracks(lonp,latp,name,grid=grid)
 
 	# Plot final location (by time index) histogram
-	plotting.hist(xp,yp,name,grid=grid,which='contour')
-	plotting.hist(xp,yp,name,grid=grid,which='pcolor')	
+	plotting.hist(lonp,latp,name,grid=grid,which='contour')
+	plotting.hist(lonp,latp,name,grid=grid,which='pcolor')	

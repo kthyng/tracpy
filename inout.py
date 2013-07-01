@@ -66,17 +66,19 @@ def setupROMSfiles(loc,date,ff,tout):
 		for i,name in enumerate(files): # Loop through files
 			nctemp = netCDF.Dataset(name)
 			ttemp = nctemp.variables['ocean_time'][:]
+			# pdb.set_trace()
 			nctemp.close()
 			# If datenum_in is larger than the first time in the file but smaller
 			# than the last time, then this is the correct file to use to start
 			if date > ttemp[0] and date <= ttemp[-1]:
 				ifile = i # this is the starting file identifier then
 				break
+
 		# Since the number of indices per file can change, make the process
 		# of finding the necessary files a little more general
 		# Start by opening two files
 		i = 1
-		# pdb.set_trace()
+		pdb.set_trace()
 		fname = [files[ifile]]
 
 		nc = netCDF.MFDataset(fname) # files in fname are in chronological order
@@ -595,18 +597,19 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 
 	return uflux1, vflux1, dzt, zrt, zwt
 
-def savetracks(xpin,ypin,zpin,tpin,name):
+def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
+				ahin,avin,do3din,doturbin):
 	"""
 	Save tracks that have been calculated by tracmass into a netcdf file.
 
 	Inputs:
-		xpin,ypin,zpin 	Drifter track positions [time x drifter]
-		tpin			Time vector for drifters [time]
-		name 			Name of simulation, to use for saving file
+		lonpin,latpin,zpin 	Drifter track positions [time x drifter]
+		tpin				Time vector for drifters [time]
+		name 				Name of simulation, to use for saving file
 	"""
 
-	ntrac = xpin.shape[1] # number of drifters
-	nt = xpin.shape[0] # number of time steps (with interpolation steps and starting point)
+	ntrac = lonpin.shape[1] # number of drifters
+	nt = lonpin.shape[0] # number of time steps (with interpolation steps and starting point)
 
 	# Save file into a local directory called tracks. Make directory if it doesn't exist.
 	if not os.path.exists('tracks'):
@@ -620,16 +623,65 @@ def savetracks(xpin,ypin,zpin,tpin,name):
 	rootgrp.createDimension('nt',nt)
 
 	# Create variables
-	xp = rootgrp.createVariable('xp','f8',('nt','ntrac')) # 64-bit floating point
-	yp = rootgrp.createVariable('yp','f8',('nt','ntrac')) # 64-bit floating point
+	# Main track information
+	lonp = rootgrp.createVariable('lonp','f8',('nt','ntrac')) # 64-bit floating point
+	latp = rootgrp.createVariable('latp','f8',('nt','ntrac')) # 64-bit floating point
 	zp = rootgrp.createVariable('zp','f8',('nt','ntrac')) # 64-bit floating point
 	tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
+	# Include other run details
+	nsteps = rootgrp.createVariable('nsteps','i4')
+	ff = rootgrp.createVariable('ff','i4')
+	tseas = rootgrp.createVariable('tseas','f8')
+	ah = rootgrp.createVariable('ah','f8')
+	av = rootgrp.createVariable('av','f8')
+	do3d = rootgrp.createVariable('do3d','i4')
+	doturb = rootgrp.createVariable('doturb','i4')
+
+	# Set some attributes
+	lonp.long_name = 'longitudinal position of drifter'
+	latp.long_name = 'latitudinal position of drifter'
+	zp.long_name = 'vertical position of drifter (negative is downward from surface)'
+	tp.long_name = 'time at drifter locations'
+	nsteps.long_name = 'number of linear interpolation steps in time between model outputs'
+	ff.long_name = 'forward (1) or backward (-1) in time'
+	tseas.long_name = 'time between model outputs'
+	ah.long_name = 'horizontal diffusion'
+	av.long_name = 'vertical diffusion'
+	do3d.long_name = 'flag for running in 3d (1) or 2d (0)'
+	doturb.long_name = 'flag for using no subgrid parameterization (0), added turbulent velocities (1), displacement to particle position on a circle (2), displacement to particle position on an ellipse (3)'
+
+	lonp.units = 'degrees'
+	latp.units = 'degrees'
+	zp.units = 'meter'
+	tp.units = 'seconds since 1970-01-01 00:00:00'
+	tseas.units = 'second'
+	ah.units = 'meter2 second-1'
+	av.units = 'meter2 second-1'
+
+	lonp.time = 'tp'
+	latp.time = 'tp'
+	zp.time = 'tp'
+
+	# lonp._FillValue = 'nan'
+	# latp._FillValue = 'nan'
+	# zp._FillValue = 'nan'
+	# tp._FillValue = 'nan'
+
+
+	# pdb.set_trace()
 
 	# Write data to netCDF variables
-	xp[:] = xpin
-	yp[:] = ypin
+	lonp[:] = lonpin
+	latp[:] = latpin
 	zp[:] = zpin
 	tp[:] = tpin
+	nsteps[:] = nstepsin
+	ff[:] = ffin
+	tseas[:] = tseasin
+	ah[:] = ahin
+	av[:] = avin
+	do3d[:] = do3din
+	doturb[:] = doturbin
 
 	rootgrp.close()
 
@@ -647,9 +699,9 @@ def loadtracks(name,loc=None):
 	else:
 		nc = netCDF.Dataset(loc + '/' + name + '.nc')
 
-	xp = nc.variables['xp'][:]
-	yp = nc.variables['yp'][:]
+	lonp = nc.variables['lonp'][:]
+	latp = nc.variables['latp'][:]
 	zp = nc.variables['zp'][:]
 	tp = nc.variables['tp'][:]
 
-	return xp,yp,zp,tp		
+	return lonp,latp,zp,tp		

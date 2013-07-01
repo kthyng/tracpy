@@ -137,17 +137,17 @@ def test1():
 	# Location of TXLA model output
 	# file and then grid. 
 	# 0150 file goes from (2009, 11, 19, 12, 0) to (2009, 12, 6, 0, 0)
-	# loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
-	# 		'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
-	# Location of TXLA model output
-	if 'rainier' in os.uname():
-		loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
-	elif 'hafen.tamu.edu' in os.uname():
-		loc = '/home/kthyng/shelf/' # for model outputs
+	loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
+			'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+	# # Location of TXLA model output
+	# if 'rainier' in os.uname():
+	# 	loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+	# elif 'hafen.tamu.edu' in os.uname():
+	# 	loc = '/home/kthyng/shelf/' # for model outputs
 
 	# Initialize parameters
 	nsteps = 5
-	ndays = 10 #16
+	ndays = 1 #16
 	ff = 1
 	# Start date
 	date = datetime(2009,11, 25, 0)
@@ -184,8 +184,8 @@ def test1():
 	## Choose method for vertical placement of drifters
 	# Also update makefile accordingly. Choose the twodim flag for isoslice.
 	# See above for more notes, but do the following two lines for an isoslice
-	z0 = 's' #'z' #'salt' #'s' 
-	zpar = 29 #-10 #grid['km']-1 # 30 #grid['km']-1
+	z0 = 's'  #'salt' #'s' #'z' #'salt' #'s' 
+	zpar = 29 #30 #29 #-10 #grid['km']-1 # 30 #grid['km']-1
 	# Do the following two for a 3d simulation
 	# z0 = np.ones(xstart0.shape)*-40 #  below the surface
 	# zpar = 'fromMSL' 
@@ -200,12 +200,12 @@ def test1():
 	doturb = 0
 
 	# simulation name, used for saving results into netcdf file
-	name = 'test1' #'5_5_D5_F'
+	name = 'temp_mapcoord_order1' #'5_5_D5_F'
 
-	# Save these settings to a file
-	np.savez('tracks/' + name + 'header.in',loc=loc,nsteps=nsteps,ndays=ndays, 
-			ff=ff,date=date,tseas=tseas,ah=ah,av=av,lon0=lon0,lat0=lat0,
-			z0=z0,zpar=zpar,do3d=do3d,doturb=doturb,name=name)
+	# # Save these settings to a file
+	# np.savez('tracks/' + name + 'header.in',loc=loc,nsteps=nsteps,ndays=ndays, 
+	# 		ff=ff,date=date,tseas=tseas,ah=ah,av=av,lon0=lon0,lat0=lat0,
+	# 		z0=z0,zpar=zpar,do3d=do3d,doturb=doturb,name=name)
 
 	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
 
