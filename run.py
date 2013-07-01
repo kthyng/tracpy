@@ -181,6 +181,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# j = 0 # index for number of saved steps for drifters
 	tic_read = np.zeros(len(tinds))
 	toc_read = np.zeros(len(tinds))
+	toc_zinterp = np.zeros(len(tinds))
+	toc_3dmap = np.zeros(len(tinds))
 	# Loop through model outputs. tinds is in proper order for moving forward
 	# or backward in time, I think.
 	for j,tind in enumerate(tinds):
@@ -278,14 +280,22 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
 			# Calculate real z position
 			r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
+
+			# tic = time.time()
+			# xp = ndimage.map_coordinates(grid['xpsi'], np.array([xend.flatten(),yend.flatten(),zend.flatten()]), order=1, mode='nearest').reshape(xg.shape)
+			# yp = ndimage.map_coordinates(grid['ypsi'], np.array([xg.flatten(),yg.flatten(),zend.flatten()]), order=1, mode='nearest').reshape(yg.shape)
+			# toc_3dmap = time.time()-tic
+
 			# Interpolate the drifter vertical depth in cell using the depths from the initial and later
 			# time step.
+			tic = time.time()
 			zp[j*nsteps:j*nsteps+nsteps,ind] = ((1.-r)*zwtold[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T \
 												+ r*zwtnew[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
+			toc_zinterp = time.time()-tic
 			# pdb.set_trace()
 
 	nc.close()
@@ -329,10 +339,24 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# pdb.set_trace()
 	xp = ndimage.map_coordinates(grid['xpsi'], np.array([xg.flatten(),yg.flatten()]), order=1, mode='nearest').reshape(xg.shape)
 	yp = ndimage.map_coordinates(grid['ypsi'], np.array([xg.flatten(),yg.flatten()]), order=1, mode='nearest').reshape(yg.shape)
-	print 'map coordinates time=', time.time()-tic
+	print 'map coordinates time (order 1)=', time.time()-tic
 
-
+	tic = time.time()
+	# The "mode" kwarg here just controls how the boundaries are treated
+	# mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
+	# value of the nearest cell if the point lies outside the grid.  The default is
+	# to treat the values outside the grid as zero, which can cause some edge
+	# effects if you're interpolating points near the edge
+	# The "order" kwarg controls the order of the splines used. The default is 
+	# cubic splines, order=3
 	# pdb.set_trace()
+	xp = ndimage.map_coordinates(grid['xpsi'], np.array([xg.flatten(),yg.flatten()]), order=3, mode='nearest').reshape(xg.shape)
+	yp = ndimage.map_coordinates(grid['ypsi'], np.array([xg.flatten(),yg.flatten()]), order=3, mode='nearest').reshape(yg.shape)
+	print 'map coordinates time (order 3)=', time.time()-tic
+
+	print "sum of zinterp:", np.sum(toc_zinterp)
+
+	pdb.set_trace()
 
 	lonp,latp = grid['basemap'](xp,yp,inverse='True')
 	# Need to retain nan's since basemap changes them to values
