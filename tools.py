@@ -6,6 +6,21 @@ import numpy as np
 from matplotlib.mlab import *
 import pdb
 
+def interpolate(x,y,z=None,grid,order=None,mode=None,):
+	"""
+
+
+	Inputs:
+
+	"""
+
+	# Horizontal interpolation only
+	if z is None:
+
+
+	# 3D interpolation
+	else:
+
 
 def find_final(xp,yp):
 	"""

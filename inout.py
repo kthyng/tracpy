@@ -266,15 +266,15 @@ def readgrid(loc,nc=None):
 
 	# Index grid, for interpolation between real and grid space
 	# this is for psi grid, so that middle of grid is min + .5 value
-	# X goes from 0 to imt-2 and Y goes from 0 to jmt-2
-	Y, X = np.meshgrid(np.arange(jmt-1),np.arange(imt-1)) # grid in index coordinates, without ghost cells
-	# # This is for rho
-	# # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
-	# Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
+	# # X goes from 0 to imt-2 and Y goes from 0 to jmt-2
+	# Y, X = np.meshgrid(np.arange(jmt-1),np.arange(imt-1)) # grid in index coordinates, without ghost cells
+	# This is for rho
+	# X goes from 0 to imt-1 and Y goes from 0 to jmt-1
+	Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
 	# Triangulation for grid space to curvilinear space
 	tri = delaunay.Triangulation(X.flatten(),Y.flatten())
 	# Triangulation for curvilinear space to grid space
-	tric = delaunay.Triangulation(xpsi.flatten(),ypsi.flatten())
+	tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
 	tricllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
 
 	# tracmass ordering.

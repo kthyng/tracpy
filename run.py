@@ -84,10 +84,11 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# some position relative to a grid node
 	# Interpolate to get starting positions in grid space
 	# tric is on a python index grid from 0 to imt-1 and 0 to jmt-1
+	# NEED TO CHANGE THIS TO MAP COORDINATES ON U AND V GRID
 	fX = grid['tric'].nn_interpolator(grid['X'].flatten())
 	fY = grid['tric'].nn_interpolator(grid['Y'].flatten())
-	xstart0 = fX(x0,y0)
-	ystart0 = fY(x0,y0)
+	xstart0 = fX(x0,y0) - .5 # move from rho grid of interpolator to arakawa grid
+	ystart0 = fY(x0,y0) - .5 # move from rho grid of interpolator to arakawa grid
 	# Do z a little lower down
 
 	# Initialize seed locations 
@@ -108,6 +109,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	yend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	zend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+	xp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+	yp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+	zp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	zp = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
@@ -183,6 +187,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	toc_read = np.zeros(len(tinds))
 	toc_zinterp = np.zeros(len(tinds))
 	toc_3dmap = np.zeros(len(tinds))
+	# pdb.set_trace()
+	xr3 = grid['xr'].reshape((grid['xr'].shape[0],grid['xr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
+	yr3 = grid['yr'].reshape((grid['yr'].shape[0],grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
 	# Loop through model outputs. tinds is in proper order for moving forward
 	# or backward in time, I think.
 	for j,tind in enumerate(tinds):
@@ -281,10 +288,27 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			# Calculate real z position
 			r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
 
-			# tic = time.time()
-			# xp = ndimage.map_coordinates(grid['xpsi'], np.array([xend.flatten(),yend.flatten(),zend.flatten()]), order=1, mode='nearest').reshape(xg.shape)
-			# yp = ndimage.map_coordinates(grid['ypsi'], np.array([xg.flatten(),yg.flatten(),zend.flatten()]), order=1, mode='nearest').reshape(yg.shape)
-			# toc_3dmap = time.time()-tic
+			tic = time.time()
+
+			xp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(xr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+											yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(xend[j*nsteps:j*nsteps+nsteps,ind].shape)
+			yp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(yr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+											yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(yend[j*nsteps:j*nsteps+nsteps,ind].shape)
+
+
+			pdb.set_trace()
+
+			for n in xrange(nsteps): # loop through time steps
+				# interpolate to a specific output time
+				# pdb.set_trace()
+				zwt = (1.-r[n])*zwtold + r[n]*zwtnew
+				zp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(zwt, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+											yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(zend[j*nsteps:j*nsteps+nsteps,ind].shape)
+
+			toc_3dmap = time.time()-tic
 
 			# Interpolate the drifter vertical depth in cell using the depths from the initial and later
 			# time step.
@@ -337,8 +361,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# The "order" kwarg controls the order of the splines used. The default is 
 	# cubic splines, order=3
 	# pdb.set_trace()
-	xp = ndimage.map_coordinates(grid['xpsi'], np.array([xg.flatten(),yg.flatten()]), order=1, mode='nearest').reshape(xg.shape)
-	yp = ndimage.map_coordinates(grid['ypsi'], np.array([xg.flatten(),yg.flatten()]), order=1, mode='nearest').reshape(yg.shape)
+	xp = ndimage.map_coordinates(grid['xr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=1, mode='nearest').reshape(xg.shape)
+	yp = ndimage.map_coordinates(grid['yr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=1, mode='nearest').reshape(yg.shape)
 	print 'map coordinates time (order 1)=', time.time()-tic
 
 	tic = time.time()
@@ -350,11 +374,18 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# The "order" kwarg controls the order of the splines used. The default is 
 	# cubic splines, order=3
 	# pdb.set_trace()
-	xp = ndimage.map_coordinates(grid['xpsi'], np.array([xg.flatten(),yg.flatten()]), order=3, mode='nearest').reshape(xg.shape)
-	yp = ndimage.map_coordinates(grid['ypsi'], np.array([xg.flatten(),yg.flatten()]), order=3, mode='nearest').reshape(yg.shape)
+	xp = ndimage.map_coordinates(grid['xr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=3, mode='nearest').reshape(xg.shape)
+	yp = ndimage.map_coordinates(grid['yr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=3, mode='nearest').reshape(yg.shape)
 	print 'map coordinates time (order 3)=', time.time()-tic
 
 	print "sum of zinterp:", np.sum(toc_zinterp)
+
+	print "sum of 3dmap:", np.sum(toc_3dmap)
+
+	# Need to retain nan's since basemap changes them to values
+	ind = np.isnan(xg)
+	xp[ind] = np.nan
+	xp[ind] = np.nan
 
 	pdb.set_trace()
 
