@@ -610,6 +610,11 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 
 	ntrac = lonpin.shape[1] # number of drifters
 	nt = lonpin.shape[0] # number of time steps (with interpolation steps and starting point)
+	
+	# save hash for the particular commit version that is currently being used
+	git_hash_in = os.popen('git log -1 --format="%H"').read()
+	# remove \n on the end that I can't get rid of
+	git_hash_in = git_hash_in[0:git_hash_in.find('\n')]
 
 	# Save file into a local directory called tracks. Make directory if it doesn't exist.
 	if not os.path.exists('tracks'):
@@ -636,7 +641,9 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 	av = rootgrp.createVariable('av','f8')
 	do3d = rootgrp.createVariable('do3d','i4')
 	doturb = rootgrp.createVariable('doturb','i4')
+	# pdb.set_trace()
 	loc = rootgrp.createVariable('loc','i4')
+	git_hash = rootgrp.createVariable('git_hash','i4')
 
 	# Set some attributes
 	lonp.long_name = 'longitudinal position of drifter'
@@ -650,7 +657,8 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 	av.long_name = 'vertical diffusion'
 	do3d.long_name = 'flag for running in 3d (1) or 2d (0)'
 	doturb.long_name = 'flag for using no subgrid parameterization (0), added turbulent velocities (1), displacement to particle position on a circle (2), displacement to particle position on an ellipse (3)'
-	loc.long_name = 'location of model output information used for drifter experiment'
+	loc.long_name = 'location of model output information used for drifter experiment\n' + locin[0]
+	git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
 
 	lonp.units = 'degrees'
 	latp.units = 'degrees'
@@ -684,7 +692,8 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 	av[:] = avin
 	do3d[:] = do3din
 	doturb[:] = doturbin
-	loc[:] = locin
+	loc[:] = []
+	git_hash[:] = []
 
 	rootgrp.close()
 

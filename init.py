@@ -137,6 +137,8 @@ def test1():
 	# Location of TXLA model output
 	# file and then grid. 
 	# 0150 file goes from (2009, 11, 19, 12, 0) to (2009, 12, 6, 0, 0)
+	# loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/', \
+	# 		'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
 	loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
 			'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
 	# # Location of TXLA model output
