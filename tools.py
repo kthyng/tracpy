@@ -8,19 +8,40 @@ import pdb
 from scipy import ndimage
 import time
 
-def interpolate(x,y,grid,itype,z=None,order=1,mode='nearest',):
+def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest'):
 	"""
-
+	Horizontal interpolation to map between coordinate transformations.
 
 	Inputs:
 		x, y 	x, y
-		grid 	grid as read in by 
+		grid 	grid as read in by inout.readgrid()
 		itype 	'd_xy2ij' delaunay, from projected x, y to grid i, j
 				'd_ij2xy' delaunay, from grid i, j to projected x, y
 				'd_ll2ij' delaunay, from lon, lat to grid i, j
 				'd_ij2ll' delaunay, from grid i, j to lon, lat
 				'm_ij2xy' map_coordinates, from grid i, j to projected x, y
+				  or if z, xin, and yin are also input, from grid i, j, k to 
+				  projected x, y, z. Can use the 3d version of this for transforming
+				  to lon/lat also if the xin/yin input are lon/lat arrays.
 				'm_ij2ll' map_coordinates, from grid i, j to lon, lat
+		xin 	3D array of x values that are mapped to the input x,y,z coordinates.
+				This is only needed in the 3D mapping case. Normally, can just do this
+				in 2D instead of 3D and get the same results.
+		yin 	3D array of y values that are mapped to the input x,y,z coordinates.
+				This is only needed in the 3D mapping case. Normally, can just do this
+				in 2D instead of 3D and get the same results.
+		order 	order of interpolation for map_coordinates. 1 for linear 
+				and 3 for cubic. Default=1
+		mode 	behavior for edge points. Default is 'nearest'.
+				Notes on the map_coordinates function: 
+				The "mode" kwarg here just controls how the boundaries are treated
+				mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
+				value of the nearest cell if the point lies outside the grid.  The default is
+				to treat the values outside the grid as zero, which can cause some edge
+				effects if you're interpolating points near the edge
+				The "order" kwarg controls the order of the splines used. The default is 
+				cubic splines, order=3
+
 
 	Outputs:
 		xi,yi 	Interpolated values
@@ -29,79 +50,109 @@ def interpolate(x,y,grid,itype,z=None,order=1,mode='nearest',):
 
 	tic = time.time()
 
-	# Horizontal interpolation only
-	if z is None:
+	if itype == 'd_xy2ij':
+		# Set up functions for interpolating 
+		fx = grid['trir'].nn_interpolator(grid['X'].flatten())
+		fy = grid['trir'].nn_interpolator(grid['Y'].flatten())
+		# Need to shift indices to move from rho grid of interpolator to arakawa c grid
+		xi = fx(x,y) - .5
+		yi = fy(x,y) - .5
 
-		if itype == 'd_xy2ij':
-			# Set up functions for interpolating 
-			fx = grid['trir'].nn_interpolator(grid['X'].flatten())
-			fy = grid['trir'].nn_interpolator(grid['Y'].flatten())
-			# Need to shift indices to move from rho grid of interpolator to arakawa c grid
-			xi = fx(x,y) - .5
-			yi = fy(x,y) - .5
+	elif itype == 'd_ij2xy':
+		# Set up functions for interpolating 
+		fx = grid['tri'].nn_interpolator(grid['xr'].flatten())
+		fy = grid['tri'].nn_interpolator(grid['yr'].flatten())
+		# Need to shift indices to move to rho grid of interpolator from arakawa c grid
+		xi = fx(x+0.5, y+0.5)
+		yi = fy(x+0.5, y+0.5)
 
-		elif itype == 'd_ij2xy':
-			# Set up functions for interpolating 
-			fx = grid['tri'].nn_interpolator(grid['xr'].flatten())
-			fy = grid['tri'].nn_interpolator(grid['yr'].flatten())
-			# Need to shift indices to move to rho grid of interpolator from arakawa c grid
-			xi = fx(x+0.5, y+0.5)
-			yi = fy(x+0.5, y+0.5)
+	elif itype == 'd_ll2ij':
+		# Set up functions for interpolating 
+		fx = grid['trirllrho'].nn_interpolator(grid['X'].flatten())
+		fy = grid['trirllrho'].nn_interpolator(grid['Y'].flatten())
+		# Need to shift indices to move from rho grid of interpolator to arakawa c grid
+		xi = fx(x,y) - .5
+		yi = fy(x,y) - .5
 
-		elif itype == 'd_ll2ij':
-			# Set up functions for interpolating 
-			fx = grid['trirllrho'].nn_interpolator(grid['X'].flatten())
-			fy = grid['trirllrho'].nn_interpolator(grid['Y'].flatten())
-			# Need to shift indices to move from rho grid of interpolator to arakawa c grid
-			xi = fx(x,y) - .5
-			yi = fy(x,y) - .5
+	elif itype == 'd_ij2ll':
+		# Set up functions for interpolating 
+		fx = grid['tri'].nn_interpolator(grid['lonr'].flatten())
+		fy = grid['tri'].nn_interpolator(grid['latr'].flatten())
+		# Need to shift indices to move to rho grid of interpolator from arakawa c grid
+		xi = fx(x+0.5, y+0.5)
+		yi = fy(x+0.5, y+0.5)
 
-		elif itype == 'd_ij2ll':
-			# Set up functions for interpolating 
-			fx = grid['tri'].nn_interpolator(grid['lonr'].flatten())
-			fy = grid['tri'].nn_interpolator(grid['latr'].flatten())
-			# Need to shift indices to move to rho grid of interpolator from arakawa c grid
-			xi = fx(x+0.5, y+0.5)
-			yi = fy(x+0.5, y+0.5)
+	elif itype == 'm_ij2xy':
+		xi = ndimage.map_coordinates(grid['xr'], np.array([x.flatten()+.5,\
+										y.flatten()+.5]), \
+										order=order,\
+										mode=mode).reshape(x.shape)
+		yi = ndimage.map_coordinates(grid['yr'], np.array([x.flatten()+.5,\
+										y.flatten()+.5]), \
+										order=order,\
+										mode=mode).reshape(y.shape)
 
-		elif itype == 'm_ij2xy':
-			# The "mode" kwarg here just controls how the boundaries are treated
-			# mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
-			# value of the nearest cell if the point lies outside the grid.  The default is
-			# to treat the values outside the grid as zero, which can cause some edge
-			# effects if you're interpolating points near the edge
-			# The "order" kwarg controls the order of the splines used. The default is 
-			# cubic splines, order=3
-			# pdb.set_trace()
-			xi = ndimage.map_coordinates(grid['xr'], np.array([x.flatten()+.5,y.flatten()+.5]), order=order, mode=mode).reshape(x.shape)
-			yi = ndimage.map_coordinates(grid['yr'], np.array([x.flatten()+.5,y.flatten()+.5]), order=order, mode=mode).reshape(y.shape)
+	elif itype == 'm_ij2ll':
+		xi = ndimage.map_coordinates(grid['lonr'], np.array([x.flatten()+.5,\
+										y.flatten()+.5]), \
+										order=order, \
+										mode=mode).reshape(x.shape)
+		yi = ndimage.map_coordinates(grid['latr'], np.array([x.flatten()+.5,\
+										y.flatten()+.5]), \
+										order=order, \
+										mode=mode).reshape(y.shape)
 
-		elif itype == 'm_ij2ll':
-			# The "mode" kwarg here just controls how the boundaries are treated
-			# mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
-			# value of the nearest cell if the point lies outside the grid.  The default is
-			# to treat the values outside the grid as zero, which can cause some edge
-			# effects if you're interpolating points near the edge
-			# The "order" kwarg controls the order of the splines used. The default is 
-			# cubic splines, order=3
-			# pdb.set_trace()
-			xi = ndimage.map_coordinates(grid['lonr'], np.array([x.flatten()+.5,y.flatten()+.5]), order=order, mode=mode).reshape(x.shape)
-			yi = ndimage.map_coordinates(grid['latr'], np.array([x.flatten()+.5,y.flatten()+.5]), order=order, mode=mode).reshape(y.shape)
-
-
-	# pdb.set_trace()
-
-		# Need to retain nan's since basemap changes them to values
-		ind = np.isnan(x)
-		xi[ind] = np.nan
-		yi[ind] = np.nan
-
-	# # 3D interpolation
-	# else:
+	# Need to retain nan's since are changed them to zeros here
+	ind = np.isnan(x)
+	xi[ind] = np.nan
+	yi[ind] = np.nan
 
 	dt = time.time() - tic
 
 	return xi, yi, dt
+
+
+def interpolate3d(x,y,z,zin,grid,order=1,mode='nearest'):
+	"""
+
+
+	Inputs:
+		x,y,z	x, y, z coordinates
+		grid 	grid as read in by inout.readgrid()
+		zin 	3D array of z values that are mapped to the input x,y,z coordinates.
+		order 	order of interpolation for map_coordinates. 1 for linear 
+				and 3 for cubic. Default=1
+		mode 	behavior for edge points. Default is 'nearest'.
+				Notes on the map_coordinates function: 
+				The "mode" kwarg here just controls how the boundaries are treated
+				mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
+				value of the nearest cell if the point lies outside the grid.  The default is
+				to treat the values outside the grid as zero, which can cause some edge
+				effects if you're interpolating points near the edge
+				The "order" kwarg controls the order of the splines used. The default is 
+				cubic splines, order=3
+
+
+	Outputs:
+		zi 	 	Interpolated values
+		dt 		Time required for interpolation
+	"""
+
+	tic = time.time()
+
+	zi = ndimage.map_coordinates(zin, np.array([x.flatten()+.5, \
+								y.flatten()+.5, \
+								z.flatten()]), \
+								order=order, \
+								mode=mode).reshape(z.shape)
+
+	# Need to retain nan's since are changed them to zeros here
+	ind = np.isnan(z)
+	zi[ind] = np.nan
+
+	dt = time.time() - tic
+
+	return zi, dt
 
 def find_final(xp,yp):
 	"""

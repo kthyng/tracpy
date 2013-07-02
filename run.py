@@ -292,6 +292,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 				# interpolate to a specific output time
 				# pdb.set_trace()
 				zwt = (1.-r[n])*zwtold + r[n]*zwtnew
+				# zp2[j*nsteps:j*nsteps+nsteps,ind] = interpolate3d(x,y,z,zin,grid,
+					
 				zp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(zwt, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
 											yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
 											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(zend[j*nsteps:j*nsteps+nsteps,ind].shape)
@@ -308,7 +310,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 															jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
 															kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
 			toc_zinterp = time.time()-tic
-			# pdb.set_trace()
+			pdb.set_trace()
 
 	nc.close()
 	t = t + t0save # add back in base time in seconds
