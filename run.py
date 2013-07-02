@@ -59,7 +59,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
 	'''
 
-	tic = time.time()
+	tic_start = time.time()
 	# Units for time conversion with netCDF.num2date and .date2num
 	units = 'seconds since 1970-01-01'
 
@@ -76,7 +76,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	grid = inout.readgrid(loc,nc)
 
 	# Interpolate to get starting positions in grid space
-	xstart0, ystart0, _ = tools.interpolate(lon0,lat0,grid,'d_ll2ij')
+	xstart0, ystart0, _ = tools.interpolate2d(lon0,lat0,grid,'d_ll2ij')
 	# Do z a little lower down
 
 	# Initialize seed locations 
@@ -97,9 +97,10 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	yend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	zend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-	xp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-	yp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-	zp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+	# xp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+	# yp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+	# zp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
+	# zp3 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	zp = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
@@ -276,41 +277,44 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			# Calculate real z position
 			r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
 
-			tic = time.time()
+			# tic = time.time()
 
-			xp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(xr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-											yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(xend[j*nsteps:j*nsteps+nsteps,ind].shape)
-			yp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(yr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-											yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(yend[j*nsteps:j*nsteps+nsteps,ind].shape)
+			# xp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(xr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+			# 								yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+			# 								zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(xend[j*nsteps:j*nsteps+nsteps,ind].shape)
+			# yp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(yr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+			# 								yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+			# 								zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(yend[j*nsteps:j*nsteps+nsteps,ind].shape)
 
 
-			# pdb.set_trace()
 
 			for n in xrange(nsteps): # loop through time steps
 				# interpolate to a specific output time
 				# pdb.set_trace()
 				zwt = (1.-r[n])*zwtold + r[n]*zwtnew
-				# zp2[j*nsteps:j*nsteps+nsteps,ind] = interpolate3d(x,y,z,zin,grid,
-					
-				zp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(zwt, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-											yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(zend[j*nsteps:j*nsteps+nsteps,ind].shape)
+				zp[j*nsteps:j*nsteps+nsteps,ind], dt = tools.interpolate3d(xend[j*nsteps:j*nsteps+nsteps,ind], \
+														yend[j*nsteps:j*nsteps+nsteps,ind], \
+														zend[j*nsteps:j*nsteps+nsteps,ind], \
+														zwt)
 
-			toc_3dmap = time.time()-tic
+				# zp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(zwt, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+				# 							yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
+				# 							zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(zend[j*nsteps:j*nsteps+nsteps,ind].shape)
+				# pdb.set_trace()
+	
+			# toc_3dmap = time.time()-tic
 
-			# Interpolate the drifter vertical depth in cell using the depths from the initial and later
-			# time step.
-			tic = time.time()
-			zp[j*nsteps:j*nsteps+nsteps,ind] = ((1.-r)*zwtold[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-															jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-															kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T \
-												+ r*zwtnew[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-															jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-															kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
-			toc_zinterp = time.time()-tic
-			pdb.set_trace()
+			# # Interpolate the drifter vertical depth in cell using the depths from the initial and later
+			# # time step.
+			# tic = time.time()
+			# zp[j*nsteps:j*nsteps+nsteps,ind] = ((1.-r)*zwtold[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+			# 												jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+			# 												kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T \
+			# 									+ r*zwtnew[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+			# 												jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
+			# 												kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
+			# toc_zinterp = time.time()-tic
+			# pdb.set_trace()
 
 	nc.close()
 	t = t + t0save # add back in base time in seconds
@@ -335,14 +339,14 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
 	## map coordinates interpolation
 	# xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
-	lonp, latp, dt = tools.interpolate(xg,yg,grid,'m_ij2ll')
+	lonp, latp, dt = tools.interpolate2d(xg,yg,grid,'m_ij2ll',mode='constant',cval=np.nan)
 
-	pdb.set_trace()
+	# pdb.set_trace()
 
-	print "run time:",toc-tic
+	print "run time:",time.time()-tic_start
 	# print "list of readfields times", toc_read-tic_read
 	# print "sum of readfields:", np.sum(toc_read-tic_read)
-	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(toc-tic)
+	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(time.time()-tic_start)
 
 	# Save results to netcdf file
 	inout.savetracks(lonp,latp,zp,t,name,nsteps,ff,tseas,ah,av,do3d,doturb,loc)

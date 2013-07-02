@@ -8,7 +8,7 @@ import pdb
 from scipy import ndimage
 import time
 
-def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest'):
+def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest',cval=0.):
 	"""
 	Horizontal interpolation to map between coordinate transformations.
 
@@ -38,9 +38,11 @@ def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest'):
 				mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
 				value of the nearest cell if the point lies outside the grid.  The default is
 				to treat the values outside the grid as zero, which can cause some edge
-				effects if you're interpolating points near the edge
+				effects if you're interpolating points near the edge.
+				'constant', 'nearest', 'reflect' or 'wrap'
 				The "order" kwarg controls the order of the splines used. The default is 
 				cubic splines, order=3
+		cval 	Constant value used in map_coordinates if mode='constant'
 
 
 	Outputs:
@@ -86,21 +88,25 @@ def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest'):
 		xi = ndimage.map_coordinates(grid['xr'], np.array([x.flatten()+.5,\
 										y.flatten()+.5]), \
 										order=order,\
-										mode=mode).reshape(x.shape)
+										mode=mode,\
+										cval=cval).reshape(x.shape)
 		yi = ndimage.map_coordinates(grid['yr'], np.array([x.flatten()+.5,\
 										y.flatten()+.5]), \
 										order=order,\
-										mode=mode).reshape(y.shape)
+										mode=mode,\
+										cval=cval).reshape(y.shape)
 
 	elif itype == 'm_ij2ll':
 		xi = ndimage.map_coordinates(grid['lonr'], np.array([x.flatten()+.5,\
 										y.flatten()+.5]), \
 										order=order, \
-										mode=mode).reshape(x.shape)
+										mode=mode,\
+										cval=cval).reshape(x.shape)
 		yi = ndimage.map_coordinates(grid['latr'], np.array([x.flatten()+.5,\
 										y.flatten()+.5]), \
 										order=order, \
-										mode=mode).reshape(y.shape)
+										mode=mode,\
+										cval=cval).reshape(y.shape)
 
 	# Need to retain nan's since are changed them to zeros here
 	ind = np.isnan(x)
@@ -112,13 +118,13 @@ def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest'):
 	return xi, yi, dt
 
 
-def interpolate3d(x,y,z,zin,grid,order=1,mode='nearest'):
+def interpolate3d(x,y,z,zin,order=1,mode='nearest',cval=0.):
 	"""
-
+	3D interpolation for transforming from grid/index space to whatever space is
+	input with zin.
 
 	Inputs:
 		x,y,z	x, y, z coordinates
-		grid 	grid as read in by inout.readgrid()
 		zin 	3D array of z values that are mapped to the input x,y,z coordinates.
 		order 	order of interpolation for map_coordinates. 1 for linear 
 				and 3 for cubic. Default=1
@@ -144,7 +150,7 @@ def interpolate3d(x,y,z,zin,grid,order=1,mode='nearest'):
 								y.flatten()+.5, \
 								z.flatten()]), \
 								order=order, \
-								mode=mode).reshape(z.shape)
+								mode=mode,cval=cval).reshape(z.shape)
 
 	# Need to retain nan's since are changed them to zeros here
 	ind = np.isnan(z)
@@ -152,6 +158,7 @@ def interpolate3d(x,y,z,zin,grid,order=1,mode='nearest'):
 
 	dt = time.time() - tic
 
+	# pdb.set_trace()
 	return zi, dt
 
 def find_final(xp,yp):
