@@ -17,7 +17,7 @@ import inout
 import init
 import plotting
 import tools
-from scipy import interpolate, ndimage
+from scipy import ndimage
 
 def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name):
 	'''
@@ -75,20 +75,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# Read in grid parameters into dictionary, grid
 	grid = inout.readgrid(loc,nc)
 
-	# Change input lat/lon into x,y then grid space
-	# The basemap is set up for the northwestern Gulf of Mexico currently.
-	x0,y0 = grid['basemap'](lon0,lat0)
-	# pdb.set_trace()
-
-	# Need to input x,y as relative to their grid box. Let's assume they are at 
-	# some position relative to a grid node
 	# Interpolate to get starting positions in grid space
-	# tric is on a python index grid from 0 to imt-1 and 0 to jmt-1
-	# NEED TO CHANGE THIS TO MAP COORDINATES ON U AND V GRID
-	fX = grid['tric'].nn_interpolator(grid['X'].flatten())
-	fY = grid['tric'].nn_interpolator(grid['Y'].flatten())
-	xstart0 = fX(x0,y0) - .5 # move from rho grid of interpolator to arakawa grid
-	ystart0 = fY(x0,y0) - .5 # move from rho grid of interpolator to arakawa grid
+	xstart0, ystart0, _ = tools.interpolate(lon0,lat0,grid,'d_ll2ij')
 	# Do z a little lower down
 
 	# Initialize seed locations 
@@ -298,7 +286,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 											zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(yend[j*nsteps:j*nsteps+nsteps,ind].shape)
 
 
-			pdb.set_trace()
+			# pdb.set_trace()
 
 			for n in xrange(nsteps): # loop through time steps
 				# interpolate to a specific output time
@@ -331,17 +319,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# Concatenate zp with initial real space positions
 	zp=np.concatenate((zsave.reshape(1,zstart0.size),zp),axis=0)
 
-	## Delaunay interpolation
-	tic = time.time()
-	# Recreate Cartesian particle locations from their index-relative locations
-	# just by interpolating. These are in tracmass ordering
-	fx = grid['tri'].nn_interpolator(grid['xpsi'].flatten())
-	fy = grid['tri'].nn_interpolator(grid['ypsi'].flatten())
-	# fxr = grid['tri'].nn_interpolator(grid['xr'].flatten())
-	# fyr = grid['tri'].nn_interpolator(grid['yr'].flatten())
-	xp = fx(xg,yg)
-	yp = fy(xg,yg)
-	print 'delaunay interpolation time=',time.time()-tic
+	# Delaunay interpolation
+	# xp, yp, dt = tools.interpolate(xg,yg,grid,'d_ij2xy')
+	# lonp, latp, dt = tools.interpolation(xg,yg,grid,'d_ij2ll')
 
 	# ## RectBivariateSpline interpolation
 	# tic = time.time()
@@ -352,50 +332,11 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# print 'interp2d time=', time.time()-tic
 
 	## map coordinates interpolation
-	tic = time.time()
-	# The "mode" kwarg here just controls how the boundaries are treated
-	# mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
-	# value of the nearest cell if the point lies outside the grid.  The default is
-	# to treat the values outside the grid as zero, which can cause some edge
-	# effects if you're interpolating points near the edge
-	# The "order" kwarg controls the order of the splines used. The default is 
-	# cubic splines, order=3
-	# pdb.set_trace()
-	xp = ndimage.map_coordinates(grid['xr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=1, mode='nearest').reshape(xg.shape)
-	yp = ndimage.map_coordinates(grid['yr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=1, mode='nearest').reshape(yg.shape)
-	print 'map coordinates time (order 1)=', time.time()-tic
-
-	tic = time.time()
-	# The "mode" kwarg here just controls how the boundaries are treated
-	# mode='nearest' is _not_ nearest neighbor interpolation, it just uses the
-	# value of the nearest cell if the point lies outside the grid.  The default is
-	# to treat the values outside the grid as zero, which can cause some edge
-	# effects if you're interpolating points near the edge
-	# The "order" kwarg controls the order of the splines used. The default is 
-	# cubic splines, order=3
-	# pdb.set_trace()
-	xp = ndimage.map_coordinates(grid['xr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=3, mode='nearest').reshape(xg.shape)
-	yp = ndimage.map_coordinates(grid['yr'], np.array([xg.flatten()+.5,yg.flatten()+.5]), order=3, mode='nearest').reshape(yg.shape)
-	print 'map coordinates time (order 3)=', time.time()-tic
-
-	print "sum of zinterp:", np.sum(toc_zinterp)
-
-	print "sum of 3dmap:", np.sum(toc_3dmap)
-
-	# Need to retain nan's since basemap changes them to values
-	ind = np.isnan(xg)
-	xp[ind] = np.nan
-	xp[ind] = np.nan
+	# xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
+	lonp, latp, dt = tools.interpolate(xg,yg,grid,'m_ij2ll')
 
 	pdb.set_trace()
 
-	lonp,latp = grid['basemap'](xp,yp,inverse='True')
-	# Need to retain nan's since basemap changes them to values
-	ind = np.isnan(xp)
-	lonp[ind] = np.nan
-	latp[ind] = np.nan
-	# pdb.set_trace()
-	toc = time.time()
 	print "run time:",toc-tic
 	# print "list of readfields times", toc_read-tic_read
 	# print "sum of readfields:", np.sum(toc_read-tic_read)

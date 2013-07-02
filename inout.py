@@ -168,7 +168,7 @@ def readgrid(loc,nc=None):
 	 xv,yv          V grid zonal (x) and meriodional (y) coordinates [imt,jmt]
 	 xpsi,ypsi      Psi grid zonal (x) and meriodional (y) coordinates [imt,jmt]
 	 X,Y            Grid index arrays
-	 tri,tric       Delaunay triangulations
+	 tri,trir       Delaunay triangulations
 	 Cs_r,sc_r      Vertical grid streching paramters [km-1]
 	 hc             Critical depth [scalar]
 	 h              Depths [imt,jmt]
@@ -274,8 +274,8 @@ def readgrid(loc,nc=None):
 	# Triangulation for grid space to curvilinear space
 	tri = delaunay.Triangulation(X.flatten(),Y.flatten())
 	# Triangulation for curvilinear space to grid space
-	tric = delaunay.Triangulation(xr.flatten(),yr.flatten())
-	tricllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
+	trir = delaunay.Triangulation(xr.flatten(),yr.flatten())
+	trirllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
 
 	# tracmass ordering.
 	# Not sure how to convert this to pm, pn with appropriate shift
@@ -351,7 +351,7 @@ def readgrid(loc,nc=None):
 			'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
 			'mask':mask,'kmt':kmt,'dzt0':dzt0,
 			'zrt0':zrt0,'zwt0':zwt0,
-			'pm':pm,'pn':pn,'tri':tri,'tric':tric,'tricllrho':tricllrho,
+			'pm':pm,'pn':pn,'tri':tri,'trir':trir,'trirllrho':trirllrho,
 			'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
 			'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,
 			'lonr':lonr,'lonu':lonu,'lonv':lonv,'lonpsi':lonpsi,
@@ -363,7 +363,7 @@ def readgrid(loc,nc=None):
 		grid = {'imt':imt,'jmt':jmt, 
 			'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
 			'mask':mask,
-			'pm':pm,'pn':pn,'tri':tri,'tric':tric,'tricllrho':tricllrho,
+			'pm':pm,'pn':pn,'tri':tri,'trir':trir,'trirllrho':trirllrho,
 			'xr':xr,'xu':xu,'xv':xv,'xpsi':xpsi,'X':X,
 			'yr':yr,'yu':yu,'yv':yv,'ypsi':ypsi,'Y':Y,
 			'lonr':lonr,'lonu':lonu,'lonv':lonv,'lonpsi':lonpsi,
