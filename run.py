@@ -97,10 +97,6 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	yend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	zend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-	# xp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-	# yp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-	# zp2 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-	# zp3 = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	zp = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
 	jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
@@ -277,17 +273,6 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			# Calculate real z position
 			r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
 
-			# tic = time.time()
-
-			# xp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(xr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-			# 								yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-			# 								zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(xend[j*nsteps:j*nsteps+nsteps,ind].shape)
-			# yp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(yr3, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-			# 								yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-			# 								zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(yend[j*nsteps:j*nsteps+nsteps,ind].shape)
-
-
-
 			for n in xrange(nsteps): # loop through time steps
 				# interpolate to a specific output time
 				# pdb.set_trace()
@@ -296,25 +281,6 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 														yend[j*nsteps:j*nsteps+nsteps,ind], \
 														zend[j*nsteps:j*nsteps+nsteps,ind], \
 														zwt)
-
-				# zp2[j*nsteps:j*nsteps+nsteps,ind] = ndimage.map_coordinates(zwt, np.array([xend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-				# 							yend[j*nsteps:j*nsteps+nsteps,ind].flatten()+.5, \
-				# 							zend[j*nsteps:j*nsteps+nsteps,ind].flatten()]), order=1, mode='nearest').reshape(zend[j*nsteps:j*nsteps+nsteps,ind].shape)
-				# pdb.set_trace()
-	
-			# toc_3dmap = time.time()-tic
-
-			# # Interpolate the drifter vertical depth in cell using the depths from the initial and later
-			# # time step.
-			# tic = time.time()
-			# zp[j*nsteps:j*nsteps+nsteps,ind] = ((1.-r)*zwtold[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-			# 												jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-			# 												kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T \
-			# 									+ r*zwtnew[iend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-			# 												jend[j*nsteps:j*nsteps+nsteps,ind].astype(int), \
-			# 												kend[j*nsteps:j*nsteps+nsteps,ind].astype(int)].T).T
-			# toc_zinterp = time.time()-tic
-			# pdb.set_trace()
 
 	nc.close()
 	t = t + t0save # add back in base time in seconds
@@ -329,17 +295,12 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# xp, yp, dt = tools.interpolate(xg,yg,grid,'d_ij2xy')
 	# lonp, latp, dt = tools.interpolation(xg,yg,grid,'d_ij2ll')
 
-	# ## RectBivariateSpline interpolation
-	# tic = time.time()
-	# fx = interpolate.RectBivariateSpline(grid['X'][:,0], grid['Y'][0,:], grid['xpsi'],kx=1,ky=1)
-	# fy = interpolate.RectBivariateSpline(grid['X'][:,0], grid['Y'][0,:], grid['ypsi'],kx=1,ky=1)
-	# xp2 = fx(xg,yg)
-	# yp2 = fy(xg,yg)
-	# print 'interp2d time=', time.time()-tic
-
 	## map coordinates interpolation
 	# xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
+	tic = time.time()
 	lonp, latp, dt = tools.interpolate2d(xg,yg,grid,'m_ij2ll',mode='constant',cval=np.nan)
+	print '2d interp time=', time.time()-tic
+	print "sum of 3dmap:", np.sum(toc_3dmap)
 
 	# pdb.set_trace()
 
