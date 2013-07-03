@@ -303,7 +303,6 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	tic = time.time()
 	lonp, latp, dt = tools.interpolate2d(xg,yg,grid,'m_ij2ll',mode='constant',cval=np.nan)
 	print '2d interp time=', time.time()-tic
-	print "sum of 3dmap:", np.sum(toc_3dmap)
 
 	# pdb.set_trace()
 

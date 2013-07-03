@@ -44,7 +44,8 @@ def background(grid=None):
 	plot(grid['xr'][:,-1],grid['yr'][:,-1],'k:')
 
 
-def hist(lonp,latp,fname,tind='final',which='contour',bins=(40,40),N=10,grid=None):
+def hist(lonp, latp, fname, tind='final', which='contour', \
+			bins=(40,40), N=10, grid=None, xlims=None, ylims=None):
 	"""
 	Plot histogram of given track data at time index tind.
 
@@ -60,6 +61,9 @@ def hist(lonp,latp,fname,tind='final',which='contour',bins=(40,40),N=10,grid=Non
 		which 		(optional) 'contour' or 'pcolor' for type of plot used. Default 'contour'.
 		bins 		(optional) Number of bins used in histogram. Default (15,25).
 		N 			(optional) Number of contours to make. Default 10.
+		grid 		(optional) grid as read in by inout.readgrid()
+		xlims 		(optional) value limits on the x axis
+		ylims 		(optional) value limits on the y axis
 
 	Note: Currently assuming we are plotting the final location 
 	of each drifter regardless of tind.
@@ -124,6 +128,14 @@ def hist(lonp,latp,fname,tind='final',which='contour',bins=(40,40),N=10,grid=Non
 	elif which == 'pcolor':
 		# Pcolor plot
 		p = pcolor(xedges,yedges,(H.T/H.sum())*100,cmap='YlOrRd')
+
+		# Set x and y limits
+		pdb.set_trace()
+		if xlims is not None:
+			xlim(xlims)
+		if ylims is not None:
+			ylim(ylims)
+
 		# Horizontal colorbar below plot
 		cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
 		cb = colorbar(p,cax=cax,orientation='horizontal')
