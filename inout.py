@@ -78,7 +78,7 @@ def setupROMSfiles(loc,date,ff,tout):
 		# of finding the necessary files a little more general
 		# Start by opening two files
 		i = 1
-		pdb.set_trace()
+		# pdb.set_trace()
 		fname = [files[ifile]]
 
 		nc = netCDF.MFDataset(fname) # files in fname are in chronological order

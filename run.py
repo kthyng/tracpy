@@ -170,8 +170,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	# j = 0 # index for number of saved steps for drifters
 	tic_read = np.zeros(len(tinds))
 	toc_read = np.zeros(len(tinds))
-	toc_zinterp = np.zeros(len(tinds))
-	toc_3dmap = np.zeros(len(tinds))
+	# toc_zinterp = np.zeros(len(tinds))
+	# toc_3dmap = np.zeros(len(tinds))
 	# pdb.set_trace()
 	xr3 = grid['xr'].reshape((grid['xr'].shape[0],grid['xr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
 	yr3 = grid['yr'].reshape((grid['yr'].shape[0],grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
@@ -270,17 +270,20 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
 			# Calculate times for the output frequency
 			t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
-			# Calculate real z position
-			r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
+			
+			# Skip calculating real z position if we are doing surface-only drifters anyway
+			if z0 != 's' and zpar != grid['km']-1:
+				# Calculate real z position
+				r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
 
-			for n in xrange(nsteps): # loop through time steps
-				# interpolate to a specific output time
-				# pdb.set_trace()
-				zwt = (1.-r[n])*zwtold + r[n]*zwtnew
-				zp[j*nsteps:j*nsteps+nsteps,ind], dt = tools.interpolate3d(xend[j*nsteps:j*nsteps+nsteps,ind], \
-														yend[j*nsteps:j*nsteps+nsteps,ind], \
-														zend[j*nsteps:j*nsteps+nsteps,ind], \
-														zwt)
+				for n in xrange(nsteps): # loop through time steps
+					# interpolate to a specific output time
+					# pdb.set_trace()
+					zwt = (1.-r[n])*zwtold + r[n]*zwtnew
+					zp[j*nsteps:j*nsteps+nsteps,ind], dt = tools.interpolate3d(xend[j*nsteps:j*nsteps+nsteps,ind], \
+															yend[j*nsteps:j*nsteps+nsteps,ind], \
+															zend[j*nsteps:j*nsteps+nsteps,ind], \
+															zwt)
 
 	nc.close()
 	t = t + t0save # add back in base time in seconds
