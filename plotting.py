@@ -89,9 +89,12 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 	if tind == 'final':
 		# Find final positions of drifters
 		xpc,ypc = tools.find_final(xp,yp)
-	else:
+	elif is_numlike(tind):
 		xpc = xp[tind,:]
 		ypc = yp[tind,:]
+	else: # just plot what is input
+		xpc = xp
+		ypc = yp
 
 	# Info for 2d histogram
 	H, xedges, yedges = np.histogram2d(xpc,ypc,
