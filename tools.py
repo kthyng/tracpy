@@ -199,7 +199,7 @@ def find_final(xp,yp):
 	return xpc,ypc
 
 
-def convert_indices(direction,x,y,i,j):
+def convert_indices(direction,x,y):
 	'''
 	Converts indices between Python and Fortran indexing, assuming that
 	Python indexing begins at 0 and Fortran (for x and y) begins at 1.
@@ -208,23 +208,19 @@ def convert_indices(direction,x,y,i,j):
 
 	Usage:
 		For before a call to tracmass:
-			xstart,ystart,ia,ja = convert_indices('py2f',xstart,ystart,ia,ja)
+			xstart,ystart = convert_indices('py2f',xstart,ystart)
 		For after a call to tracmass:
-			xend,yend,iend,jend = convert_indices('f2py',xend,yend,iend,jend)
+			xend,yend = convert_indices('f2py',xend,yend)
 	'''
 
 	if direction == 'py2f':
 		x = x+1
 		y = y+1
-		i = i+1
-		j = j+1
 	elif direction == 'f2py':
 		x = x-1
 		y = y-1
-		i = i-1
-		j = j-1
 
-	return x,y,i,j
+	return x, y
 
 def check_points(lon0,lat0,grid):
 	"""

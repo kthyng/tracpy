@@ -1,4 +1,4 @@
-SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
+SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
                 & iter,ah,av,do3d,doturb)
@@ -18,10 +18,6 @@ SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
 !    xstart         : Starting x,y,z position of drifters for this set of two
 !    ystart           model outputs, in fraction of the grid cell in each
 !    zstart           direction. [ntractoc]
-!    istart         : Starting grid index of drifters in x,y,z for this set of two
-!    jstart           model outputs, should be integers and be for grid cell wall
-!    kstart           just beyond the drifter location. Maybe these can be inferred 
-!                     from x/y/zstart arrays instead. [ntractoc]
 !    tseas          : Time between model-output velocity fields that are input.
 !                     Also max time for this loop (seconds)
 !    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
@@ -64,6 +60,10 @@ SUBROUTINE step(xstart,ystart,zstart,istart,jstart,kstart,tseas, &
 !
 !  Other parameters used in function:
 !
+!    istart         : Starting grid index of drifters in x,y,z for this set of two
+!    jstart           model outputs, should be integers and be for grid cell wall
+!    kstart           just beyond the drifter location. These are inferred 
+!                     from x/y/zstart arrays. [ntractoc]
 !    rbg            : rbg=1-rg for time interpolation between time steps. Controls how much
 !                   : of later time step is used in interpolation.
 !    rg             : rg=1-rr for time interpolation between time steps. Controls how much
@@ -144,7 +144,6 @@ implicit none
 
 integer,    intent(in)                                  :: ff, imt, jmt, km, ntractot, iter
 integer,    intent(in)                                  :: do3d, doturb
-integer,    intent(in),     dimension(ntractot)         :: istart, jstart, kstart
 integer,    intent(in),     dimension(imt,jmt)          :: kmt
 real*8,     intent(in),     dimension(imt-1,jmt)        :: dyu
 real*8,     intent(in),     dimension(imt,jmt-1)        :: dxv
@@ -158,6 +157,7 @@ real*8,     intent(in)                                  :: tseas, ah, av
 integer,    intent(out),    dimension(ntractot)         :: flag
 real*8,     intent(out),    dimension(iter,ntractot)    :: xend, yend, zend
 integer,    intent(out),    dimension(iter,ntractot)    :: iend, jend, kend, ttend
+integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
 real*8                                                  :: rr, rg, rbg, rb, dsc, &
@@ -175,7 +175,10 @@ real*8,     parameter                                   :: UNDEF=1.d20
 real*8, dimension(6,2)                                    :: upr  
 ! end if
 
-
+! Set indices for x/y/z grid locations to be the ceiling of the grid indices
+istart = ceiling(xstart)
+jstart = ceiling(ystart)
+kstart = ceiling(zstart)
 
 ! controls the iterative stepping between the two input model outputs
 dstep=1.d0/dble(iter)

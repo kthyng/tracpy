@@ -164,8 +164,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 		# 							/abs(zwtnew[ia[i],ja[i],ka[i]-1]-zwtnew[ia[i],ja[i],ka[i]])
 
 	# Find initial cell depths to concatenate to beginning of drifter tracks later
-	# pdb.set_trace()
-	zsave = zwtnew[ia.astype(int),ja.astype(int),ka.astype(int)]
+	zsave = tools.interpolate3d(xstart0, ystart0, zstart0, zwtnew)
 
 	# j = 0 # index for number of saved steps for drifters
 	tic_read = np.zeros(len(tinds))
@@ -201,16 +200,10 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			xstart = xend[j*nsteps-1,:]
 			ystart = yend[j*nsteps-1,:]
 			zstart = zend[j*nsteps-1,:]
-			ia = iend[j*nsteps-1,:]
-			ja = jend[j*nsteps-1,:]
-			ka = kend[j*nsteps-1,:]
 			# mask out drifters that have exited the domain
 			xstart = np.ma.masked_where(flag[:]==1,xstart)
 			ystart = np.ma.masked_where(flag[:]==1,ystart)
 			zstart = np.ma.masked_where(flag[:]==1,zstart)
-			ia = np.ma.masked_where(flag[:]==1,ia)
-			ja = np.ma.masked_where(flag[:]==1,ja)
-			ka = np.ma.masked_where(flag[:]==1,ka)
 			ind = (flag[:] == 0) # indices where the drifters are still inside the domain
 		else: # first loop, j==0
 			xstart = xstart0
@@ -237,11 +230,10 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 			dzt = np.asfortranarray(np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
 									dztnew.reshape(np.append(dztnew.shape,1))), \
 									axis=dztold.ndim))
-			# pdb.set_trace()
 
 			# Change the horizontal indices from python to fortran indexing 
 			# (vertical are zero-based in tracmass)
-			xstart,ystart,ia,ja = tools.convert_indices('py2f',xstart,ystart,ia,ja)
+			xstart, ystart = tools.convert_indices('py2f',xstart,ystart)
 
 			# km that is sent to tracmass is determined from uflux (see tracmass?)
 			# so it will be the correct value for whether we are doing the 3D
@@ -256,17 +248,12 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 				flag[ind],\
 				ttend[j*nsteps:j*nsteps+nsteps,ind] = \
 					tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
-						np.ma.compressed(zstart),np.ma.compressed(ia),np.ma.compressed(ja),
-						np.ma.compressed(ka),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
+						np.ma.compressed(zstart),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
 						dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av,do3d,doturb)#dz.data,dxdy)
 			# Change the horizontal indices from python to fortran indexing
 			xend[j*nsteps:j*nsteps+nsteps,ind], \
-				yend[j*nsteps:j*nsteps+nsteps,ind], \
-				iend[j*nsteps:j*nsteps+nsteps,ind], \
-				jend[j*nsteps:j*nsteps+nsteps,ind] = tools.convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
-																			yend[j*nsteps:j*nsteps+nsteps,ind], \
-																			iend[j*nsteps:j*nsteps+nsteps,ind], \
-																			jend[j*nsteps:j*nsteps+nsteps,ind])
+				yend[j*nsteps:j*nsteps+nsteps,ind] = tools.convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
+																			yend[j*nsteps:j*nsteps+nsteps,ind])
 
 			# Calculate times for the output frequency
 			t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
