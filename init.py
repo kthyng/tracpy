@@ -124,7 +124,7 @@ def galveston():
 
 	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
 
-def test1():
+def test1(loc=None, nsteps=None, ff=None, ah=None, grid=None, nlon=None, nlat=None, doturb=None, name=None):
 	'''
 	A drifter test using TXLA model output. 
 	The comparison case for this simulation is 2D (do3d=0) 
@@ -132,25 +132,43 @@ def test1():
 	Drifters are started at the surface and run forward
 	for ten days (ndays=10) from 11/25/09 (in date). Compare results with figure in examples/test1.png.
 
+	Optional inputs for making tests easy to run:
+		loc 			'thredds' or 'local', default = 'thredds'
+		nsteps 			Number of particle steps to record between model outputs
+						Default = 5
+		ff 				Backward (-1) or forward (1) in time. Default is forward (1).
+		ah 				Horizontal viscosity, default = 5
+		grid 			If input, will not redo this step. Default is to load in grid.
+		nlon, nlat 		Number of drifters to use in the lon/lat direction in seed array
+						Default = 110, 98 (10 km spacing)
+		doturb 			What, if any, subgrid parameterization to use. Default is 'none'
+		name 			Specific name for track and figure files. Default is 'temp'
 	'''
 
 	# Location of TXLA model output
 	# file and then grid. 
 	# 0150 file goes from (2009, 11, 19, 12, 0) to (2009, 12, 6, 0, 0)
-	# loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/', \
-	# 		'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
-	loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
-			'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
-	# # Location of TXLA model output
-	# if 'rainier' in os.uname():
-	# 	loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
-	# elif 'hafen.tamu.edu' in os.uname():
-	# 	loc = '/home/kthyng/shelf/' # for model outputs
+	if loc is None or loc == 'thredds':
+		loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
+				'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+	elif loc is 'local':
+	# Location of TXLA model output
+		if 'rainier' in os.uname():
+			loc = '/Users/kthyng/Documents/research/postdoc/' # for model outputs
+		elif 'hafen.tamu.edu' in os.uname():
+			loc = '/home/kthyng/shelf/' # for model outputs
 
 	# Initialize parameters
-	nsteps = 5
+	if nsteps is None:
+		nsteps = 5
+	else:
+		nsteps = nsteps
+
 	ndays = 1 #16
-	ff = 1
+	if ff is None:
+		ff = 1
+	else:
+		ff = ff
 	# Start date
 	date = datetime(2009,11, 25, 0)
 	# date = datetime(2009,11, 20, 0)
@@ -158,13 +176,20 @@ def test1():
 	# Time between outputs
 	# Dt = 14400. # in seconds (4 hours), nc.variables['dt'][:] 
 	tseas = 4*3600 # 4 hours between outputs, in seconds, time between model outputs 
-	ah = 5. #100.
+	if ah is None:
+		ah = 5. #100.
+	else:
+		ah = ah
+	
 	av = 1.e-5 # m^2/s, or try 5e-6
 
 	# grid = netCDF.Dataset(loc+'grid.nc')
 	# lonr = grid.variables['lon_rho'][:]
 	# latr = grid.variables['lat_rho'][:]
-	grid = inout.readgrid(loc)
+	if grid is None:
+		grid = inout.readgrid(loc)
+	else:
+		grid = grid
 
 	## Input starting locations as real space lon,lat locations
 	# lon0,lat0 = np.meshgrid(-95.498218005315309,23.142258627126882) # [0,0] (SE) corner
@@ -176,9 +201,19 @@ def test1():
 
 	# lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,1100),np.linspace(22.5,31,980)) # whole domain, 1 km
 	# lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,220),np.linspace(22.5,31,196)) # whole domain, 5 km
-	# FOR TEST1:
-	lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,110),np.linspace(22.5,31,98)) # whole domain, 10 km
+	# # FOR TEST1:
+	# lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,110),np.linspace(22.5,31,98)) # whole domain, 10 km
 	# lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,21),np.linspace(22.5,31,20)) # whole domain, 50 km
+
+	if nlon is None:
+		nlon = 110
+	else:
+		nlon = nlon
+	if nlat is None:
+		nlat = 98
+	else:
+		nlat = nlat
+	lon0,lat0 = np.meshgrid(np.linspace(-98.5,-87.5,nlon),np.linspace(22.5,31,nlat)) # whole domain, 10 km
 
 	# Eliminate points that are outside domain or in masked areas
 	lon0,lat0 = tools.check_points(lon0,lat0,grid)
@@ -199,15 +234,16 @@ def test1():
 	# doturb=1 means adding parameterized turbulence
 	# doturb=2 means adding diffusion on a circle
 	# doturb=3 means adding diffusion on an ellipse (anisodiffusion)
-	doturb = 0
+	if doturb is None:
+		doturb = 0
+	else:
+		doturb = doturb
 
 	# simulation name, used for saving results into netcdf file
-	name = 'temp_mapcoord_order1' #'5_5_D5_F'
-
-	# # Save these settings to a file
-	# np.savez('tracks/' + name + 'header.in',loc=loc,nsteps=nsteps,ndays=ndays, 
-	# 		ff=ff,date=date,tseas=tseas,ah=ah,av=av,lon0=lon0,lat0=lat0,
-	# 		z0=z0,zpar=zpar,do3d=do3d,doturb=doturb,name=name)
+	if name is None:
+		name = 'temp' #'5_5_D5_F'
+	else:
+		name = name
 
 	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
 
