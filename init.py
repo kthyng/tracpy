@@ -1,4 +1,6 @@
 '''
+This file in tracpy is an example init file.
+
 Functions to initialize various numerical experiments.
 Contains:
 	test1
@@ -164,7 +166,7 @@ def test1(loc=None, nsteps=None, ff=None, ah=None, grid=None, nlon=None, nlat=No
 	else:
 		nsteps = nsteps
 
-	ndays = 1 #16
+	ndays = .5 #1 #16
 	if ff is None:
 		ff = 1
 	else:
@@ -245,7 +247,7 @@ def test1(loc=None, nsteps=None, ff=None, ah=None, grid=None, nlon=None, nlat=No
 	else:
 		name = name
 
-	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name
+	return loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,grid
 
 def test2():
 	'''

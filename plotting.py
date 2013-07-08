@@ -133,7 +133,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 		p = pcolor(xedges,yedges,(H.T/H.sum())*100,cmap='YlOrRd')
 
 		# Set x and y limits
-		pdb.set_trace()
+		# pdb.set_trace()
 		if xlims is not None:
 			xlim(xlims)
 		if ylims is not None:

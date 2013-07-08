@@ -19,7 +19,7 @@ import plotting
 import tools
 from scipy import ndimage
 
-def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name):
+def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,grid=None):
 	'''
 
 	To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -73,7 +73,10 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	nc,tinds = inout.setupROMSfiles(loc,date,ff,tout)
 
 	# Read in grid parameters into dictionary, grid
-	grid = inout.readgrid(loc,nc)
+	if grid is None:
+		grid = inout.readgrid(loc,nc)
+	else: # don't need to reread grid
+		grid = grid
 
 	# Interpolate to get starting positions in grid space
 	xstart0, ystart0, _ = tools.interpolate2d(lon0,lat0,grid,'d_ll2ij')
@@ -275,7 +278,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	nc.close()
 	t = t + t0save # add back in base time in seconds
 
-	pdb.set_trace()
+	# pdb.set_trace()
 
 	# Add on to front location for first time step
 	xg=np.concatenate((xstart0.reshape(1,xstart0.size),xend),axis=0)
