@@ -60,6 +60,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
 	'''
 
 	tic_start = time.time()
+	tic_initial = time.time()
+
 	# Units for time conversion with netCDF.num2date and .date2num
 	units = 'seconds since 1970-01-01'
 
@@ -169,11 +171,15 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
 	# Find initial cell depths to concatenate to beginning of drifter tracks later
 	zsave = tools.interpolate3d(xstart0, ystart0, zstart0, zwtnew)
 
+	toc_initial = time.time()
+
 	# j = 0 # index for number of saved steps for drifters
 	tic_read = np.zeros(len(tinds))
 	toc_read = np.zeros(len(tinds))
-	# toc_zinterp = np.zeros(len(tinds))
-	# toc_3dmap = np.zeros(len(tinds))
+	tic_zinterp = np.zeros(len(tinds))
+	toc_zinterp = np.zeros(len(tinds))
+	tic_tracmass = np.zeros(len(tinds))
+	toc_tracmass = np.zeros(len(tinds))
 	# pdb.set_trace()
 	xr3 = grid['xr'].reshape((grid['xr'].shape[0],grid['xr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
 	yr3 = grid['yr'].reshape((grid['yr'].shape[0],grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
@@ -242,6 +248,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
 			# so it will be the correct value for whether we are doing the 3D
 			# or isoslice case.
 			# vec = np.arange(j*nsteps,j*nsteps+nsteps) # indices for storing new track locations
+			tic_tracmass[j] = time.time()
 			xend[j*nsteps:j*nsteps+nsteps,ind],\
 				yend[j*nsteps:j*nsteps+nsteps,ind],\
 				zend[j*nsteps:j*nsteps+nsteps,ind], \
@@ -253,6 +260,8 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
 					tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
 						np.ma.compressed(zstart),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
 						dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av,do3d,doturb)#dz.data,dxdy)
+			toc_tracmass[j] = time.time()
+
 			# Change the horizontal indices from python to fortran indexing
 			xend[j*nsteps:j*nsteps+nsteps,ind], \
 				yend[j*nsteps:j*nsteps+nsteps,ind] = tools.convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
@@ -263,6 +272,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
 			
 			# Skip calculating real z position if we are doing surface-only drifters anyway
 			if z0 != 's' and zpar != grid['km']-1:
+				tic_zinterp[j] = time.time()
 				# Calculate real z position
 				r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
 
@@ -274,6 +284,7 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
 															yend[j*nsteps:j*nsteps+nsteps,ind], \
 															zend[j*nsteps:j*nsteps+nsteps,ind], \
 															zwt)
+				toc_zinterp[j] = time.time()
 
 	nc.close()
 	t = t + t0save # add back in base time in seconds
@@ -292,16 +303,29 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
 
 	## map coordinates interpolation
 	# xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
-	tic = time.time()
+	# tic = time.time()
 	lonp, latp, dt = tools.interpolate2d(xg,yg,grid,'m_ij2ll',mode='constant',cval=np.nan)
-	print '2d interp time=', time.time()-tic
+	# print '2d interp time=', time.time()-tic
 
 	# pdb.set_trace()
 
-	print "run time:",time.time()-tic_start
-	# print "list of readfields times", toc_read-tic_read
-	# print "sum of readfields:", np.sum(toc_read-tic_read)
-	print "ratio of time spent on reading:", np.sum(toc_read-tic_read)/(time.time()-tic_start)
+	runtime = time.time()-tic_start
+
+	print "run time:\t\t\t", runtime
+	print "---------------------------------------------"
+	print "Time spent on:"
+
+	initialtime = toc_initial-tic_initial
+	print "\tInitial stuff: \t\t%4.2f (%4.2f%%)" % (initialtime, (initialtime/runtime)*100)
+
+	readtime = np.sum(toc_read-tic_read)
+	print "\tReading in fields: \t%4.2f (%4.2f%%)" % (readtime, (readtime/runtime)*100)
+
+	zinterptime = np.sum(toc_zinterp-tic_zinterp)
+	print "\tZ interpolation: \t%4.2f (%4.2f%%)" % (zinterptime, (zinterptime/runtime)*100)
+
+	tractime = np.sum(toc_tracmass-tic_tracmass)
+	print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
 
 	# Save results to netcdf file
 	inout.savetracks(lonp,latp,zp,t,name,nsteps,ff,tseas,ah,av,do3d,doturb,loc)
