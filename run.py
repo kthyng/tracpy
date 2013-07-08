@@ -275,11 +275,13 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 	nc.close()
 	t = t + t0save # add back in base time in seconds
 
+	pdb.set_trace()
+
 	# Add on to front location for first time step
 	xg=np.concatenate((xstart0.reshape(1,xstart0.size),xend),axis=0)
 	yg=np.concatenate((ystart0.reshape(1,ystart0.size),yend),axis=0)
 	# Concatenate zp with initial real space positions
-	zp=np.concatenate((zsave.reshape(1,zstart0.size),zp),axis=0)
+	zp=np.concatenate((zsave[0].reshape(1,zstart0.size),zp),axis=0)
 
 	# Delaunay interpolation
 	# xp, yp, dt = tools.interpolate(xg,yg,grid,'d_ij2xy')
