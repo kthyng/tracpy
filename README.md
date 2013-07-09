@@ -1,12 +1,12 @@
 #tracpy
----
 
-##Fortran core of Tracmass + Python wrapping around the outside.
+Fortran core of Tracmass + Python wrapping around the outside.
 
 To get the Fortran Tracmass code ready:
 
-1.  > make clean
-2. Compile tracmass code in Fortran: 
+1. `make `clean
+1. Compile tracmass code in Fortran: 
+
 > make f2py
 
 To learn about the module Tracpy:
