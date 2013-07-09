@@ -1,5 +1,10 @@
 """
 Plotting routines for tracking.
+
+Functions include:
+* background
+* hist
+* tracks
 """
 
 import numpy as np

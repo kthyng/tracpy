@@ -1,5 +1,13 @@
 """
 Tools for dealing with drifter stuff.
+
+Functions include:
+
+* interpolate2d
+* interpolate3d
+* find_final
+* convert_indices
+* check_points
 """
 
 import numpy as np
