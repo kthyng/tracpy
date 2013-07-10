@@ -63,7 +63,8 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 					can be input and drifters at that time will be plotted.
 					Note that once drifters hit the outer numerical boundary,
 					they are nan'ed out so this may miss some drifters.
-		which 		(optional) 'contour' or 'pcolor' for type of plot used. Default 'contour'.
+		which 		(optional) 'contour', 'pcolor', 'hexbin', 'hist2d' 
+					for type of plot used. Default 'hexbin'.
 		bins 		(optional) Number of bins used in histogram. Default (15,25).
 		N 			(optional) Number of contours to make. Default 10.
 		grid 		(optional) grid as read in by inout.readgrid()
@@ -75,8 +76,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 	"""
 
 	if grid is None:
-		loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
-				'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+		loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
 		grid = inout.readgrid(loc)
 
 	# Change positions from lon/lat to x/y
@@ -154,6 +154,72 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 			os.makedirs('figures')
 
 		savefig('figures/' + fname + 'histpcolor.png',bbox_inches='tight')
+		# savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
+
+	elif which == 'hexbin':
+		# pdb.set_trace()
+		# norm = normalize(0, ((H.T/H.sum())*100).max())
+		# figure()
+		# hb = hexbin(xpc, ypc, gridsize=40, 
+		# 		extent=(grid['xr'].min(), grid['xr'].max(), 
+		# 		grid['yr'].min(), grid['yr'].max()))
+		# pdb.set_trace()
+		# close(gcf())
+		# H = hb.get_array()
+		# norm = normalize(hb.norm.vmin, ((H/H.sum())*100).max())
+		# hexbin(xpc, ypc, C=(H/H.sum())*100, cmap='YlOrRd', gridsize=40, 
+		# 		extent=(grid['xr'].min(), grid['xr'].max(), 
+		# 		grid['yr'].min(), grid['yr'].max()), norm=norm,
+		# 		vmin=hb.norm.vmin, vmax=((H/H.sum())*100).max())
+		C = np.ones(len(xpc))*(1./len(xpc))*100
+		hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=40, 
+				extent=(grid['xr'].min(), grid['xr'].max(), 
+				grid['yr'].min(), grid['yr'].max()),reduce_C_function=sum)
+
+		# Set x and y limits
+		# pdb.set_trace()
+		if xlims is not None:
+			xlim(xlims)
+		if ylims is not None:
+			ylim(ylims)
+
+		# Horizontal colorbar below plot
+		cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
+		cb = colorbar(cax=cax,orientation='horizontal')
+		cb.set_label('Final drifter location (percent)')
+
+		# pdb.set_trace()
+	    # Save figure into a local directory called figures. Make directory if it doesn't exist.
+		if not os.path.exists('figures'):
+			os.makedirs('figures')
+
+		savefig('figures/' + fname + 'histhexbin.png',bbox_inches='tight')
+		# savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
+
+	elif which == 'hist2d':
+		# pdb.set_trace()
+
+		hist2d(xpc, ypc, bins=40, 
+				range=[[grid['xr'].min(), grid['xr'].max()], 
+				[grid['yr'].min(), grid['yr'].max()]], normed=True)
+		set_cmap('YlOrRd')
+		# Set x and y limits
+		# pdb.set_trace()
+		if xlims is not None:
+			xlim(xlims)
+		if ylims is not None:
+			ylim(ylims)
+
+		# Horizontal colorbar below plot
+		cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
+		cb = colorbar(cax=cax,orientation='horizontal')
+		cb.set_label('Final drifter location (percent)')
+
+	    # Save figure into a local directory called figures. Make directory if it doesn't exist.
+		if not os.path.exists('figures'):
+			os.makedirs('figures')
+
+		savefig('figures/' + fname + 'hist2d.png',bbox_inches='tight')
 		# savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
 
