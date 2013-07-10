@@ -10,7 +10,7 @@ To get the Fortran Tracmass code ready:
 To learn about the module Tracpy:
 
 1. Open an iPython notebook server in the tracpy directory: `ipython notebook`
-1. A webpage will open in your browser showing the available notebooks in the current directory. Open the notebook called `manual`
+1. A webpage will open in your browser showing the available notebooks in the current directory. Open the notebook called manual
 1. The cells of the notebook can be run in order by pushing "shift" and "enter" together or the whole notebook can be run by selecting Cell > Run all. The notebook demonstrates how to initialize and run a numerical drifter experiment using tracpy.
 1. Alternatively, a static PDF version of the manual has been saved and can be viewed (manual.pdf) but not run.
 

@@ -151,8 +151,7 @@ def test1(loc=None, nsteps=None, ff=None, ah=None, grid=None, nlon=None, nlat=No
 	# file and then grid. 
 	# 0150 file goes from (2009, 11, 19, 12, 0) to (2009, 12, 6, 0, 0)
 	if loc is None or loc == 'thredds':
-		loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
-				'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+		loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'		
 	elif loc is 'local':
 	# Location of TXLA model output
 		if 'rainier' in os.uname():

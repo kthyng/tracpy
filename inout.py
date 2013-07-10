@@ -40,11 +40,14 @@ def setupROMSfiles(loc,date,ff,tout):
 	 nc 	NetCDF object for relevant files
 	 tinds 	Indices of outputs to use from fname files
 	'''
+	# This addresses an issue in netCDF4 that was then fixed, but
+	# this line makes updating unnecessary. Issue described here: 
+	# http://code.google.com/p/netcdf4-python/issues/detail?id=170
+	netCDF._set_default_format(format='NETCDF3_64BIT')
+
 	# pdb.set_trace()
-	if len(loc) == 2: # contains specific file and grid file
-	# if 'http' in loc: # use just input file
-		fname = loc[0]
-		nc = netCDF.Dataset(fname)
+	if 'http' in loc: # use just input file
+		nc = netCDF.Dataset(loc)
 		if ff == 1: #forward in time
 			dates = nc.variables['ocean_time'][:]	
 			ilow = date >= dates
@@ -199,8 +202,16 @@ def readgrid(loc,nc=None):
 				 area_thresh=area_thresh)
 
 	# Read in grid parameters and find x and y in domain on different grids
-	if len(loc) == 2:
-		gridfile = netCDF.Dataset(loc[1])
+	# if len(loc) == 2:
+	# 	gridfile = netCDF.Dataset(loc[1])
+	# use full dataset to get grid information
+	# This addresses an issue in netCDF4 that was then fixed, but
+	# this line makes updating unnecessary. Issue described here: 
+	# http://code.google.com/p/netcdf4-python/issues/detail?id=170
+	netCDF._set_default_format(format='NETCDF3_64BIT')
+
+	if 'http' in loc:
+		gridfile = netCDF.Dataset(loc)
 	else:
 		gridfile = netCDF.Dataset(loc + 'grid.nc')
 	lonu = gridfile.variables['lon_u'][:]
@@ -221,7 +232,13 @@ def readgrid(loc,nc=None):
 	h = gridfile.variables['h'][:]
 
 	# Vertical grid metrics
-	if nc is not None:
+	if 'http' in loc:
+		sc_r = gridfile.variables['s_w'][:] # sigma coords, 31 layers
+		Cs_r = gridfile.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
+		hc = gridfile.variables['hc'][:]
+		theta_s = gridfile.variables['theta_s'][:]
+		theta_b = gridfile.variables['theta_b'][:]
+	elif nc is not None: # for if running off local grid/nc files
 		sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
 		Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
 		hc = nc.variables['hc'][:]
@@ -262,7 +279,7 @@ def readgrid(loc,nc=None):
 	imt = h.shape[0] # 671
 	jmt = h.shape[1] # 191
 	# km = sc_r.shape[0] # 31
-	if nc is not None:
+	if ('http' in loc) or (nc is not None):
 		km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
 	# Index grid, for interpolation between real and grid space
@@ -303,7 +320,7 @@ def readgrid(loc,nc=None):
 
 	# Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
 	# pdb.set_trace()
-	if nc is not None:
+	if ('http' in loc) or (nc is not None):
 		mask2 = mask.copy()
 		kmt = np.ones((imt,jmt),order='f')*km
 		ind = (mask2[1:imt,:]==1)
@@ -332,22 +349,8 @@ def readgrid(loc,nc=None):
 		# is for the reference vertical level
 		dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
-	# # Copy calculations from rutgersNWA/readfields.f95
-	# dzt0 = np.ones((imt,jmt,km))*np.nan
-	# for k in xrange(km):
-	#     dzt0[:,:,k] = (sc_r[k]-Cs_r[k])*hc + Cs_r[k]*h
-
-
-	# # Flip vertical dimension because in ROMS surface is at k=-1 
-	# # and in tracmass surface is at 1
-	# Cs_r = np.flipud(Cs_r)
-	# sc_r = np.flipud(sc_r)
-	# Cs_r and sc_r are flipped vertically!
-
-	# pdb.set_trace()
-
 	# Fill in grid structure
-	if nc is not None:
+	if ('http' in loc) or (nc is not None):
 		grid = {'imt':imt,'jmt':jmt,'km':km, 
 			'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
 			'mask':mask,'kmt':kmt,'dzt0':dzt0,
