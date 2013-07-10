@@ -157,20 +157,8 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 		# savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
 	elif which == 'hexbin':
-		# pdb.set_trace()
-		# norm = normalize(0, ((H.T/H.sum())*100).max())
-		# figure()
-		# hb = hexbin(xpc, ypc, gridsize=40, 
-		# 		extent=(grid['xr'].min(), grid['xr'].max(), 
-		# 		grid['yr'].min(), grid['yr'].max()))
-		# pdb.set_trace()
-		# close(gcf())
-		# H = hb.get_array()
-		# norm = normalize(hb.norm.vmin, ((H/H.sum())*100).max())
-		# hexbin(xpc, ypc, C=(H/H.sum())*100, cmap='YlOrRd', gridsize=40, 
-		# 		extent=(grid['xr'].min(), grid['xr'].max(), 
-		# 		grid['yr'].min(), grid['yr'].max()), norm=norm,
-		# 		vmin=hb.norm.vmin, vmax=((H/H.sum())*100).max())
+
+		# C with the reduce_C_function as sum is what makes it a percent
 		C = np.ones(len(xpc))*(1./len(xpc))*100
 		hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=40, 
 				extent=(grid['xr'].min(), grid['xr'].max(), 
