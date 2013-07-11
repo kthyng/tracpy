@@ -15,3 +15,12 @@ To learn about the module Tracpy:
 1. Alternatively, a static PDF version of the manual has been saved and can be viewed (manual.pdf) but not run.
 
 For projects, it is suggested to start a separate directory with its own initialization and run file for the simulation(s). Then tracpy can be imported as a module and the run script can be run in the background from the terminal with standard output being redirected to a log file using `python run.py > log.txt &`
+
+Even better, multiple instances of the simulation can be run on different cores if you have a multi-core Linux machine. To do this, use `taskset`:
+`taskset 3 python2.7 run.py > temp_log.txt &`
+This command runs the run.py script for a specific project in the background (due to the &), redirects the output from the screen to the text file 'temp_log.txt', and runs the process on core 3. This command can then be used for other instances by choosing a different core after the command `taskset`.
+
+If a process is already running, you can check its current core using its PID:
+`taskset -p [PID]`
+Then you can move the process to a different core using
+`taskset -p [CORE NUMBER] [PID]`
