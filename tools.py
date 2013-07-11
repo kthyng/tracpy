@@ -258,17 +258,23 @@ def check_points(lon0,lat0,grid):
 	# Loop through particle tracks to eliminate drifters that start outside 
 	# the domain
 	# pdb.set_trace()
-	for jd in range(lon0.shape[0]): # loop through drifters
-		for it in range(lon0.shape[1]): 
+	if lon0.ndim == 2:
+		for jd in range(lon0.shape[0]): # loop through drifters
+			for it in range(lon0.shape[1]): 
+				# if drifter is not inside path, nan out this and all 
+				# subsequent points
+				if not path.contains_point(np.vstack((lon0[jd,it],lat0[jd,it]))):
+					lon0[jd,it] = np.nan
+					lat0[jd,it] = np.nan
+				# break
+
+	elif lon0.ndim == 1:
+		for jd in range(lon0.shape[0]): # loop through drifters
 			# if drifter is not inside path, nan out this and all 
 			# subsequent points
-			# print jd,it
-			# if it > 20:
-			# 	pdb.set_trace()
-			if not path.contains_point(np.vstack((lon0[jd,it],lat0[jd,it]))):
-				lon0[jd,it] = np.nan
-				lat0[jd,it] = np.nan
-				# break
+			if not path.contains_point(np.vstack((lon0[jd],lat0[jd]))):
+				lon0[jd] = np.nan
+				lat0[jd] = np.nan
 
 	# pdb.set_trace()
 
