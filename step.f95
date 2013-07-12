@@ -64,8 +64,6 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !    jstart           model outputs, should be integers and be for grid cell wall
 !    kstart           just beyond the drifter location. These are inferred 
 !                     from x/y/zstart arrays. [ntractoc]
-!    rbg            : rbg=1-rg for time interpolation between time steps. Controls how much
-!                   : of later time step is used in interpolation.
 !    rg             : rg=1-rr for time interpolation between time steps. Controls how much
 !                   : of later time step is used in interpolation.
 !    rr             : time interpolation constant between 0 and 1. Controls how much
@@ -160,7 +158,7 @@ integer,    intent(out),    dimension(iter,ntractot)    :: iend, jend, kend, tte
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
-real*8                                                  :: rr, rg, rbg, rb, dsc, &
+real*8                                                  :: rr, rg, rb, dsc, &
                                                            dstep, dtmin, dxyz, dt, &
                                                            dsmin, ds, dse, dsw, dsn, &
                                                            dss, dsd, dsu, &
@@ -323,14 +321,14 @@ ntracLoop: do ntrac=1,ntractot
                ' ka=',ka,' kb=',kb
             print *,'x1=',x1,' x0=',x0,' y1=',y1,' y0=',y0, & 
                ' z1=',z1,' z0=',z0
-            print *,'u(ia )=',(rbg*uflux(ia ,ja,ka,nsp) + &
-               rb*uflux(ia ,ja,ka,nsm))*ff
-            print *,'u(iam)=',(rbg*uflux(iam,ja,ka,nsp) + & 
-               rb*uflux(iam,ja,ka,nsm))*ff
-            print *,'v(ja  )=',(rbg*vflux(ia,ja  ,ka,nsp) + & 
-               rb*vflux(ia,ja  ,ka,nsm))*ff
-            print *,'v(ja-1)=',(rbg*vflux(ia,ja-1,ka,nsp) + & 
-               rb*vflux(ia,ja-1,ka,nsm))*ff
+!             print *,'u(ia )=',(rbg*uflux(ia ,ja,ka,nsp) + &
+!                rb*uflux(ia ,ja,ka,nsm))*ff
+!             print *,'u(iam)=',(rbg*uflux(iam,ja,ka,nsp) + & 
+!                rb*uflux(iam,ja,ka,nsm))*ff
+!             print *,'v(ja  )=',(rbg*vflux(ia,ja  ,ka,nsp) + & 
+!                rb*vflux(ia,ja  ,ka,nsm))*ff
+!             print *,'v(ja-1)=',(rbg*vflux(ia,ja-1,ka,nsp) + & 
+!                rb*vflux(ia,ja-1,ka,nsm))*ff
             print *,'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,'dsmin=',dsmin
             print *,'-------------------------------------'
             errCode = -48

@@ -7,6 +7,8 @@ To get the Fortran Tracmass code ready:
 1. `make clean`
 1. Compile tracmass code in Fortran: `make f2py`
 
+Note: if the code will not compile, a first step could be to change the flag in the makefile from -m64 to -m32 if you are set up to use 32 bit instead of 64 bit.
+
 To learn about the module Tracpy:
 
 1. Open an iPython notebook server in the tracpy directory: `ipython notebook`
