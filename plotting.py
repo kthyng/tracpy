@@ -219,10 +219,9 @@ def tracks(lonp,latp,fname,grid=None):
         lonp,latp   Drifter track positions [time x ndrifters]
         fname       Plot name to save
     """
-
+    # pdb.set_trace()
     if grid is None:
-        loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
-                'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+        loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         grid = inout.readgrid(loc)
 
     # Change positions from lon/lat to x/y
@@ -257,6 +256,7 @@ def tracks(lonp,latp,fname,grid=None):
     # Find final positions of drifters
     xpc,ypc = tools.find_final(xp,yp)
     plot(xpc,ypc,'o',color='r',label='_nolegend_')
+    # pdb.set_trace()
 
     # Legend, of sorts
     xtext, ytext = grid['basemap'](-94,24) # text location
