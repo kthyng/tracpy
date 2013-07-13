@@ -49,14 +49,14 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !
 !    flag           : set to 1 for a drifter if drifter shouldn't be stepped in the 
 !                     future anymore
-!    xend           : the new grid fraction position of drifters in x/y/z [iter,ntractot]
+!    xend           : the new grid fraction position of drifters in x/y/z [ntractot,iter]
 !    yend       
 !    zend       
-!    iend           : the new grid index position of drifters in x/y/z [iter,ntractot]
+!    iend           : the new grid index position of drifters in x/y/z [ntractot,iter]
 !    jend       
 !    kend       
 !    ttend          : time in seconds relative to the code start for when particles are
-!                     output. [iter,ntractot]
+!                     output. [ntractot,iter]
 !
 !  Other parameters used in function:
 !
@@ -100,42 +100,11 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !    iam            : index for grid index ia-1
 !    ib,jb,kb       : new position in grid space indices
 !    errCode        : Keeps track of errors that occur. Currently not being well utilized.
-!    nsm=1,nsp=2    : Time index. nsm picks out the earlier bounding time step and 
-!                     nsp picks out the later bounding time step for interpolation.
 !    upr            : parameterized turbulent velocities u', v', and w'
 !                     optional because only used if using turb flag for diffusion
 !                     size [6,2]. The 2nd dimension is for two time steps.
 !                     The 1st dimension is: [u'_ia,u'_ia-1,v'_ja,v'_ja-1,w'_ka,w'_ka-1]
 !
-! Flags that can be used from tracmass and turned on/off in the makefile:
-!   -Dtimestep:         The normal analytic time stepping routine described 
-!                       in the tracmass user guide. Mandatory.
-!   -Dtwodim:           If set, then drifters cannot move vertically in grid 
-!                       space. Optional. Default is 3D motion calculated from 
-!                       the input uflux and vflux using the continuity equation.
-!   -Dzgrid3Dt:         Vertical cell thicknesses already account for changes 
-!                       in time due to free surface movement. Mandatory.
-!   -Dturb:             Adds parameterized horizontal and vertical subgrid-scale  
-!                       turbulence to drifter fluxes. Optional. Do not use with 
-!                       -Ddiffusion or -Danisodiffusion.
-!   -Ddiffusion:        Adds a diffusive random isotropic horizontal position to  
-!                       drifter trajectory based on a circle. Also adds a vertical 
-!                       position. Optional. Do not use with -Dturb but can use  
-!                       with -anisodiffusion.
-!   -Danisodiffusion:   Adds a diffusive random anistropic horizontal position to 
-!                       drifter trajectory based on an ellipse, so that the 
-!                       diffusion is higher along the isobaths and weaker in the
-!                       perpendicular direction. This diffusion will hence take 
-!                       into account the fact that observations of trajectories 
-!                       of floats and drifters tend to follow isolines of constant 
-!                       planetary vorticity (f/h).
-!
-! Notes:
-!  * ifs flag looks like it is for a specific example, ignoring for now
-!  * There are vertical flux flags, but only the default behavior works currently.
-!    Not sure if other options need to be included in this work (-Dfull_wflux
-!    and -Dexplicit_w)
-!  
 !====================================================================
 
 implicit none
@@ -153,8 +122,8 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
-real*8,     intent(out),    dimension(iter,ntractot)    :: xend, yend, zend
-integer,    intent(out),    dimension(iter,ntractot)    :: iend, jend, kend, ttend
+real*8,     intent(out),    dimension(ntractot,iter)    :: xend, yend, zend
+integer,    intent(out),    dimension(ntractot,iter)    :: iend, jend, kend, ttend
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
@@ -166,7 +135,6 @@ real*8                                                  :: rr, rg, rb, dsc, &
                                                            tt, tss, ts
 integer                                                 :: ntrac, niter, ia, ja, ka, &
                                                            iam, ib, jb, kb, errCode
-integer                                                 :: nsm=1,nsp=2
 real*8,     parameter                                   :: UNDEF=1.d20
 
 ! if(doturb==1) then
@@ -254,13 +222,6 @@ ntracLoop: do ntrac=1,ntractot
             print *,'The trajectory is killed'
             print *,'====================================='
             errCode = -39
-!             flag = 1
-!             xend(ntrac) = x1
-!             yend(ntrac) = y1
-!             zend(ntrac) = z1
-!             iend(ntrac) = ib
-!             jend(ntrac) = jb
-!             kend(ntrac) = kb
             flag(ntrac) = 1 
         end if
 
@@ -321,23 +282,9 @@ ntracLoop: do ntrac=1,ntractot
                ' ka=',ka,' kb=',kb
             print *,'x1=',x1,' x0=',x0,' y1=',y1,' y0=',y0, & 
                ' z1=',z1,' z0=',z0
-!             print *,'u(ia )=',(rbg*uflux(ia ,ja,ka,nsp) + &
-!                rb*uflux(ia ,ja,ka,nsm))*ff
-!             print *,'u(iam)=',(rbg*uflux(iam,ja,ka,nsp) + & 
-!                rb*uflux(iam,ja,ka,nsm))*ff
-!             print *,'v(ja  )=',(rbg*vflux(ia,ja  ,ka,nsp) + & 
-!                rb*vflux(ia,ja  ,ka,nsm))*ff
-!             print *,'v(ja-1)=',(rbg*vflux(ia,ja-1,ka,nsp) + & 
-!                rb*vflux(ia,ja-1,ka,nsm))*ff
             print *,'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,'dsmin=',dsmin
             print *,'-------------------------------------'
             errCode = -48
-!             xend(ntrac) = x1
-!             yend(ntrac) = y1
-!             zend(ntrac) = z1
-!             iend(ntrac) = ib
-!             jend(ntrac) = jb
-!             kend(ntrac) = kb
             flag(ntrac) = 1 ! want to continue drifters if time was the limiting factor here
         end if
 
@@ -399,9 +346,6 @@ ntracLoop: do ntrac=1,ntractot
             print *,'==================================================='
             print *,'Warning: not find any path for unknown reason '
             print *, " "
-!             write (*,'(A, E9.3, A, E9.3)'), ' uflux= ', &
-!                 uflux(ia,ja,ka,nsm),'  vflux= ', vflux(ia,ja,ka,nsm)
-
 !             write (*,FMT='(A, 5E9.2)'),' ds=',ds,dse,dsw,dsn,dss
 !             write (*,FMT='(4E9.2)'), dsu,dsd,dsmin,dxyz
 !             print *,'---------------------------------------------------'
@@ -422,12 +366,6 @@ ntracLoop: do ntrac=1,ntractot
             print *,'==================================================='
     !         nerror=nerror+1
     !         nrj(ntrac,6)=1
-!             xend(ntrac) = x1
-!             yend(ntrac) = y1
-!             zend(ntrac) = z1
-!             iend(ntrac) = ib
-!             jend(ntrac) = jb
-!             kend(ntrac) = kb
             flag(ntrac) = 1
             errCode = -56
         end if
@@ -505,73 +443,11 @@ ntracLoop: do ntrac=1,ntractot
 !            boundError = boundError +1
             errCode = -50
 !            if (strict==1) stop
-!             xend(ntrac) = x1
-!             yend(ntrac) = y1
-!             zend(ntrac) = z1
-!             iend(ntrac) = ib
-!             jend(ntrac) = jb
-!             kend(ntrac) = kb
             flag(ntrac) = 1
 
 !            nrj(ntrac,6)=1
         endif
         if (errCode.ne.0) cycle ntracLoop
-
-!         call errorCheck('landError', errCode)
-!         if(kmt(ib,jb) == 0) then
-!           print *,'====================================='
-!           print *,'Warning: Trajectory on land'
-!           print *,'-------------------------------------'
-!           print *,'land',ia,ib,ja,jb,ka,kb,kmt(ia,ja)
-!           print *,'xyz',x0,x1,y0,y1,z0,z1
-!           print *,'ds',ds,dse,dsw,dsn,dss!,dsu,dsd
-!           print *,'dsmin=',ds,dsmin,dtmin
-!           print *,'dxyz=',dxyz!,' dxdy=',dxdy(ib,jb),dxdy(ia,ja)
-! !           print *,'hs=',hs(ia,ja,nsm),hs(ia,ja,nsp),hs(ib,jb,nsm),hs(ib,jb,nsp)
-!           print *,'tt=',tt,ts,tt/tday,t0/tday
-!           print *,'ntrac=',ntrac
-!           print *,'niter=',niter
-
-!           print *,'-------------------------------------'
-!           print *,'The trajectory is killed'
-!           print *,'====================================='
-! !            nerror=nerror+1
-! !            landError = landError +1
-!            errCode = -40             
-!             xend(ntrac) = x1
-!             yend(ntrac) = y1
-!             zend(ntrac) = z1
-!             iend(ntrac) = ib
-!             jend(ntrac) = jb
-!             kend(ntrac) = kb
-!             flag(ntrac) = 1
-
-! !            nrj(ntrac,6)=1
-! !            if (strict==1) stop 
-!         endif
-!         if (errCode.ne.0) cycle ntracLoop
-
-!         call errorCheck('bottomError', errCode)
-!         ! if trajectory under bottom of ocean, 
-!         ! then put in middle of deepest layer 
-!         ! (this should however be impossible)
-!          if( z1.le.dble(km-kmt(ib,jb)) ) then
-!             print *,'under bottom !!!!!!!',z1,dble(km-kmt(ib,jb))
-!             print *,'kmt=',kmt(ia,ja),kmt(ib,jb)
-!             print *,'ntrac=',ntrac
-!              print *,'ds',ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dxyz
-!              print *,'ia=',ia,ib,ja,jb,ka,kb
-!              print *,'x0=',x0,x1,y0,y1,z0,z1
-!              call cross(1,ia,ja,ka,x0,dse,dsw,rr) ! zonal
-!              call cross(2,ia,ja,ka,y0,dsn,dss,rr) ! meridional
-!              call cross(3,ia,ja,ka,z0,dsu,dsd,rr) ! vertical
-!              print *,'time step sol:',dse,dsw,dsn,dss,dsu,dsd
-!             nerror=nerror+1
-!             nrj(ntrac,6)=1
-!              stop 3957
-!              z1=dble(km-kmt(ib,jb))+0.5d0
-!             errCode = -49
-!          end if
 
 !         call errorCheck('airborneError', errCode)
          ! if trajectory above sea level,
@@ -650,36 +526,21 @@ ntracLoop: do ntrac=1,ntractot
             if(x1>=imt-1) x1=dble(imt-1)
             if(y1<=1.d0) y1=1.d0
             if(y1>=jmt-1) y1=dble(jmt-1)
-!             if(x1<=2.d0) x1=2.d0
-!             if(x1>=imt) x1=dble(imt)
-!             if(y1<=2.d0) y1=2.d0
-!             if(y1>=jmt) y1=dble(jmt)
-            ! Don't write here since the timing of the location would probably be off
-!             xend(idint(tss),ntrac) = x1
-!             yend(idint(tss),ntrac) = y1
-!             zend(idint(tss),ntrac) = z1
-!             iend(idint(tss),ntrac) = ib
-!             jend(idint(tss),ntrac) = jb
-!             kend(idint(tss),ntrac) = kb
-!             ttend(idint(tss),ntrac) = tt
             flag(ntrac) = 1
-!             print *,'I should exit'
             exit niterLoop
-!             print *,'I did not exit'
         endif
 
         ! If no errors have caught the loop, and it is at an interpolation step,
         ! write to array to save drifter location
         if(dmod(tss,dble(idint(tss)))<0.00001d0) then
-            xend(idint(tss),ntrac) = x1
-            yend(idint(tss),ntrac) = y1
-            zend(idint(tss),ntrac) = z1
-            iend(idint(tss),ntrac) = ib
-            jend(idint(tss),ntrac) = jb
-            kend(idint(tss),ntrac) = kb
-            ttend(idint(tss),ntrac) = tt
+            xend(ntrac,idint(tss)) = x1
+            yend(ntrac,idint(tss)) = y1
+            zend(ntrac,idint(tss)) = z1
+            iend(ntrac,idint(tss)) = ib
+            jend(ntrac,idint(tss)) = jb
+            kend(ntrac,idint(tss)) = kb
+            ttend(ntrac,idint(tss)) = tt
         endif
-!         print *,'x1=',x1,' y1=',y1,' tt=',tt
 
 ! This is the normal stopping routine for the loop. I am going to do a shorter one
         ! === stop trajectory if the choosen time or ===
@@ -691,14 +552,7 @@ ntracLoop: do ntrac=1,ntractot
 !             print *, 'Stopping trajectory due to time'
 !             print *, 'tt=',tt,' t0=',t0,' tseas=',tseas
 !             print *, 'x1=',x1,' y1=',y1
-!             xend(ntrac) = x1
-!             yend(ntrac) = y1
-!             zend(ntrac) = z1
-!             iend(ntrac) = ib
-!             jend(ntrac) = jb
-!             kend(ntrac) = kb
             flag(ntrac) = 0 ! want to continue drifters if time was the limiting factor here
-!             print *,'xend=',xend,' flag=',flag
             exit niterLoop
         endif
          

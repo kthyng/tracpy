@@ -8,9 +8,6 @@ Functions include:
 """
 
 import numpy as np
-# import matplotlib as mpl
-# mpl.rcParams['backend'] = 'cairo'
-# mpl.use('cairo')
 from mpl_toolkits.basemap import Basemap
 from matplotlib.mlab import *
 from matplotlib.pyplot import *
@@ -30,8 +27,7 @@ def background(grid=None):
     matplotlib.rcParams.update({'font.size': 20})#,'font.weight': 'bold'})
 
     if grid is None:
-        loc = ['http://barataria.tamu.edu:8080/thredds/dodsC/txla_nesting6/ocean_his_0150.nc', \
-                'http://barataria.tamu.edu:8080//thredds/dodsC/txla_nesting6_grid/txla_grd_v4_new.nc']
+        loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         grid = inout.readgrid(loc)
 
     # Do plot   
@@ -43,10 +39,10 @@ def background(grid=None):
     contour(grid['xr'], grid['yr'], grid['h'], np.hstack(([10,20],np.arange(50,500,50))), colors='lightgrey', linewidths=0.15)
 
     # Outline numerical domain
-    plot(grid['xr'][0,:],grid['yr'][0,:],'k:')
-    plot(grid['xr'][-1,:],grid['yr'][-1,:],'k:')
-    plot(grid['xr'][:,0],grid['yr'][:,0],'k:')
-    plot(grid['xr'][:,-1],grid['yr'][:,-1],'k:')
+    plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
+    plot(grid['xr'][-1,:], grid['yr'][-1,:], 'k:')
+    plot(grid['xr'][:,0], grid['yr'][:,0], 'k:')
+    plot(grid['xr'][:,-1], grid['yr'][:,-1], 'k:')
 
 
 def hist(lonp, latp, fname, tind='final', which='contour', \
@@ -80,7 +76,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         grid = inout.readgrid(loc)
 
     # Change positions from lon/lat to x/y
-    xp,yp = grid['basemap'](lonp,latp)
+    xp, yp = grid['basemap'](lonp, latp)
     # Need to retain nan's since basemap changes them to values
     ind = np.isnan(lonp)
     xp[ind] = np.nan
@@ -93,37 +89,36 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 
     if tind == 'final':
         # Find final positions of drifters
-        xpc,ypc = tools.find_final(xp,yp)
+        xpc, ypc = tools.find_final(xp, yp)
     elif is_numlike(tind):
-        xpc = xp[tind,:]
-        ypc = yp[tind,:]
+        xpc = xp[:,tind]
+        ypc = yp[:,tind]
     else: # just plot what is input
         xpc = xp
         ypc = yp
 
     # Info for 2d histogram
-    H, xedges, yedges = np.histogram2d(xpc,ypc,
-                        range=[[grid['xr'].min(),grid['xr'].max()],[grid['yr'].min(),grid['yr'].max()]],
-                        bins=bins)
-    # H, xedges, yedges = np.histogram2d(xp[tind,:],yp[tind,:],
-    #                   range=[[grid['xr'].min(),grid['xr'].max()],[grid['yr'].min(),grid['yr'].max()]],
-    #                   bins=bins)
-
+    H, xedges, yedges = np.histogram2d(xpc, ypc,
+                            range=[[grid['xr'].min(), \
+                            grid['xr'].max()], \
+                            [grid['yr'].min(), \
+                            grid['yr'].max()]],
+                            bins=bins)
 
     if which == 'contour':
         # Contour Plot
-        XE,YE = np.meshgrid(op.resize(xedges,0),op.resize(yedges,0))
+        XE, YE = np.meshgrid(op.resize(xedges,0), op.resize(yedges,0))
         d = (H/H.sum())*100
         # # from http://matplotlib.1069221.n5.nabble.com/question-about-contours-and-clim-td21111.html
         # locator = ticker.MaxNLocator(50) # if you want no more than 10 contours
         # locator.create_dummy_axis()
         # locator.set_bounds(0,1)#d.min(),d.max())
         # levs = locator()
-        con = contourf(XE,YE,d.T,N)#,levels=levs)#(0,15,30,45,60,75,90,105,120))
+        con = contourf(XE, YE, d.T, N)#,levels=levs)#(0,15,30,45,60,75,90,105,120))
         con.set_cmap('YlOrRd')
         # Horizontal colorbar below plot
         cax = fig.add_axes([0.3725, 0.25, 0.48, 0.02]) #colorbar axes
-        cb = colorbar(con,cax=cax,orientation='horizontal')
+        cb = colorbar(con, cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
         # Save figure into a local directory called figures. Make directory if it doesn't exist.
@@ -135,7 +130,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 
     elif which == 'pcolor':
         # Pcolor plot
-        p = pcolor(xedges,yedges,(H.T/H.sum())*100,cmap='YlOrRd')
+        p = pcolor(xedges, yedges, (H.T/H.sum())*100, cmap='YlOrRd')
 
         # Set x and y limits
         # pdb.set_trace()
@@ -146,14 +141,14 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 
         # Horizontal colorbar below plot
         cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
-        cb = colorbar(p,cax=cax,orientation='horizontal')
+        cb = colorbar(p, cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
         # Save figure into a local directory called figures. Make directory if it doesn't exist.
         if not os.path.exists('figures'):
             os.makedirs('figures')
 
-        savefig('figures/' + fname + 'histpcolor.png',bbox_inches='tight')
+        savefig('figures/' + fname + 'histpcolor.png', bbox_inches='tight')
         # savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
     elif which == 'hexbin':
@@ -162,7 +157,8 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         C = np.ones(len(xpc))*(1./len(xpc))*100
         hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=40, 
                 extent=(grid['xr'].min(), grid['xr'].max(), 
-                grid['yr'].min(), grid['yr'].max()),reduce_C_function=sum)
+                grid['yr'].min(), grid['yr'].max()), 
+                reduce_C_function=sum)
 
         # Set x and y limits
         # pdb.set_trace()
@@ -173,7 +169,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 
         # Horizontal colorbar below plot
         cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
-        cb = colorbar(cax=cax,orientation='horizontal')
+        cb = colorbar(cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
         # pdb.set_trace()
@@ -181,7 +177,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         if not os.path.exists('figures'):
             os.makedirs('figures')
 
-        savefig('figures/' + fname + 'histhexbin.png',bbox_inches='tight')
+        savefig('figures/' + fname + 'histhexbin.png', bbox_inches='tight')
         # savefig('figures/' + fname + 'histhexbin.pdf',bbox_inches='tight')
 
     elif which == 'hist2d':
@@ -237,21 +233,10 @@ def tracks(lonp,latp,fname,grid=None):
     # pdb.set_trace()
 
     # Starting marker
-    plot(xp[0,:],yp[0,:],'o',color='g',markersize=3,label='_nolegend_',alpha=0.4)
+    plot(xp[:,0],yp[:,0],'o',color='g',markersize=3,label='_nolegend_',alpha=0.4)
 
     # Plot tracks
-    plot(xp,yp,'-',color='grey',linewidth=.2)
-
-        # for idrift in range(xp.shape[1]):
-        # Plot tracks
-        # plot(xp[:,idrift],yp[:,idrift],'-',color='grey',linewidth=.2)
-
-        # # Ending marker
-        # if np.sum(np.isnan(xp[:,idrift])) > 0 and np.sum(np.isnan(xp[:,idrift])) < xp.shape[1]: # if there is a nan
-        #   ind = ~np.isnan(xp[:,idrift])
-        #   plot(xp[find(ind[:])[-1],idrift].T,yp[find(ind[:])[-1],idrift].T,'o',color='r',label='_nolegend_')
-        # else:
-        #   plot(xp[-1,idrift].T,yp[-1,idrift].T,'o',color='r',label='_nolegend_')
+    plot(xp.T,yp.T,'-',color='grey',linewidth=.2)
 
     # Find final positions of drifters
     xpc,ypc = tools.find_final(xp,yp)

@@ -19,7 +19,8 @@ import plotting
 import tools
 from scipy import ndimage
 
-def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,grid=None):
+def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
+        zpar, do3d, doturb, name, grid=None):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -69,19 +70,19 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
     tout = np.int((ndays*(24*3600))/tseas)
 
     # Convert date to number
-    date = netCDF.date2num(date,units)
+    date = netCDF.date2num(date, units)
 
     # Figure out what files will be used for this tracking
-    nc,tinds = inout.setupROMSfiles(loc,date,ff,tout)
+    nc, tinds = inout.setupROMSfiles(loc, date, ff, tout)
 
     # Read in grid parameters into dictionary, grid
     if grid is None:
-        grid = inout.readgrid(loc,nc)
+        grid = inout.readgrid(loc, nc)
     else: # don't need to reread grid
         grid = grid
 
     # Interpolate to get starting positions in grid space
-    xstart0, ystart0, _ = tools.interpolate2d(lon0,lat0,grid,'d_ll2ij')
+    xstart0, ystart0, _ = tools.interpolate2d(lon0, lat0, grid, 'd_ll2ij')
     # Do z a little lower down
 
     # Initialize seed locations 
@@ -99,15 +100,15 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
     t0save = dates[tinds[0]] # time at start of drifter test from file in seconds since 1970-01-01, add this on at the end since it is big
 
     # Initialize drifter grid positions and indices
-    xend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    yend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    zend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    zp = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    iend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    jend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    kend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    ttend = np.ones(((len(tinds))*nsteps,ia.size))*np.nan
-    t = np.zeros(((len(tinds))*nsteps+1))
+    xend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    yend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    zend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    zp = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    iend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    jend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    kend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    ttend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
+    t = np.zeros((len(tinds)*nsteps+1))
     flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
     # Initialize vertical stuff and fluxes
@@ -206,9 +207,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
         print j
         #  flux fields at starting time for this step
         if j != 0:
-            xstart = xend[j*nsteps-1,:]
-            ystart = yend[j*nsteps-1,:]
-            zstart = zend[j*nsteps-1,:]
+            xstart = xend[:,j*nsteps-1]
+            ystart = yend[:,j*nsteps-1]
+            zstart = zend[:,j*nsteps-1]
             # mask out drifters that have exited the domain
             xstart = np.ma.masked_where(flag[:]==1,xstart)
             ystart = np.ma.masked_where(flag[:]==1,ystart)
@@ -249,23 +250,32 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
             # or isoslice case.
             # vec = np.arange(j*nsteps,j*nsteps+nsteps) # indices for storing new track locations
             tic_tracmass[j] = time.time()
-            xend[j*nsteps:j*nsteps+nsteps,ind],\
-                yend[j*nsteps:j*nsteps+nsteps,ind],\
-                zend[j*nsteps:j*nsteps+nsteps,ind], \
-                iend[j*nsteps:j*nsteps+nsteps,ind],\
-                jend[j*nsteps:j*nsteps+nsteps,ind],\
-                kend[j*nsteps:j*nsteps+nsteps,ind],\
+            # pdb.set_trace()
+            xend[ind,j*nsteps:j*nsteps+nsteps],\
+                yend[ind,j*nsteps:j*nsteps+nsteps],\
+                zend[ind,j*nsteps:j*nsteps+nsteps], \
+                iend[ind,j*nsteps:j*nsteps+nsteps],\
+                jend[ind,j*nsteps:j*nsteps+nsteps],\
+                kend[ind,j*nsteps:j*nsteps+nsteps],\
                 flag[ind],\
-                ttend[j*nsteps:j*nsteps+nsteps,ind] = \
-                    tracmass.step(np.ma.compressed(xstart),np.ma.compressed(ystart),
-                        np.ma.compressed(zstart),tseas,uflux,vflux,ff,grid['kmt'].astype(int),
-                        dzt,grid['dxdy'],grid['dxv'],grid['dyu'],grid['h'],nsteps,ah,av,do3d,doturb)#dz.data,dxdy)
+                ttend[ind,j*nsteps:j*nsteps+nsteps] = \
+                    tracmass.step(np.ma.compressed(xstart),\
+                                    np.ma.compressed(ystart),
+                                    np.ma.compressed(zstart),
+                                    tseas, uflux, vflux, ff, \
+                                    grid['kmt'].astype(int), \
+                                    dzt, grid['dxdy'], grid['dxv'], \
+                                    grid['dyu'], grid['h'], nsteps, \
+                                    ah, av, do3d, doturb)#dz.data,dxdy)
             toc_tracmass[j] = time.time()
+            # pdb.set_trace()
 
             # Change the horizontal indices from python to fortran indexing
-            xend[j*nsteps:j*nsteps+nsteps,ind], \
-                yend[j*nsteps:j*nsteps+nsteps,ind] = tools.convert_indices('f2py',xend[j*nsteps:j*nsteps+nsteps,ind], \
-                                                                            yend[j*nsteps:j*nsteps+nsteps,ind])
+            xend[ind,j*nsteps:j*nsteps+nsteps], \
+                yend[ind,j*nsteps:j*nsteps+nsteps] \
+                                = tools.convert_indices('f2py', \
+                                    xend[ind,j*nsteps:j*nsteps+nsteps], \
+                                    yend[ind,j*nsteps:j*nsteps+nsteps])
 
             # Calculate times for the output frequency
             t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
@@ -280,9 +290,9 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
                     # interpolate to a specific output time
                     # pdb.set_trace()
                     zwt = (1.-r[n])*zwtold + r[n]*zwtnew
-                    zp[j*nsteps:j*nsteps+nsteps,ind], dt = tools.interpolate3d(xend[j*nsteps:j*nsteps+nsteps,ind], \
-                                                            yend[j*nsteps:j*nsteps+nsteps,ind], \
-                                                            zend[j*nsteps:j*nsteps+nsteps,ind], \
+                    zp[ind,j*nsteps:j*nsteps+nsteps], dt = tools.interpolate3d(xend[ind,j*nsteps:j*nsteps+nsteps], \
+                                                            yend[ind,j*nsteps:j*nsteps+nsteps], \
+                                                            zend[ind,j*nsteps:j*nsteps+nsteps], \
                                                             zwt)
                 toc_zinterp[j] = time.time()
 
@@ -292,10 +302,10 @@ def run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name,
     # pdb.set_trace()
 
     # Add on to front location for first time step
-    xg=np.concatenate((xstart0.reshape(1,xstart0.size),xend),axis=0)
-    yg=np.concatenate((ystart0.reshape(1,ystart0.size),yend),axis=0)
+    xg=np.concatenate((xstart0.reshape(xstart0.size,1),xend),axis=1)
+    yg=np.concatenate((ystart0.reshape(ystart0.size,1),yend),axis=1)
     # Concatenate zp with initial real space positions
-    zp=np.concatenate((zsave[0].reshape(1,zstart0.size),zp),axis=0)
+    zp=np.concatenate((zsave[0].reshape(zstart0.size,1),zp),axis=1)
 
     # Delaunay interpolation
     # xp, yp, dt = tools.interpolate(xg,yg,grid,'d_ij2xy')

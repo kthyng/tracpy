@@ -607,13 +607,13 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     Save tracks that have been calculated by tracmass into a netcdf file.
 
     Inputs:
-        lonpin,latpin,zpin  Drifter track positions [time x drifter]
+        lonpin,latpin,zpin  Drifter track positions [drifter x time]
         tpin                Time vector for drifters [time]
         name                Name of simulation, to use for saving file
     """
 
-    ntrac = lonpin.shape[1] # number of drifters
-    nt = lonpin.shape[0] # number of time steps (with interpolation steps and starting point)
+    ntrac = lonpin.shape[0] # number of drifters
+    nt = lonpin.shape[1] # number of time steps (with interpolation steps and starting point)
     
     # save hash for the particular commit version that is currently being used
     git_hash_in = os.popen('git log -1 --format="%H"').read()
@@ -624,8 +624,10 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     if not os.path.exists('tracks'):
         os.makedirs('tracks')
 
-    # Open file for writing
-    rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF4')
+    # Open file for writing.
+    # Using netCDF3-Classic because the ROMS output does and
+    # MFDataset does not work with NetCDF4
+    rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_CLASSIC')
 
     # Define dimensions
     rootgrp.createDimension('ntrac',ntrac)
@@ -633,9 +635,9 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
 
     # Create variables
     # Main track information
-    lonp = rootgrp.createVariable('lonp','f8',('nt','ntrac')) # 64-bit floating point
-    latp = rootgrp.createVariable('latp','f8',('nt','ntrac')) # 64-bit floating point
-    zp = rootgrp.createVariable('zp','f8',('nt','ntrac')) # 64-bit floating point
+    lonp = rootgrp.createVariable('lonp','f8',('ntrac','nt')) # 64-bit floating point
+    latp = rootgrp.createVariable('latp','f8',('ntrac','nt')) # 64-bit floating point
+    zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
     tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
     # Include other run details
     nsteps = rootgrp.createVariable('nsteps','i4')

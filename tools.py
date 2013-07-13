@@ -182,11 +182,11 @@ def find_final(xp,yp):
     # Make this a separate function later
     xpc = []
     ypc = []
-    for idrift in xrange(xp.shape[1]-1):
+    for idrift in xrange(xp.shape[0]-1):
         # pdb.set_trace()
         # print idrift
         # Find last non-nan and make sure it is in the desired month start time
-        ind3 = ~np.isnan(xp[:,idrift])
+        ind3 = ~np.isnan(xp[idrift,:])
         #pdb.set_trace()
         # only plot if last non-nan (back in time) is in 1 month period
         # in order to plot the tracks that "started" in the plotted month
@@ -195,14 +195,14 @@ def find_final(xp,yp):
             # if t[find(ind3)[-1]] >= datetime(year,startMonth,startDay,0) and \
             #   t[find(ind3)[-1]] <= datetime(year,startMonth+1,startDay,0):
             # ind2 = ~np.isnan(xp[idrift,:])
-            if np.sum(np.isnan(xp[:,idrift])) > 0 and np.sum(np.isnan(xp[:,idrift])) < xp.shape[0]: # if there is a nan
+            if np.sum(np.isnan(xp[idrift,:])) > 0 and np.sum(np.isnan(xp[idrift,:])) < xp.shape[1]: # if there is a nan
                 # ax.plot(xp[idrift,find(ind2)[-1]].T,yp[idrift,find(ind2)[-1]].T,'o',color='orange',linewidth=.5,label='_nolegend_')
-                xpc.append(xp[find(ind3)[-1],idrift])
-                ypc.append(yp[find(ind3)[-1],idrift])
+                xpc.append(xp[idrift,find(ind3)[-1]])
+                ypc.append(yp[idrift,find(ind3)[-1]])
             else:
                 # ax.plot(xp[idrift,-1].T,yp[idrift,-1].T,'o',color='orange',linewidth=.5,label='_nolegend_')
-                xpc.append(xp[find(ind3)[-1],idrift])
-                ypc.append(yp[find(ind3)[-1],idrift])
+                xpc.append(xp[idrift,find(ind3)[-1]])
+                ypc.append(yp[idrift,find(ind3)[-1]])
 
     return xpc,ypc
 
