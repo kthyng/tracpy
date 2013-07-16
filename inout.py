@@ -46,8 +46,11 @@ def setupROMSfiles(loc,date,ff,tout):
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # pdb.set_trace()
-    if 'http' in loc: # use just input file
-        nc = netCDF.Dataset(loc)
+    if 'http' in loc or len(loc) == 2: # use just input file
+        if len(loc) == 2:
+            nc = netCDF.Dataset(loc[0])
+        else:
+            nc = netCDF.Dataset(loc)
         if ff == 1: #forward in time
             dates = nc.variables['ocean_time'][:]   
             ilow = date >= dates
@@ -214,6 +217,8 @@ def readgrid(loc,nc=None):
     # grid is included in nc file if using thredds or forecast output
     if 'http' in loc:
         gridfile = netCDF.Dataset(loc)
+    elif len(loc) == 2:
+        gridfile = netCDF.Dataset(loc[1])
     else:
         gridfile = netCDF.Dataset(loc + 'grid.nc')
     lonu = gridfile.variables['lon_u'][:]
@@ -234,7 +239,7 @@ def readgrid(loc,nc=None):
     h = gridfile.variables['h'][:]
 
     # Vertical grid metrics
-    if 'http' in loc:
+    if 'http' in loc or len(loc) == 2:
         sc_r = gridfile.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = gridfile.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = gridfile.variables['hc'][:]
@@ -281,7 +286,7 @@ def readgrid(loc,nc=None):
     imt = h.shape[0] # 671
     jmt = h.shape[1] # 191
     # km = sc_r.shape[0] # 31
-    if ('http' in loc) or (nc is not None):
+    if ('http' in loc) or (nc is not None) or len(loc) == 2:
         km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
     # Index grid, for interpolation between real and grid space
@@ -322,7 +327,7 @@ def readgrid(loc,nc=None):
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()
-    if ('http' in loc) or (nc is not None):
+    if ('http' in loc) or (nc is not None) or len(loc) == 2:
         mask2 = mask.copy()
         kmt = np.ones((imt,jmt),order='f')*km
         ind = (mask2[1:imt,:]==1)
@@ -352,7 +357,7 @@ def readgrid(loc,nc=None):
         dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
     # Fill in grid structure
-    if ('http' in loc) or (nc is not None):
+    if ('http' in loc) or (nc is not None) or len(loc) == 2:
         grid = {'imt':imt,'jmt':jmt,'km':km, 
             'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
             'mask':mask,'kmt':kmt,'dzt0':dzt0,
