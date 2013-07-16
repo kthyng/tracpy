@@ -63,7 +63,7 @@ def setupROMSfiles(loc,date,ff,tout):
 
     # This is for the case when we have a bunch of files to sort through
     else:
-        pdb.set_trace()
+        # pdb.set_trace()
         files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
         # files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
 
@@ -211,7 +211,8 @@ def readgrid(loc,nc=None):
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
-    if 'http' in loc:
+    # grid is included in nc file if using thredds or forecast output
+    if 'http' in loc or 'forecast' in loc:
         gridfile = netCDF.Dataset(loc)
     else:
         gridfile = netCDF.Dataset(loc + 'grid.nc')
