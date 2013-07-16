@@ -213,7 +213,7 @@ def readgrid(loc,nc=None):
     # this line makes updating unnecessary. Issue described here: 
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
-
+    pdb.set_trace()
     # grid is included in nc file if using thredds or forecast output
     if 'http' in loc:
         gridfile = netCDF.Dataset(loc)
