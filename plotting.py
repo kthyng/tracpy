@@ -70,7 +70,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
     Note: Currently assuming we are plotting the final location 
     of each drifter regardless of tind.
     """
-    pdb.set_trace()
+
     if grid is None:
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         grid = inout.readgrid(loc)
