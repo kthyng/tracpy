@@ -46,7 +46,7 @@ def setupROMSfiles(loc,date,ff,tout):
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # pdb.set_trace()
-    if 'http' in loc or 'forecast' in loc: # use just input file
+    if 'http' in loc: # use just input file
         nc = netCDF.Dataset(loc)
         if ff == 1: #forward in time
             dates = nc.variables['ocean_time'][:]   
@@ -212,7 +212,7 @@ def readgrid(loc,nc=None):
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # grid is included in nc file if using thredds or forecast output
-    if 'http' in loc or 'forecast' in loc:
+    if 'http' in loc:
         gridfile = netCDF.Dataset(loc)
     else:
         gridfile = netCDF.Dataset(loc + 'grid.nc')
