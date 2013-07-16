@@ -670,7 +670,10 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     av.long_name = 'vertical diffusion'
     do3d.long_name = 'flag for running in 3d (1) or 2d (0)'
     doturb.long_name = 'flag for using no subgrid parameterization (0), added turbulent velocities (1), displacement to particle position on a circle (2), displacement to particle position on an ellipse (3)'
-    loc.long_name = 'location of model output information used for drifter experiment\n' + locin
+    if len(loc) == 2:
+        loc.long_name = 'location of model output information used for drifter experiment\n' + locin[0]
+    else:
+        loc.long_name = 'location of model output information used for drifter experiment\n' + locin
     git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
 
     lonp.units = 'degrees'
