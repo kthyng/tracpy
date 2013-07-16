@@ -63,6 +63,7 @@ def setupROMSfiles(loc,date,ff,tout):
 
     # This is for the case when we have a bunch of files to sort through
     else:
+        pdb.set_trace()
         files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
         # files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
 
