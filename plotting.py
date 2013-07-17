@@ -97,15 +97,15 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         xpc = xp
         ypc = yp
 
-    # Info for 2d histogram
-    H, xedges, yedges = np.histogram2d(xpc, ypc,
-                            range=[[grid['xr'].min(), \
-                            grid['xr'].max()], \
-                            [grid['yr'].min(), \
-                            grid['yr'].max()]],
-                            bins=bins)
-
     if which == 'contour':
+
+        # Info for 2d histogram
+        H, xedges, yedges = np.histogram2d(xpc, ypc,
+                                range=[[grid['xr'].min(), \
+                                grid['xr'].max()], \
+                                [grid['yr'].min(), \
+                                grid['yr'].max()]],
+                                bins=bins)
         # Contour Plot
         XE, YE = np.meshgrid(op.resize(xedges,0), op.resize(yedges,0))
         d = (H/H.sum())*100
@@ -129,6 +129,14 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         # savefig('figures/' + fname + 'histcon.pdf',bbox_inches='tight')
 
     elif which == 'pcolor':
+
+        # Info for 2d histogram
+        H, xedges, yedges = np.histogram2d(xpc, ypc,
+                                range=[[grid['xr'].min(), \
+                                grid['xr'].max()], \
+                                [grid['yr'].min(), \
+                                grid['yr'].max()]],
+                                bins=bins)
         # Pcolor plot
         p = pcolor(xedges, yedges, (H.T/H.sum())*100, cmap='YlOrRd')
 
