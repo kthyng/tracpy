@@ -94,8 +94,8 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         xpc = xp[:,tind]
         ypc = yp[:,tind]
     else: # just plot what is input
-        xpc = xp
-        ypc = yp
+        xpc = xp.flatten()
+        ypc = yp.flatten()
 
     if which == 'contour':
 
