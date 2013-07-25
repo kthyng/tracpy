@@ -8,6 +8,7 @@ Functions include:
 * find_final
 * convert_indices
 * check_points
+* seed
 """
 
 import numpy as np
@@ -288,3 +289,31 @@ def check_points(lon0,lat0,grid):
     lat0 = lat0[ind2].flatten()
 
     return lon0,lat0
+
+
+def seed(lon, lat, dlon=.5, dlat=.5, N=30):
+    '''
+    Chose array of starting locations based on the start 
+    location. A Gaussian 
+    distribution is used to distribute points around the 
+    find location.
+    Inputs:
+        lon, lat    Start location
+        dlon, dlat  Distance in degrees in which to seed drifters.
+                    Default is 0.5 degrees.
+        N           Number of drifters in x and y. Default is 30.
+
+    Returns:
+        lon0, lat0  Points in lon/lat at which to seed drifters
+    '''
+
+    # Find 2D distribution of points around the package location
+    # the center is indicated using (lon, lat)
+    # The variance is given by [[.25,0],[0,.25]] indicates
+    #  a standard deviation away from the center of .5 degrees
+    #  or .5**2=.25
+    # There are N points in both x and y
+    dist = np.random.multivariate_normal((lon, lat), \
+                                    [[dlon**2,0],[0,dlat**2]], \
+                                    [N,N])
+    return dist[:,:,0], dist[:,:,1]
