@@ -278,7 +278,10 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                     yend[ind,j*nsteps:j*nsteps+nsteps])
 
             # Calculate times for the output frequency
-            t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+            if ff == 1:
+                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+            else:
+                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] - np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
             
             # Skip calculating real z position if we are doing surface-only drifters anyway
             if z0 != 's' and zpar != grid['km']-1:
