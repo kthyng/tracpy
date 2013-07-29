@@ -1,7 +1,7 @@
 SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
-                & iter,ah,av,do3d,doturb)
+                & iter,ah,av,do3d,doturb, dostream)
 
 !============================================================================
 ! Loop to step a numerical drifter forward for the time tseas between two 
@@ -44,6 +44,8 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                   : doturb=1 means adding parameterized turbulence
 !                   : doturb=2 means adding diffusion on a circle
 !                   : doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+!    dostream       : Either calculate (dostream=1) or don't (dostream=0) the
+!                     Lagrangian stream function variables.
 !
 !  Output:
 !
@@ -110,7 +112,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 implicit none
 
 integer,    intent(in)                                  :: ff, imt, jmt, km, ntractot, iter
-integer,    intent(in)                                  :: do3d, doturb
+integer,    intent(in)                                  :: do3d, doturb, dostream
 integer,    intent(in),     dimension(imt,jmt)          :: kmt
 real*8,     intent(in),     dimension(imt-1,jmt)        :: dyu
 real*8,     intent(in),     dimension(imt,jmt-1)        :: dxv
@@ -530,21 +532,21 @@ ntracLoop: do ntrac=1,ntractot
             exit niterLoop
         endif
 
-        ! If drifter is on a grid cell wall, add/subtract its initial volume
-        ! transport to the appropriate grid cells
-        ! drifter needs to have just made it to the wall to count
-        if(x1==dble(ib) .and. x1.ne.x0) then ! moving in positive x direction
-            Urho[ib, jb] = Urho[ib, jb] - U[idrift]
-            Urho[ib+1, jb] = Urho[ib+1, jb] + U[idrift]
-        else if (x1==dble(ib-1) .and. x1.ne.x0) then ! moving in negative x direction
-            Urho[ib, jb] = Urho[ib, jb] - U[idrift]
-            Urho[ib-1, jb] = Urho[ib-1, jb] + U[idrift]
-        else if(y1==dble(jb) .and. y1.ne.y0) then ! moving in positive y direction
-            Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
-            Vrho[ib, jb+1] = Vrho[ib, jb+1] + V[idrift]
-        else if(y1==dble(jb-1) .and. y1.ne.y0) then ! moving in negative y direction
-            Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
-            Vrho[ib, jb-1] = Vrho[ib, jb-1] + V[idrift]
+!         ! If drifter is on a grid cell wall, add/subtract its initial volume
+!         ! transport to the appropriate grid cells
+!         ! drifter needs to have just made it to the wall to count
+!         if(x1==dble(ib) .and. x1.ne.x0) then ! moving in positive x direction
+!             Urho[ib, jb] = Urho[ib, jb] - U[idrift]
+!             Urho[ib+1, jb] = Urho[ib+1, jb] + U[idrift]
+!         else if (x1==dble(ib-1) .and. x1.ne.x0) then ! moving in negative x direction
+!             Urho[ib, jb] = Urho[ib, jb] - U[idrift]
+!             Urho[ib-1, jb] = Urho[ib-1, jb] + U[idrift]
+!         else if(y1==dble(jb) .and. y1.ne.y0) then ! moving in positive y direction
+!             Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
+!             Vrho[ib, jb+1] = Vrho[ib, jb+1] + V[idrift]
+!         else if(y1==dble(jb-1) .and. y1.ne.y0) then ! moving in negative y direction
+!             Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
+!             Vrho[ib, jb-1] = Vrho[ib, jb-1] + V[idrift]
 
         ! If no errors have caught the loop, and it is at an interpolation step,
         ! write to array to save drifter location

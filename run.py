@@ -20,7 +20,7 @@ import tools
 from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
-        zpar, do3d, doturb, name, grid=None, idrift=None, dostream=None, \
+        zpar, do3d, doturb, name, grid=None, idrift=None, dostream=0, \
         U0=None, V0=None, Urho=None, Vrho=None):
     '''
 
@@ -86,9 +86,9 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     name        Name of simulation to be used for netcdf file containing final tracks
     grid        (optional) Grid information, as read in by tracpy.inout.readgrid().
 
-    The following optional inputs are for calculating Lagrangian stream functions
+    The following inputs are for calculating Lagrangian stream functions
     idrift      (optional) Index identifiers for drifters.
-    dostream    (optional) Calculate streamfunctions (1) or not (0)
+    dostream    Calculate streamfunctions (1) or not (0). Default is 0.
     U0, V0      (optional) Initial volume transports of drifters (m^3/s)
     Urho, Vrho  (optional) Array aggregating volume transports as drifters move [imt,jmt]
     '''
@@ -299,7 +299,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                     grid['kmt'].astype(int), \
                                     dzt, grid['dxdy'], grid['dxv'], \
                                     grid['dyu'], grid['h'], nsteps, \
-                                    ah, av, do3d, doturb)#dz.data,dxdy)
+                                    ah, av, do3d, doturb, dostream)#dz.data,dxdy)
             toc_tracmass[j] = time.time()
             # pdb.set_trace()
 
