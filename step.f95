@@ -530,6 +530,22 @@ ntracLoop: do ntrac=1,ntractot
             exit niterLoop
         endif
 
+        ! If drifter is on a grid cell wall, add/subtract its initial volume
+        ! transport to the appropriate grid cells
+        ! drifter needs to have just made it to the wall to count
+        if(x1==dble(ib) .and. x1.ne.x0) then ! moving in positive x direction
+            Urho[ib, jb] = Urho[ib, jb] - U[idrift]
+            Urho[ib+1, jb] = Urho[ib+1, jb] + U[idrift]
+        else if (x1==dble(ib-1) .and. x1.ne.x0) then ! moving in negative x direction
+            Urho[ib, jb] = Urho[ib, jb] - U[idrift]
+            Urho[ib-1, jb] = Urho[ib-1, jb] + U[idrift]
+        else if(y1==dble(jb) .and. y1.ne.y0) then ! moving in positive y direction
+            Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
+            Vrho[ib, jb+1] = Vrho[ib, jb+1] + V[idrift]
+        else if(y1==dble(jb-1) .and. y1.ne.y0) then ! moving in negative y direction
+            Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
+            Vrho[ib, jb-1] = Vrho[ib, jb-1] + V[idrift]
+
         ! If no errors have caught the loop, and it is at an interpolation step,
         ! write to array to save drifter location
         if(dmod(tss,dble(idint(tss)))<0.00001d0) then
