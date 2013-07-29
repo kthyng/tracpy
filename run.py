@@ -300,8 +300,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                         dzt, grid['dxdy'], grid['dxv'], \
                                         grid['dyu'], grid['h'], nsteps, \
                                         ah, av, do3d, doturb, dostream, \
-                                        u0=np.ma.compressed(U0), \
-                                        v0=np.ma.compressed(V0), \
+                                        u0=U0[ind], \
+                                        v0=V0[ind], \
                                         urho=Urho, vrho=Vrho)
             else: # don't calculate Lagrangian stream functions
                 xend[ind,j*nsteps:j*nsteps+nsteps],\
