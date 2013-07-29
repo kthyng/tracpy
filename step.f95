@@ -1,7 +1,8 @@
 SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
-                & iter,ah,av,do3d,doturb, dostream)
+                & iter,ah,av,do3d,doturb, dostream, idrift, U0, V0, &
+                & Urho, Vrho)
 
 !============================================================================
 ! Loop to step a numerical drifter forward for the time tseas between two 
@@ -46,6 +47,10 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                   : doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 !    dostream       : Either calculate (dostream=1) or don't (dostream=0) the
 !                     Lagrangian stream function variables.
+!  Optional inputs:
+!    idrift         : (optional) Index identifiers for drifters.
+!    U0, V0         : (optional) Initial volume transports of drifters (m^3/s)
+!    Urho, Vrho     : (optional) Array aggregating volume transports as drifters move [imt,jmt]
 !
 !  Output:
 !
@@ -139,9 +144,11 @@ integer                                                 :: ntrac, niter, ia, ja,
                                                            iam, ib, jb, kb, errCode
 real*8,     parameter                                   :: UNDEF=1.d20
 
-! if(doturb==1) then
-real*8, dimension(6,2)                                    :: upr  
-! end if
+real*8, dimension(6,2)                                    :: upr
+! The following are for calculating Lagrangian stream functions
+integer, optional, intent(in), dimension(ntractot) :: idrift
+real*8, optional, intent(in), dimension(ntractot) :: U0, V0
+real*8, optional, intent(inout), dimension(imt,jmt) :: Urho, Vrho
 
 ! Set indices for x/y/z grid locations to be the ceiling of the grid indices
 istart = ceiling(xstart)
@@ -532,21 +539,24 @@ ntracLoop: do ntrac=1,ntractot
             exit niterLoop
         endif
 
-!         ! If drifter is on a grid cell wall, add/subtract its initial volume
-!         ! transport to the appropriate grid cells
-!         ! drifter needs to have just made it to the wall to count
-!         if(x1==dble(ib) .and. x1.ne.x0) then ! moving in positive x direction
-!             Urho[ib, jb] = Urho[ib, jb] - U[idrift]
-!             Urho[ib+1, jb] = Urho[ib+1, jb] + U[idrift]
-!         else if (x1==dble(ib-1) .and. x1.ne.x0) then ! moving in negative x direction
-!             Urho[ib, jb] = Urho[ib, jb] - U[idrift]
-!             Urho[ib-1, jb] = Urho[ib-1, jb] + U[idrift]
-!         else if(y1==dble(jb) .and. y1.ne.y0) then ! moving in positive y direction
-!             Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
-!             Vrho[ib, jb+1] = Vrho[ib, jb+1] + V[idrift]
-!         else if(y1==dble(jb-1) .and. y1.ne.y0) then ! moving in negative y direction
-!             Vrho[ib, jb] = Vrho[ib, jb] - V[idrift]
-!             Vrho[ib, jb-1] = Vrho[ib, jb-1] + V[idrift]
+        ! If drifter is on a grid cell wall, add/subtract its initial volume
+        ! transport to the appropriate grid cells
+        ! drifter needs to have just made it to the wall to count
+        if (dostream==1) then
+            if(x1==dble(ib) .and. x1.ne.x0) then ! moving in positive x direction
+                Urho(ib, jb) = Urho(ib, jb) - U0(idrift(ntrac))
+                Urho(ib+1, jb) = Urho(ib+1, jb) + U0(idrift(ntrac))
+            else if (x1==dble(ib-1) .and. x1.ne.x0) then ! moving in negative x direction
+                Urho(ib, jb) = Urho(ib, jb) - U0(idrift(ntrac))
+                Urho(ib-1, jb) = Urho(ib-1, jb) + U0(idrift(ntrac))
+            else if(y1==dble(jb) .and. y1.ne.y0) then ! moving in positive y direction
+                Vrho(ib, jb) = Vrho(ib, jb) - V0(idrift(ntrac))
+                Vrho(ib, jb+1) = Vrho(ib, jb+1) + V0(idrift(ntrac))
+            else if(y1==dble(jb-1) .and. y1.ne.y0) then ! moving in negative y direction
+                Vrho(ib, jb) = Vrho(ib, jb) - V0(idrift(ntrac))
+                Vrho(ib, jb-1) = Vrho(ib, jb-1) + V0(idrift(ntrac))
+            end if
+        end if
 
         ! If no errors have caught the loop, and it is at an interpolation step,
         ! write to array to save drifter location

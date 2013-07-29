@@ -284,22 +284,41 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
             # vec = np.arange(j*nsteps,j*nsteps+nsteps) # indices for storing new track locations
             tic_tracmass[j] = time.time()
             # pdb.set_trace()
-            xend[ind,j*nsteps:j*nsteps+nsteps],\
-                yend[ind,j*nsteps:j*nsteps+nsteps],\
-                zend[ind,j*nsteps:j*nsteps+nsteps], \
-                iend[ind,j*nsteps:j*nsteps+nsteps],\
-                jend[ind,j*nsteps:j*nsteps+nsteps],\
-                kend[ind,j*nsteps:j*nsteps+nsteps],\
-                flag[ind],\
-                ttend[ind,j*nsteps:j*nsteps+nsteps] = \
-                    tracmass.step(np.ma.compressed(xstart),\
-                                    np.ma.compressed(ystart),
-                                    np.ma.compressed(zstart),
-                                    tseas, uflux, vflux, ff, \
-                                    grid['kmt'].astype(int), \
-                                    dzt, grid['dxdy'], grid['dxv'], \
-                                    grid['dyu'], grid['h'], nsteps, \
-                                    ah, av, do3d, doturb, dostream)#dz.data,dxdy)
+            if dostream: # calculate Lagrangian stream functions
+                xend[ind,j*nsteps:j*nsteps+nsteps],\
+                    yend[ind,j*nsteps:j*nsteps+nsteps],\
+                    zend[ind,j*nsteps:j*nsteps+nsteps], \
+                    iend[ind,j*nsteps:j*nsteps+nsteps],\
+                    jend[ind,j*nsteps:j*nsteps+nsteps],\
+                    kend[ind,j*nsteps:j*nsteps+nsteps],\
+                    flag[ind],\
+                    ttend[ind,j*nsteps:j*nsteps+nsteps] = \
+                        tracmass.step(np.ma.compressed(xstart),\
+                                        np.ma.compressed(ystart),
+                                        np.ma.compressed(zstart),
+                                        tseas, uflux, vflux, ff, \
+                                        grid['kmt'].astype(int), \
+                                        dzt, grid['dxdy'], grid['dxv'], \
+                                        grid['dyu'], grid['h'], nsteps, \
+                                        ah, av, do3d, doturb, dostream)#, idrift=idrift)#dz.data,dxdy)
+            else: # don't calculate Lagrangian stream functions
+                xend[ind,j*nsteps:j*nsteps+nsteps],\
+                    yend[ind,j*nsteps:j*nsteps+nsteps],\
+                    zend[ind,j*nsteps:j*nsteps+nsteps], \
+                    iend[ind,j*nsteps:j*nsteps+nsteps],\
+                    jend[ind,j*nsteps:j*nsteps+nsteps],\
+                    kend[ind,j*nsteps:j*nsteps+nsteps],\
+                    flag[ind],\
+                    ttend[ind,j*nsteps:j*nsteps+nsteps] = \
+                        tracmass.step(np.ma.compressed(xstart),\
+                                        np.ma.compressed(ystart),
+                                        np.ma.compressed(zstart),
+                                        tseas, uflux, vflux, ff, \
+                                        grid['kmt'].astype(int), \
+                                        dzt, grid['dxdy'], grid['dxv'], \
+                                        grid['dyu'], grid['h'], nsteps, \
+                                        ah, av, do3d, doturb, dostream, \
+                                        idrift, U0, V0, Urho, Vrho)
             toc_tracmass[j] = time.time()
             # pdb.set_trace()
 
