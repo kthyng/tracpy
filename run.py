@@ -20,7 +20,8 @@ import tools
 from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
-        zpar, do3d, doturb, name, grid=None):
+        zpar, do3d, doturb, name, grid=None, idrift=None, dostream=None, \
+        U0=None, V0=None, Urho=None, Vrho=None):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -36,28 +37,60 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     second velocity time. Each drifter may take some number of steps in between, but those
     are not saved.
 
-    Vertical location of drifters:
-    z0 can be an array of starting depths (negative to be
-    below the surface). 
-    Or, if a 2D simulation is desired, make sure the 2dflag
-    has been chosen for the simulation in the makefile and:
-    set z0 to 's' for 2D along a terrain-following slice
-     and zpar to be the index of s level you want to use (0 to km-1)
-    set z0 to 'rho' for 2D along a density surface
-     and zpar to be the density value you want to use
-     Can do the same thing with salinity ('salt') or temperature ('temp')
-     The model output doesn't currently have density though.
-    set z0 to 'z' for 2D along a depth slice
-     and zpar to be the constant (negative) depth value you want to use
-    To simulate drifters at the surface, set z0 to 's' 
-     and zpar = grid['km']-1 to put them in the upper s level
-    To do 3D but start at surface, use z0=zeros(ia.shape) and have
-     either zpar='fromMSL'
-    choose fromMSL to have z0 starting depths be for that depth below the base 
-    time-independent sea level (or mean sea level).
-    choose 'fromZeta' to have z0 starting depths be for that depth below the
-    time-dependent sea surface. Haven't quite finished the 'fromZeta' case.
+    loc         Path to directory of grid and output files
+    nsteps      Number of steps to do between model outputs (iter in tracmass)
+    ndays       number of days to track the particles from start date
+    ff          ff=1 to go forward in time and ff=-1 for backward in time
+    date        Start date in datetime object
+    tseas       Time between outputs in seconds
+    ah          Horizontal diffusion in m^2/s. 
+                See project values of 350, 100, 0, 2000. For -turb,-diffusion
+    av          Vertical diffusion in m^2/s.
+    do3d        for 3d flag, do3d=0 makes the run 2d and do3d=1 makes the run 3d
+    doturb      turbulence/diffusion flag. 
+                doturb=0 means no turb/diffusion,
+                doturb=1 means adding parameterized turbulence
+                doturb=2 means adding diffusion on a circle
+                doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+    lon0        Drifter starting locations in x/zonal direction.
+    lat0        Drifter starting locations in y/meridional direction.
+    z0/zpar     For 3D drifter movement, turn off twodim flag in makefile.
+                Then z0 should be an array of initial drifter depths. 
+                The array should be the same size as lon0 and be negative
+                for under water. Currently drifter depths need to be above 
+                the seabed for every x,y particle location for the script to run.
+                To do 3D but start at surface, use z0=zeros(ia.shape) and have
+                 either zpar='fromMSL'
+                choose fromMSL to have z0 starting depths be for that depth below the base 
+                time-independent sea level (or mean sea level).
+                choose 'fromZeta' to have z0 starting depths be for that depth below the
+                time-dependent sea surface. Haven't quite finished the 'fromZeta' case.
+                For 2D drifter movement, turn on twodim flag in makefile.
+                Then: 
+                set z0 to 's' for 2D along a terrain-following slice
+                 and zpar to be the index of s level you want to use (0 to km-1)
+                set z0 to 'rho' for 2D along a density surface
+                 and zpar to be the density value you want to use
+                 Can do the same thing with salinity ('salt') or temperature ('temp')
+                 The model output doesn't currently have density though.
+                set z0 to 'z' for 2D along a depth slice
+                 and zpar to be the constant (negative) depth value you want to use
+                To simulate drifters at the surface, set z0 to 's' 
+                 and zpar = grid['km']-1 to put them in the upper s level
+                 z0='s' is currently not working correctly!!!
+                 In the meantime, do surface using the 3d set up option but with 2d flag set
+    xp          x-locations in x,y coordinates for drifters
+    yp          y-locations in x,y coordinates for drifters
+    zp          z-locations (depths from mean sea level) for drifters
+    t           time for drifter tracks
+    name        Name of simulation to be used for netcdf file containing final tracks
+    grid        (optional) Grid information, as read in by tracpy.inout.readgrid().
 
+    The following optional inputs are for calculating Lagrangian stream functions
+    idrift      (optional) Index identifiers for drifters.
+    dostream    (optional) Calculate streamfunctions (1) or not (0)
+    U0, V0      (optional) Initial volume transports of drifters (m^3/s)
+    Urho, Vrho  (optional) Array aggregating volume transports as drifters move [imt,jmt]
     '''
 
     tic_start = time.time()
