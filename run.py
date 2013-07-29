@@ -20,7 +20,7 @@ import tools
 from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
-        zpar, do3d, doturb, name, grid=None, idrift=None, dostream=0, \
+        zpar, do3d, doturb, name, grid=None, dostream=0, \
         U0=None, V0=None, Urho=None, Vrho=None):
     '''
 
@@ -87,7 +87,6 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     grid        (optional) Grid information, as read in by tracpy.inout.readgrid().
 
     The following inputs are for calculating Lagrangian stream functions
-    idrift      (optional) Index identifiers for drifters.
     dostream    Calculate streamfunctions (1) or not (0). Default is 0.
     U0, V0      (optional) Initial volume transports of drifters (m^3/s)
     Urho, Vrho  (optional) Array aggregating volume transports as drifters move [imt,jmt]
@@ -301,7 +300,6 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                         dzt, grid['dxdy'], grid['dxv'], \
                                         grid['dyu'], grid['h'], nsteps, \
                                         ah, av, do3d, doturb, dostream, \
-                                        idrift=np.ma.compressed(idrift), \
                                         u0=np.ma.compressed(U0), \
                                         v0=np.ma.compressed(V0), \
                                         urho=Urho, vrho=Vrho)
