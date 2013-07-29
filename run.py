@@ -292,7 +292,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                     jend[ind,j*nsteps:j*nsteps+nsteps],\
                     kend[ind,j*nsteps:j*nsteps+nsteps],\
                     flag[ind],\
-                    ttend[ind,j*nsteps:j*nsteps+nsteps] = \
+                    ttend[ind,j*nsteps:j*nsteps+nsteps], Urho, Vrho = \
                         tracmass.step(np.ma.compressed(xstart),\
                                         np.ma.compressed(ystart),
                                         np.ma.compressed(zstart),
@@ -394,9 +394,14 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
 
     # Save results to netcdf file
-    inout.savetracks(lonp,latp,zp,t,name,nsteps,ff,tseas,ah,av,do3d,doturb,loc)
-
-    return lonp,latp,zp,t,grid
+    if dostream:
+        inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
+                            do3d, doturb, loc, Urho, Vrho)
+        return lonp, latp, zp, t, grid, Urho, Vrho
+    else:
+        inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
+                            do3d, doturb, loc)
+        return lonp, latp, zp, t, grid
 
 def start_run():
     '''

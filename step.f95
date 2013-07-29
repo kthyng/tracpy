@@ -150,6 +150,8 @@ integer, optional, intent(in), dimension(ntractot) :: idrift
 real*8, optional, intent(in), dimension(ntractot) :: U0, V0
 real*8, optional, intent(inout), dimension(imt,jmt) :: Urho, Vrho
 
+!f2py intent(out) Urho, Vrho 
+
 ! Set indices for x/y/z grid locations to be the ceiling of the grid indices
 istart = ceiling(xstart)
 jstart = ceiling(ystart)
