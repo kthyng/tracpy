@@ -300,7 +300,9 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                         grid['kmt'].astype(int), \
                                         dzt, grid['dxdy'], grid['dxv'], \
                                         grid['dyu'], grid['h'], nsteps, \
-                                        ah, av, do3d, doturb, dostream)#, idrift=idrift)#dz.data,dxdy)
+                                        ah, av, do3d, doturb, dostream, \
+                                        idrift=idrift, u0=U0, v0=V0, \
+                                        urho=Urho, vrho=Vrho)
             else: # don't calculate Lagrangian stream functions
                 xend[ind,j*nsteps:j*nsteps+nsteps],\
                     yend[ind,j*nsteps:j*nsteps+nsteps],\
@@ -317,8 +319,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                         grid['kmt'].astype(int), \
                                         dzt, grid['dxdy'], grid['dxv'], \
                                         grid['dyu'], grid['h'], nsteps, \
-                                        ah, av, do3d, doturb, dostream, \
-                                        idrift, U0, V0, Urho, Vrho)
+                                        ah, av, do3d, doturb, dostream)
             toc_tracmass[j] = time.time()
             # pdb.set_trace()
 
