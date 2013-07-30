@@ -542,45 +542,45 @@ ntracLoop: do ntrac=1,ntractot
         ! If drifter is on a grid cell wall, add/subtract its initial volume
         ! transport to the appropriate grid cells
         ! drifter needs to have just made it to the wall to count
-        print *,'x1=', x1, ' dble(ib)=', dble(ib), ' x0=', x0, ' dble(ia)=', dble(ia)
-        print *,'y1=', y1, ' dble(jb)=', dble(jb), ' y0=', y0, ' dble(ja)=', dble(ja)
+!         print *,'x1=', x1, ' dble(ib)=', dble(ib), ' x0=', x0, ' dble(ia)=', dble(ia)
+!         print *,'y1=', y1, ' dble(jb)=', dble(jb), ' y0=', y0, ' dble(ja)=', dble(ja)
         if (dostream==1) then
             if(x1==dble(ia) .and. x1.ne.x0 .and. x1>x0) then ! moving in positive x direction
-                print *, 'moving in positive x direction'
-                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-                            ' Urho(ib, jb)=', Urho(ib, jb), &
-                            ' T0(ntrac)=', T0(ntrac)
+!                 print *, 'moving in positive x direction'
+!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+!                             ' Urho(ib, jb)=', Urho(ib, jb), &
+!                             ' T0(ntrac)=', T0(ntrac)
                 Urho(ia, jb) = Urho(ia, jb) - T0(ntrac) ! leaving cell
                 Urho(ib, jb) = Urho(ib, jb) + T0(ntrac) ! entering cell
-                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-                            ' Urho(ib, jb)=', Urho(ib, jb)
+!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+!                             ' Urho(ib, jb)=', Urho(ib, jb)
             else if (x1==dble(ib) .and. x1.ne.x0 .and. x1<x0) then ! moving in negative x direction
-                print *, 'moving in negative x direction'
-                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-                            ' Urho(ib, jb)=', Urho(ib, jb), &
-                            ' T0(ntrac)=', T0(ntrac)
+!                 print *, 'moving in negative x direction'
+!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+!                             ' Urho(ib, jb)=', Urho(ib, jb), &
+!                             ' T0(ntrac)=', T0(ntrac)
                 Urho(ia, jb) = Urho(ia, jb) - T0(ntrac) ! leaving cell
                 Urho(ib, jb) = Urho(ib, jb) + T0(ntrac) ! entering cell
-                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-                            ' Urho(ib, jb)=', Urho(ib, jb)
+!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+!                             ' Urho(ib, jb)=', Urho(ib, jb)
             else if(y1==dble(ja) .and. y1.ne.y0 .and. y1>y0) then ! moving in positive y direction
-                print *, 'moving in positive y direction'
-                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-                            ' Vrho(ib, jb)=', Vrho(ib, jb), &
-                            ' T0(ntrac)=', T0(ntrac)
+!                 print *, 'moving in positive y direction'
+!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+!                             ' Vrho(ib, jb)=', Vrho(ib, jb), &
+!                             ' T0(ntrac)=', T0(ntrac)
                 Vrho(ib, ja) = Vrho(ib, ja) - T0(ntrac)
                 Vrho(ib, jb) = Vrho(ib, jb) + T0(ntrac)
-                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-                            ' Vrho(ib, jb)=', Vrho(ib, jb)
+!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+!                             ' Vrho(ib, jb)=', Vrho(ib, jb)
             else if(y1==dble(jb) .and. y1.ne.y0 .and. y1<y0) then ! moving in negative y direction
-                print *, 'moving in negative y direction'
-                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-                            ' Vrho(ib, jb)=', Vrho(ib, jb), &
-                            ' T0(ntrac)=', T0(ntrac)
+!                 print *, 'moving in negative y direction'
+!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+!                             ' Vrho(ib, jb)=', Vrho(ib, jb), &
+!                             ' T0(ntrac)=', T0(ntrac)
                 Vrho(ib, ja) = Vrho(ib, ja) - T0(ntrac)
                 Vrho(ib, jb) = Vrho(ib, jb) + T0(ntrac)
-                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-                            ' Vrho(ib, jb)=', Vrho(ib, jb)
+!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+!                             ' Vrho(ib, jb)=', Vrho(ib, jb)
             end if
         end if
 
