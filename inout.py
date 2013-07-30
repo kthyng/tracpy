@@ -641,8 +641,8 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     rootgrp.createDimension('nt',nt)
     # pdb.set_trace()
     if Urhoin is not None:
-        Urhoin = Urhoin.T.copy(order='C')
-        Vrhoin = Vrhoin.T.copy(order='C')
+        # Urhoin = Urhoin.T.copy(order='C')
+        # Vrhoin = Vrhoin.T.copy(order='C')
         xl = Urhoin.shape[1]
         yl = Urhoin.shape[0]
         rootgrp.createDimension('xl',xl)
