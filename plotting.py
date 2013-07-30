@@ -280,3 +280,74 @@ def tracks(lonp,latp,fname,grid=None):
 
     savefig('figures/' + fname + 'tracks.png',bbox_inches='tight')
     # savefig('figures/' + fname + 'tracks.pdf',bbox_inches='tight')
+
+def stream(lonp, latp, fname, which='contour', \
+            grid=None, xlims=None, ylims=None):
+    """
+    UPDATE THIS
+    Plot histogram of given track data at time index tind.
+
+    Inputs:
+        lonp,latp   Drifter track positions in lon/lat [time x ndrifters]
+        fname       Plot name to save
+        tind        (optional) Default is 'final', in which case the final
+                    position of each drifter in the array is found
+                    and plotted. Alternatively, a time index 
+                    can be input and drifters at that time will be plotted.
+                    Note that once drifters hit the outer numerical boundary,
+                    they are nan'ed out so this may miss some drifters.
+        which       (optional) 'contour', 'pcolor', 'hexbin', 'hist2d' 
+                    for type of plot used. Default 'hexbin'.
+        bins        (optional) Number of bins used in histogram. Default (15,25).
+        N           (optional) Number of contours to make. Default 10.
+        grid        (optional) grid as read in by inout.readgrid()
+        xlims       (optional) value limits on the x axis
+        ylims       (optional) value limits on the y axis
+
+    Note: Currently assuming we are plotting the final location 
+    of each drifter regardless of tind.
+    """
+
+    if grid is None:
+        loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
+        grid = inout.readgrid(loc)
+
+    # Change positions from lon/lat to x/y
+    xp, yp = grid['basemap'](lonp, latp)
+    # Need to retain nan's since basemap changes them to values
+    ind = np.isnan(lonp)
+    xp[ind] = np.nan
+    yp[ind] = np.nan
+
+    fig = figure(figsize=(12,10))
+    background(grid) # Plot coastline and such
+
+    # pdb.set_trace()
+
+
+    # C with the reduce_C_function as sum is what makes it a percent
+    C = np.ones(len(xpc))*(1./len(xpc))*100
+    hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=40, 
+            extent=(grid['xr'].min(), grid['xr'].max(), 
+            grid['yr'].min(), grid['yr'].max()), 
+            reduce_C_function=sum)
+
+    # Set x and y limits
+    # pdb.set_trace()
+    if xlims is not None:
+        xlim(xlims)
+    if ylims is not None:
+        ylim(ylims)
+
+    # Horizontal colorbar below plot
+    cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
+    cb = colorbar(cax=cax, orientation='horizontal')
+    cb.set_label('Final drifter location (percent)')
+
+    # pdb.set_trace()
+    # Save figure into a local directory called figures. Make directory if it doesn't exist.
+    if not os.path.exists('figures'):
+        os.makedirs('figures')
+
+    savefig('figures/' + fname + 'stream.png', bbox_inches='tight')
+    # savefig('figures/' + fname + 'histhexbin.pdf',bbox_inches='tight')

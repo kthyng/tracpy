@@ -21,7 +21,7 @@ from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         zpar, do3d, doturb, name, grid=None, dostream=0, \
-        U0=None, V0=None, Urho=None, Vrho=None):
+        T0=None, Urho=None, Vrho=None):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -300,8 +300,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                         dzt, grid['dxdy'], grid['dxv'], \
                                         grid['dyu'], grid['h'], nsteps, \
                                         ah, av, do3d, doturb, dostream, \
-                                        u0=U0[ind], \
-                                        v0=V0[ind], \
+                                        t0=T0[ind],
                                         urho=Urho, vrho=Vrho)
             else: # don't calculate Lagrangian stream functions
                 xend[ind,j*nsteps:j*nsteps+nsteps],\

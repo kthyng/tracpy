@@ -1,7 +1,7 @@
 SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
-                & iter,ah,av,do3d,doturb, dostream, U0, V0, &
+                & iter,ah,av,do3d,doturb, dostream, T0, &
                 & Urho, Vrho)
 
 !============================================================================
@@ -48,7 +48,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !    dostream       : Either calculate (dostream=1) or don't (dostream=0) the
 !                     Lagrangian stream function variables.
 !  Optional inputs:
-!    U0, V0         : (optional) Initial volume transports of drifters (m^3/s)
+!    T0             : (optional) Initial volume transport of drifters (m^3/s)
 !    Urho, Vrho     : (optional) Array aggregating volume transports as drifters move [imt,jmt]
 !
 !  Output:
@@ -145,7 +145,7 @@ real*8,     parameter                                   :: UNDEF=1.d20
 
 real*8, dimension(6,2)                                    :: upr
 ! The following are for calculating Lagrangian stream functions
-real*8, optional, intent(in), dimension(ntractot) :: U0, V0
+real*8, optional, intent(in), dimension(ntractot) :: T0
 real*8, optional, intent(inout), dimension(imt,jmt) :: Urho, Vrho
 
 !f2py intent(out) Urho, Vrho 
@@ -542,19 +542,45 @@ ntracLoop: do ntrac=1,ntractot
         ! If drifter is on a grid cell wall, add/subtract its initial volume
         ! transport to the appropriate grid cells
         ! drifter needs to have just made it to the wall to count
+        print *,'x1=', x1, ' dble(ib)=', dble(ib), ' x0=', x0, ' dble(ia)=', dble(ia)
+        print *,'y1=', y1, ' dble(jb)=', dble(jb), ' y0=', y0, ' dble(ja)=', dble(ja)
         if (dostream==1) then
-            if(x1==dble(ib) .and. x1.ne.x0) then ! moving in positive x direction
-                Urho(ib, jb) = Urho(ib, jb) - U0(ntrac)
-                Urho(ib+1, jb) = Urho(ib+1, jb) + U0(ntrac)
-            else if (x1==dble(ib-1) .and. x1.ne.x0) then ! moving in negative x direction
-                Urho(ib, jb) = Urho(ib, jb) - U0(ntrac)
-                Urho(ib-1, jb) = Urho(ib-1, jb) + U0(ntrac)
-            else if(y1==dble(jb) .and. y1.ne.y0) then ! moving in positive y direction
-                Vrho(ib, jb) = Vrho(ib, jb) - V0(ntrac)
-                Vrho(ib, jb+1) = Vrho(ib, jb+1) + V0(ntrac)
-            else if(y1==dble(jb-1) .and. y1.ne.y0) then ! moving in negative y direction
-                Vrho(ib, jb) = Vrho(ib, jb) - V0(ntrac)
-                Vrho(ib, jb-1) = Vrho(ib, jb-1) + V0(ntrac)
+            if(x1==dble(ia) .and. x1.ne.x0 .and. x1>x0) then ! moving in positive x direction
+                print *, 'moving in positive x direction'
+                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+                            ' Urho(ib, jb)=', Urho(ib, jb), &
+                            ' T0(ntrac)=', T0(ntrac)
+                Urho(ia, jb) = Urho(ia, jb) - T0(ntrac) ! leaving cell
+                Urho(ib, jb) = Urho(ib, jb) + T0(ntrac) ! entering cell
+                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+                            ' Urho(ib, jb)=', Urho(ib, jb)
+            else if (x1==dble(ib) .and. x1.ne.x0 .and. x1<x0) then ! moving in negative x direction
+                print *, 'moving in negative x direction'
+                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+                            ' Urho(ib, jb)=', Urho(ib, jb), &
+                            ' T0(ntrac)=', T0(ntrac)
+                Urho(ia, jb) = Urho(ia, jb) - T0(ntrac) ! leaving cell
+                Urho(ib, jb) = Urho(ib, jb) + T0(ntrac) ! entering cell
+                print *, 'Urho(ia, jb)=', Urho(ia, jb), &
+                            ' Urho(ib, jb)=', Urho(ib, jb)
+            else if(y1==dble(ja) .and. y1.ne.y0 .and. y1>y0) then ! moving in positive y direction
+                print *, 'moving in positive y direction'
+                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+                            ' Vrho(ib, jb)=', Vrho(ib, jb), &
+                            ' T0(ntrac)=', T0(ntrac)
+                Vrho(ib, ja) = Vrho(ib, ja) - T0(ntrac)
+                Vrho(ib, jb) = Vrho(ib, jb) + T0(ntrac)
+                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+                            ' Vrho(ib, jb)=', Vrho(ib, jb)
+            else if(y1==dble(jb) .and. y1.ne.y0 .and. y1<y0) then ! moving in negative y direction
+                print *, 'moving in negative y direction'
+                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+                            ' Vrho(ib, jb)=', Vrho(ib, jb), &
+                            ' T0(ntrac)=', T0(ntrac)
+                Vrho(ib, ja) = Vrho(ib, ja) - T0(ntrac)
+                Vrho(ib, jb) = Vrho(ib, jb) + T0(ntrac)
+                print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
+                            ' Vrho(ib, jb)=', Vrho(ib, jb)
             end if
         end if
 
