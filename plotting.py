@@ -24,6 +24,7 @@ import tools
 def background(grid=None):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
+    Can optionally input grid (so it doesn't have to be loaded again)
     """
 
     matplotlib.rcParams.update({'font.size': 20})#,'font.weight': 'bold'})

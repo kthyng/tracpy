@@ -138,7 +138,8 @@ def setupROMSfiles(loc,date,ff,tout):
     # pdb.set_trace()
     return nc, tinds
 
-def readgrid(loc,nc=None):
+def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
+            urcrnrlon=-87.5, urcrnrlat=31.0):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -152,7 +153,9 @@ def readgrid(loc,nc=None):
 
     Input:
      loc            File location
-     nc             NetCDF object for relevant files
+     nc             (optional) NetCDF object for relevant files
+     also optional basemap box parameters. Default is for full shelf model.
+
 
     Output:
      grid           Dictionary containing all necessary time-independent grid fields
@@ -193,7 +196,8 @@ def readgrid(loc,nc=None):
     '''
 
     # Basemap parameters.
-    llcrnrlon=-98.5; llcrnrlat=22.5; urcrnrlon=-87.5; urcrnrlat=31.0; projection='lcc'
+    llcrnrlon=llcrnrlon; llcrnrlat=llcrnrlat; 
+    urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection='lcc'
     lat_0=30; lon_0=-94; resolution='i'; area_thresh=0.
     basemap = Basemap(llcrnrlon=llcrnrlon,
                  llcrnrlat=llcrnrlat,
