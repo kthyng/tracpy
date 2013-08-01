@@ -2,7 +2,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
                 & iter,ah,av,do3d,doturb, dostream, T0, &
-                & Urho, Vrho)
+                & U, V)
 
 !============================================================================
 ! Loop to step a numerical drifter forward for the time tseas between two 
@@ -49,7 +49,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                     Lagrangian stream function variables.
 !  Optional inputs:
 !    T0             : (optional) Initial volume transport of drifters (m^3/s)
-!    Urho, Vrho     : (optional) Array aggregating volume transports as drifters move [imt,jmt]
+!    U, V     : (optional) Array aggregating volume transports as drifters move [imt,jmt]
 !
 !  Output:
 !
@@ -146,10 +146,10 @@ real*8,     parameter                                   :: UNDEF=1.d20
 real*8, dimension(6,2)                                    :: upr
 ! The following are for calculating Lagrangian stream functions
 real*8, optional, intent(in), dimension(ntractot) :: T0
-real*8, optional, intent(inout), dimension(imt-1,jmt) :: Urho
-real*8, optional, intent(inout), dimension(imt,jmt-1) :: Vrho
+real*8, optional, intent(inout), dimension(imt-1,jmt) :: U
+real*8, optional, intent(inout), dimension(imt,jmt-1) :: V
 
-!f2py intent(out) Urho, Vrho 
+!f2py intent(out) U, V 
 
 ! Set indices for x/y/z grid locations to be the ceiling of the grid indices
 istart = ceiling(xstart)
@@ -548,44 +548,44 @@ ntracLoop: do ntrac=1,ntractot
         if (dostream==1) then
             if(x1==dble(ia) .and. x1.ne.x0 .and. x1>x0) then ! moving in positive x direction
 !                 print *, 'moving in positive x direction'
-!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-!                             ' Urho(ib, jb)=', Urho(ib, jb), &
+!                 print *, 'U(ia, jb)=', U(ia, jb), &
+!                             ' U(ib, jb)=', U(ib, jb), &
 !                             ' T0(ntrac)=', T0(ntrac)
-                Urho(ia, ja) = Urho(ia, ja) + T0(ntrac) ! positive direction exit
-!                 Urho(ia, jb) = Urho(ia, jb) - T0(ntrac) ! leaving cell
-!                 Urho(ib, jb) = Urho(ib, jb) + T0(ntrac) ! entering cell
-!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-!                             ' Urho(ib, jb)=', Urho(ib, jb)
+                U(ia, ja) = U(ia, ja) + T0(ntrac) ! positive direction exit
+!                 U(ia, jb) = U(ia, jb) - T0(ntrac) ! leaving cell
+!                 U(ib, jb) = U(ib, jb) + T0(ntrac) ! entering cell
+!                 print *, 'U(ia, jb)=', U(ia, jb), &
+!                             ' U(ib, jb)=', U(ib, jb)
             else if(x1==dble(ia-1) .and. x1.ne.x0 .and. x1<x0) then ! moving in negative x direction
 !                 print *, 'moving in negative x direction'
-!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-!                             ' Urho(ib, jb)=', Urho(ib, jb), &
+!                 print *, 'U(ia, jb)=', U(ia, jb), &
+!                             ' U(ib, jb)=', U(ib, jb), &
 !                             ' T0(ntrac)=', T0(ntrac)
-                Urho(ia-1, ja) = Urho(ia-1, ja) - T0(ntrac) ! negative direction exit
-!                 Urho(ia, jb) = Urho(ia, jb) - T0(ntrac) ! leaving cell
-!                 Urho(ib, jb) = Urho(ib, jb) + T0(ntrac) ! entering cell
-!                 print *, 'Urho(ia, jb)=', Urho(ia, jb), &
-!                             ' Urho(ib, jb)=', Urho(ib, jb)
+                U(ia-1, ja) = U(ia-1, ja) - T0(ntrac) ! negative direction exit
+!                 U(ia, jb) = U(ia, jb) - T0(ntrac) ! leaving cell
+!                 U(ib, jb) = U(ib, jb) + T0(ntrac) ! entering cell
+!                 print *, 'U(ia, jb)=', U(ia, jb), &
+!                             ' U(ib, jb)=', U(ib, jb)
             else if(y1==dble(ja) .and. y1.ne.y0 .and. y1>y0) then ! moving in positive y direction
 !                 print *, 'moving in positive y direction'
-!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-!                             ' Vrho(ib, jb)=', Vrho(ib, jb), &
+!                 print *, 'V(ib, ja)=', V(ib, ja), &
+!                             ' V(ib, jb)=', V(ib, jb), &
 !                             ' T0(ntrac)=', T0(ntrac)
-                Vrho(ia, ja) = Vrho(ia, ja) + T0(ntrac) ! positive direction exit
-!                 Vrho(ib, ja) = Vrho(ib, ja) - T0(ntrac)
-!                 Vrho(ib, jb) = Vrho(ib, jb) + T0(ntrac)
-!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-!                             ' Vrho(ib, jb)=', Vrho(ib, jb)
+                V(ia, ja) = V(ia, ja) + T0(ntrac) ! positive direction exit
+!                 V(ib, ja) = V(ib, ja) - T0(ntrac)
+!                 V(ib, jb) = V(ib, jb) + T0(ntrac)
+!                 print *, 'V(ib, ja)=', V(ib, ja), &
+!                             ' V(ib, jb)=', V(ib, jb)
             else if(y1==dble(ja-1) .and. y1.ne.y0 .and. y1<y0) then ! moving in negative y direction
 !                 print *, 'moving in negative y direction'
-!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-!                             ' Vrho(ib, jb)=', Vrho(ib, jb), &
+!                 print *, 'V(ib, ja)=', V(ib, ja), &
+!                             ' V(ib, jb)=', V(ib, jb), &
 !                             ' T0(ntrac)=', T0(ntrac)
-                Vrho(ia, ja-1) = Vrho(ia, ja-1) - T0(ntrac) ! negative direction exit
-!                 Vrho(ib, ja) = Vrho(ib, ja) - T0(ntrac)
-!                 Vrho(ib, jb) = Vrho(ib, jb) + T0(ntrac)
-!                 print *, 'Vrho(ib, ja)=', Vrho(ib, ja), &
-!                             ' Vrho(ib, jb)=', Vrho(ib, jb)
+                V(ia, ja-1) = V(ia, ja-1) - T0(ntrac) ! negative direction exit
+!                 V(ib, ja) = V(ib, ja) - T0(ntrac)
+!                 V(ib, jb) = V(ib, jb) + T0(ntrac)
+!                 print *, 'V(ib, ja)=', V(ib, ja), &
+!                             ' V(ib, jb)=', V(ib, jb)
             end if
         end if
 
