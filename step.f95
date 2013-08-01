@@ -146,7 +146,8 @@ real*8,     parameter                                   :: UNDEF=1.d20
 real*8, dimension(6,2)                                    :: upr
 ! The following are for calculating Lagrangian stream functions
 real*8, optional, intent(in), dimension(ntractot) :: T0
-real*8, optional, intent(inout), dimension(imt,jmt) :: Urho, Vrho
+real*8, optional, intent(inout), dimension(imt-1,jmt) :: Urho
+real*8, optional, intent(inout), dimension(imt,jmt-1) :: Vrho
 
 !f2py intent(out) Urho, Vrho 
 

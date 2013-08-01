@@ -613,7 +613,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     return uflux1, vflux1, dzt, zrt, zwt
 
 def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
-                ahin,avin,do3din,doturbin,locin, Urhoin=None, Vrhoin=None):
+                ahin,avin,do3din,doturbin,locin, Uin=None, Vin=None):
     """
     Save tracks that have been calculated by tracmass into a netcdf file.
 
@@ -644,11 +644,11 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     rootgrp.createDimension('ntrac',ntrac)
     rootgrp.createDimension('nt',nt)
     # pdb.set_trace()
-    if Urhoin is not None:
-        # Urhoin = Urhoin.T.copy(order='C')
-        # Vrhoin = Vrhoin.T.copy(order='C')
-        xl = Urhoin.shape[1]
-        yl = Urhoin.shape[0]
+    if Uin is not None:
+        # Uin = Uin.T.copy(order='C')
+        # Vin = Vin.T.copy(order='C')
+        xl = Uin.shape[1]
+        yl = Uin.shape[0]
         rootgrp.createDimension('xl',xl)
         rootgrp.createDimension('yl',yl)
 
@@ -658,9 +658,9 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     latp = rootgrp.createVariable('latp','f8',('ntrac','nt')) # 64-bit floating point
     zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
     tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
-    if Urhoin is not None:
-        Urho = rootgrp.createVariable('Urho','f8',('yl','xl')) # 64-bit floating point
-        Vrho = rootgrp.createVariable('Vrho','f8',('yl','xl')) # 64-bit floating point
+    if Uin is not None:
+        U = rootgrp.createVariable('U','f8',('yl','xl')) # 64-bit floating point
+        V = rootgrp.createVariable('V','f8',('yl','xl')) # 64-bit floating point
     # Include other run details
     nsteps = rootgrp.createVariable('nsteps','i4')
     ff = rootgrp.createVariable('ff','i4')
@@ -690,9 +690,9 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     else:
         loc.long_name = 'location of model output information used for drifter experiment\n' + locin
     git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
-    if Urhoin is not None:
-        Urho.long_name = 'Aggregation of x volume transports of drifters'
-        Vrho.long_name = 'Aggregation of y volume transports of drifters'
+    if Uin is not None:
+        U.long_name = 'Aggregation of x volume transports of drifters'
+        V.long_name = 'Aggregation of y volume transports of drifters'
 
     lonp.units = 'degrees'
     latp.units = 'degrees'
@@ -701,8 +701,8 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     tseas.units = 'second'
     ah.units = 'meter2 second-1'
     av.units = 'meter2 second-1'
-    Urho.units = 'meter3 second-1'
-    Vrho.units = 'meter3 second-1'
+    U.units = 'meter3 second-1'
+    V.units = 'meter3 second-1'
 
     lonp.time = 'tp'
     latp.time = 'tp'
@@ -730,8 +730,8 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     doturb[:] = doturbin
     #loc[:] = ''
     #git_hash[:] = ''
-    Urho[:] = Urhoin
-    Vrho[:] = Vrhoin
+    U[:] = Uin
+    V[:] = Vin
 
     rootgrp.close()
 

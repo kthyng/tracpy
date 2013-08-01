@@ -21,7 +21,7 @@ from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         zpar, do3d, doturb, name, grid=None, dostream=0, \
-        T0=None, Urho=None, Vrho=None):
+        T0=None, U=None, V=None):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -89,7 +89,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     The following inputs are for calculating Lagrangian stream functions
     dostream    Calculate streamfunctions (1) or not (0). Default is 0.
     U0, V0      (optional) Initial volume transports of drifters (m^3/s)
-    Urho, Vrho  (optional) Array aggregating volume transports as drifters move [imt,jmt]
+    U, V  (optional) Array aggregating volume transports as drifters move [imt-1,jmt], [imt,jmt-1]
     '''
 
     tic_start = time.time()
@@ -291,7 +291,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                     jend[ind,j*nsteps:j*nsteps+nsteps],\
                     kend[ind,j*nsteps:j*nsteps+nsteps],\
                     flag[ind],\
-                    ttend[ind,j*nsteps:j*nsteps+nsteps], Urho, Vrho = \
+                    ttend[ind,j*nsteps:j*nsteps+nsteps], U, V = \
                         tracmass.step(np.ma.compressed(xstart),\
                                         np.ma.compressed(ystart),
                                         np.ma.compressed(zstart),
@@ -301,7 +301,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                         grid['dyu'], grid['h'], nsteps, \
                                         ah, av, do3d, doturb, dostream, \
                                         t0=T0[ind],
-                                        urho=Urho, vrho=Vrho)
+                                        u=U, v=V)
             else: # don't calculate Lagrangian stream functions
                 xend[ind,j*nsteps:j*nsteps+nsteps],\
                     yend[ind,j*nsteps:j*nsteps+nsteps],\
@@ -395,8 +395,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     # Save results to netcdf file
     if dostream:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
-                            do3d, doturb, loc, Urho, Vrho)
-        return lonp, latp, zp, t, grid, Urho, Vrho
+                            do3d, doturb, loc, U, V)
+        return lonp, latp, zp, t, grid, U, V
     else:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
                             do3d, doturb, loc)
