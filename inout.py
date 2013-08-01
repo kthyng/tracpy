@@ -645,12 +645,14 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     rootgrp.createDimension('nt',nt)
     # pdb.set_trace()
     if Uin is not None:
-        # Uin = Uin.T.copy(order='C')
-        # Vin = Vin.T.copy(order='C')
-        xl = Uin.shape[0]
-        yl = Uin.shape[1]
-        rootgrp.createDimension('xl',xl)
-        rootgrp.createDimension('yl',yl)
+        xul = Uin.shape[0]
+        yul = Uin.shape[1]
+        rootgrp.createDimension('xul',xul)
+        rootgrp.createDimension('yul',yul)
+        xvl = Vin.shape[0]
+        yvl = Vin.shape[1]
+        rootgrp.createDimension('xvl',xvl)
+        rootgrp.createDimension('yvl',yvl)
 
     # Create variables
     # Main track information
@@ -659,8 +661,8 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
     tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
     if Uin is not None:
-        U = rootgrp.createVariable('U','f8',('xl','yl')) # 64-bit floating point
-        V = rootgrp.createVariable('V','f8',('xl','yl')) # 64-bit floating point
+        U = rootgrp.createVariable('U','f8',('xul','yul')) # 64-bit floating point
+        V = rootgrp.createVariable('V','f8',('xvl','yvl')) # 64-bit floating point
     # Include other run details
     nsteps = rootgrp.createVariable('nsteps','i4')
     ff = rootgrp.createVariable('ff','i4')

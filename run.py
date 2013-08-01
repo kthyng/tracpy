@@ -301,7 +301,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                                         grid['dyu'], grid['h'], nsteps, \
                                         ah, av, do3d, doturb, dostream, \
                                         t0=T0[ind],
-                                        u=U, v=V)
+                                        ut=U, vt=V)
             else: # don't calculate Lagrangian stream functions
                 xend[ind,j*nsteps:j*nsteps+nsteps],\
                     yend[ind,j*nsteps:j*nsteps+nsteps],\
