@@ -613,7 +613,7 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     return uflux1, vflux1, dzt, zrt, zwt
 
 def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
-                ahin,avin,do3din,doturbin,locin, Uin=None, Vin=None):
+                ahin,avin,do3din,doturbin,locin, T0in=None, Uin=None, Vin=None):
     """
     Save tracks that have been calculated by tracmass into a netcdf file.
 
@@ -661,6 +661,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
     tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
     if Uin is not None:
+        T0 = rootgrp.createVariable('T0','f8',('ntrac')) # 64-bit floating point
         U = rootgrp.createVariable('U','f8',('xul','yul')) # 64-bit floating point
         V = rootgrp.createVariable('V','f8',('xvl','yvl')) # 64-bit floating point
     # Include other run details
@@ -693,6 +694,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
         loc.long_name = 'location of model output information used for drifter experiment\n' + locin
     git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
     if Uin is not None:
+        T0.long_name = 'Initial volume transport associated with each drifter'
         U.long_name = 'Aggregation of x volume transports of drifters'
         V.long_name = 'Aggregation of y volume transports of drifters'
 
@@ -703,6 +705,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     tseas.units = 'second'
     ah.units = 'meter2 second-1'
     av.units = 'meter2 second-1'
+    T0.units = 'meter3 second-1'
     U.units = 'meter3 second-1'
     V.units = 'meter3 second-1'
 
@@ -732,6 +735,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     doturb[:] = doturbin
     #loc[:] = ''
     #git_hash[:] = ''
+    T0[:] = T0in
     U[:] = Uin
     V[:] = Vin
 
