@@ -166,7 +166,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 
         # C with the reduce_C_function as sum is what makes it a percent
         C = np.ones(len(xpc))*(1./len(xpc))*100
-        hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=40, 
+        hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0], 
                 extent=(grid['xr'].min(), grid['xr'].max(), 
                 grid['yr'].min(), grid['yr'].max()), 
                 reduce_C_function=sum)
