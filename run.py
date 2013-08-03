@@ -395,8 +395,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     # Save results to netcdf file
     if dostream:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
-                            do3d, doturb, loc, U, V)
-        return lonp, latp, zp, t, grid, U, V
+                            do3d, doturb, loc, T0, U, V)
+        return lonp, latp, zp, t, grid, T0, U, V
     else:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
                             do3d, doturb, loc)
