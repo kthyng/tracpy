@@ -255,11 +255,17 @@ def tracks(lonp,latp,fname,grid=None):
     # pdb.set_trace()
 
     # Legend, of sorts
-    xtext, ytext = grid['basemap'](-94,24) # text location
-    text(xtext,ytext,'starting location',fontsize=16,color='green',alpha=.8)
-    # pdb.set_trace()
-    text(xtext,ytext-30000,'track',fontsize=16,color='grey')#,alpha=.8)
-    text(xtext,ytext-60000,'ending location',fontsize=16,color='red')#,alpha=.8)
+    ax = gca()
+    xtext = 0.45; ytext = 0.18;
+    text(xtext, ytext, 'starting location', fontsize=16, color='green', 
+        alpha=.8, transform = ax.transAxes)
+    text(xtext, ytext-.03, 'track', fontsize=16, color='grey', transform = ax.transAxes)
+    text(xtext, ytext-.03*2, 'ending location', fontsize=16, color='red', 
+        transform = ax.transAxes)
+    # xtext, ytext = grid['basemap'](-94,24) # text location
+    # text(xtext,ytext,'starting location',fontsize=16,color='green',alpha=.8)
+    # text(xtext,ytext-30000,'track',fontsize=16,color='grey')#,alpha=.8)
+    # text(xtext,ytext-60000,'ending location',fontsize=16,color='red')#,alpha=.8)
 
     # # get psi mask from rho mask
     # # maskp = grid['mask'][1:,1:]*grid['mask'][:-1,1:]* \
