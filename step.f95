@@ -149,7 +149,7 @@ real*8, optional, intent(in), dimension(ntractot) :: T0
 real*8, optional, intent(inout), dimension(imt-1,jmt) :: ut
 real*8, optional, intent(inout), dimension(imt,jmt-1) :: vt
 
-!f2py optional intent(out) ut, vt 
+!f2py optional intent(inout) ut, vt 
 
 ! Set indices for x/y/z grid locations to be the ceiling of the grid indices
 istart = ceiling(xstart)
