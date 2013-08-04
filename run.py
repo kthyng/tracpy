@@ -310,7 +310,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                     jend[ind,j*nsteps:j*nsteps+nsteps],\
                     kend[ind,j*nsteps:j*nsteps+nsteps],\
                     flag[ind],\
-                    ttend[ind,j*nsteps:j*nsteps+nsteps] = \
+                    ttend[ind,j*nsteps:j*nsteps+nsteps], _, _ = \
                         tracmass.step(np.ma.compressed(xstart),\
                                         np.ma.compressed(ystart),
                                         np.ma.compressed(zstart),
