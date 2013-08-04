@@ -183,6 +183,7 @@ def find_final(xp,yp):
     # Make this a separate function later
     xpc = []
     ypc = []
+    # I THINK THIS SHOULDN"T HAVE THE -1 but need to check
     for idrift in xrange(xp.shape[0]-1):
         # pdb.set_trace()
         # print idrift

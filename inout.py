@@ -705,9 +705,10 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     tseas.units = 'second'
     ah.units = 'meter2 second-1'
     av.units = 'meter2 second-1'
-    T0.units = 'meter3 second-1'
-    U.units = 'meter3 second-1'
-    V.units = 'meter3 second-1'
+    if Uin is not None:
+        T0.units = 'meter3 second-1'
+        U.units = 'meter3 second-1'
+        V.units = 'meter3 second-1'
 
     lonp.time = 'tp'
     latp.time = 'tp'
@@ -735,9 +736,10 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     doturb[:] = doturbin
     #loc[:] = ''
     #git_hash[:] = ''
-    T0[:] = T0in
-    U[:] = Uin
-    V[:] = Vin
+    if Uin is not None:
+        T0[:] = T0in
+        U[:] = Uin
+        V[:] = Vin
 
     rootgrp.close()
 
