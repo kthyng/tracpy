@@ -781,7 +781,7 @@ def loadtransport(name,fmod=None):
         lat0    Initial lat location for drifters
         T0      Overall
     '''
-    pdb.set_trace()
+
     # Which files to read in.
     if fmod is None:
         Files = glob.glob('tracks/' + name + '/*.nc')

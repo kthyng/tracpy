@@ -343,7 +343,8 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     plot(x0, y0, 'go', markersize=10)
 
     # Inlaid colorbar
-    cax = fig.add_axes([0.5, 0.2, 0.35, 0.02])
+    cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02])
+    # cax = fig.add_axes([0.5, 0.2, 0.35, 0.02])
     cb = colorbar(cax=cax,orientation='horizontal')
     cb.set_label('Normalized drifter transport (%)')
 
