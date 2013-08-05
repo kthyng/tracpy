@@ -288,77 +288,6 @@ def tracks(lonp,latp,fname,grid=None):
     savefig('figures/' + fname + 'tracks.png',bbox_inches='tight')
     # savefig('figures/' + fname + 'tracks.pdf',bbox_inches='tight')
 
-def stream(lonp, latp, fname, which='contour', \
-            grid=None, xlims=None, ylims=None):
-    """
-    UPDATE THIS
-    Plot histogram of given track data at time index tind.
-
-    Inputs:
-        lonp,latp   Drifter track positions in lon/lat [time x ndrifters]
-        fname       Plot name to save
-        tind        (optional) Default is 'final', in which case the final
-                    position of each drifter in the array is found
-                    and plotted. Alternatively, a time index 
-                    can be input and drifters at that time will be plotted.
-                    Note that once drifters hit the outer numerical boundary,
-                    they are nan'ed out so this may miss some drifters.
-        which       (optional) 'contour', 'pcolor', 'hexbin', 'hist2d' 
-                    for type of plot used. Default 'hexbin'.
-        bins        (optional) Number of bins used in histogram. Default (15,25).
-        N           (optional) Number of contours to make. Default 10.
-        grid        (optional) grid as read in by inout.readgrid()
-        xlims       (optional) value limits on the x axis
-        ylims       (optional) value limits on the y axis
-
-    Note: Currently assuming we are plotting the final location 
-    of each drifter regardless of tind.
-    """
-
-    if grid is None:
-        loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
-        grid = inout.readgrid(loc)
-
-    # Change positions from lon/lat to x/y
-    xp, yp = grid['basemap'](lonp, latp)
-    # Need to retain nan's since basemap changes them to values
-    ind = np.isnan(lonp)
-    xp[ind] = np.nan
-    yp[ind] = np.nan
-
-    fig = figure(figsize=(12,10))
-    background(grid) # Plot coastline and such
-
-    # pdb.set_trace()
-
-
-    # C with the reduce_C_function as sum is what makes it a percent
-    C = np.ones(len(xpc))*(1./len(xpc))*100
-    hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=40, 
-            extent=(grid['xr'].min(), grid['xr'].max(), 
-            grid['yr'].min(), grid['yr'].max()), 
-            reduce_C_function=sum)
-
-    # Set x and y limits
-    # pdb.set_trace()
-    if xlims is not None:
-        xlim(xlims)
-    if ylims is not None:
-        ylim(ylims)
-
-    # Horizontal colorbar below plot
-    cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
-    cb = colorbar(cax=cax, orientation='horizontal')
-    cb.set_label('Final drifter location (percent)')
-
-    # pdb.set_trace()
-    # Save figure into a local directory called figures. Make directory if it doesn't exist.
-    if not os.path.exists('figures'):
-        os.makedirs('figures')
-
-    savefig('figures/' + fname + 'stream.png', bbox_inches='tight')
-    # savefig('figures/' + fname + 'histhexbin.pdf',bbox_inches='tight')
-
 def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
                 llcrnrlon=-98.5, llcrnrlat=22.5, urcrnrlat=31.0, urcrnrlon=-87.5,
                 colormap='Blues'):
@@ -382,7 +311,7 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
                 # llcrnrlon, llcrnrlat, urcrnrlat, urcrnrlon, colormap):
 
     # Load in transport information
-    U, V, lon0, lat0, T0 = inout.load(name,fmod=fmod)
+    U, V, lon0, lat0, T0 = inout.loadtransport(name,fmod=fmod)
 
     # Smaller basemap parameters.
     loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
@@ -401,24 +330,24 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     locator.set_bounds(0,dmax)#d.min(),d.max())
     levs = locator()
 
-    fig = plt.figure(figsize=(12,10))
+    fig = figure(figsize=(12,10))
     tracpy.plotting.background(grid=grid)
-    c = plt.contourf(grid['xpsi'], grid['ypsi'], Splot,             
+    c = contourf(grid['xpsi'], grid['ypsi'], Splot,             
             cmap=colormap, extend='max', levels=levs)
-    plt.title(Title)
+    title(Title)
 
     # Add initial drifter location (all drifters start at the same location)
     lon0 = lon0.mean()
     lat0 = lat0.mean()
     x0, y0 = grid['basemap'](lon0, lat0)
-    plt.plot(x0, y0, 'go', markersize=10)
+    plot(x0, y0, 'go', markersize=10)
 
     # Inlaid colorbar
     cax = fig.add_axes([0.5, 0.2, 0.35, 0.02])
-    cb = plt.colorbar(cax=cax,orientation='horizontal')
+    cb = colorbar(cax=cax,orientation='horizontal')
     cb.set_label('Normalized drifter transport (%)')
 
     if extraname is None:
-        plt.savefig('figures/' + name + '/transport', bbox_inches='tight')
+        savefig('figures/' + name + '/transport', bbox_inches='tight')
     else:
-        plt.savefig('figures/' + name + '/transport' + extraname, bbox_inches='tight')
+        savefig('figures/' + name + '/transport' + extraname, bbox_inches='tight')
