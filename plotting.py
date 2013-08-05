@@ -358,3 +358,57 @@ def stream(lonp, latp, fname, which='contour', \
 
     savefig('figures/' + fname + 'stream.png', bbox_inches='tight')
     # savefig('figures/' + fname + 'histhexbin.pdf',bbox_inches='tight')
+
+def transport(name, U, V, lon0, lat0, T0, dmax, extraname, Title, N,
+                llcrnrlon, llcrnrlat, urcrnrlat, urcrnrlon, colormap):
+    '''
+    Make plot of zoomed-in area near DWH spill of transport of drifters over 
+    time.
+
+    Inputs:
+        name
+        U
+        V
+        lon0
+        lat0
+        T0
+    '''
+
+    # Smaller basemap parameters.
+    loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
+    grid = tracpy.inout.readgrid(loc, llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat, 
+                                    urcrnrlat=urcrnrlat, urcrnrlon=urcrnrlon)
+
+    S = np.sqrt(op.resize(U,1)**2+op.resize(V,0)**2)
+    Splot = (S/T0)*100
+    if dmax is None:
+        dmax = Splot.max()
+    else:
+        dmax = dmax
+    # from http://matplotlib.1069221.n5.nabble.com/question-about-contours-and-clim-td21111.html
+    locator = ticker.MaxNLocator(N) # if you want no more than 10 contours
+    locator.create_dummy_axis()
+    locator.set_bounds(0,dmax)#d.min(),d.max())
+    levs = locator()
+
+    fig = plt.figure(figsize=(12,10))
+    tracpy.plotting.background(grid=grid)
+    c = plt.contourf(grid['xpsi'], grid['ypsi'], Splot,             
+            cmap=colormap, extend='max', levels=levs)
+    plt.title(Title)
+
+    # Add initial drifter location (all drifters start at the same location)
+    lon0 = lon0.mean()
+    lat0 = lat0.mean()
+    x0, y0 = grid['basemap'](lon0, lat0)
+    plt.plot(x0, y0, 'go', markersize=10)
+
+    # Inlaid colorbar
+    cax = fig.add_axes([0.5, 0.2, 0.35, 0.02])
+    cb = plt.colorbar(cax=cax,orientation='horizontal')
+    cb.set_label('Normalized drifter transport (%)')
+
+    if extraname is None:
+        plt.savefig('figures/' + name + '/transport', bbox_inches='tight')
+    else:
+        plt.savefig('figures/' + name + '/transport' + extraname, bbox_inches='tight')
