@@ -315,7 +315,7 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
 
     # Smaller basemap parameters.
     loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
-    grid = tracpy.inout.readgrid(loc, llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat, 
+    grid = inout.readgrid(loc, llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat, 
                                     urcrnrlat=urcrnrlat, urcrnrlon=urcrnrlon)
 
     S = np.sqrt(op.resize(U,1)**2+op.resize(V,0)**2)
@@ -331,7 +331,7 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     levs = locator()
 
     fig = figure(figsize=(12,10))
-    tracpy.plotting.background(grid=grid)
+    background(grid=grid)
     c = contourf(grid['xpsi'], grid['ypsi'], Splot,             
             cmap=colormap, extend='max', levels=levs)
     title(Title)
