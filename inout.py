@@ -7,6 +7,7 @@ Contains:
     readfields
     savetracks
     loadtracks
+    loadtransport
 """
 
 import netCDF4 as netCDF
@@ -763,3 +764,52 @@ def loadtracks(name,loc=None):
     tp = nc.variables['tp'][:]
 
     return lonp,latp,zp,tp      
+
+def loadtransport(name,fmod=None):
+    '''
+
+    Inputs:
+        name    Name of project
+        fmod    File modifier: a way to choose a subset of the file in 
+                the project directory instead of all. Should be a string and
+                can include asterisks as wildcards.
+
+    Outputs:
+        U, V    Transport of drifter volume in x and y directions over all
+                used simulation files
+        lon0    Initial lon location for drifters
+        lat0    Initial lat location for drifters
+        T0      Overall
+    '''
+
+    # Which files to read in.
+    if fmod is None:
+        Files = glob.glob('tracks/' + name + '/*.nc')
+    elif len(fmod)>1:
+        Files = []
+        for i in xrange(len(fmod)):
+            Files = Files + glob.glob('tracks/' + fmod[i])
+    else:
+        Files = glob.glob('tracks/' + name + '/' + fmod + '.nc')
+
+    Files.sort()
+
+    # Load in U and V volume transports of drifters and add together for
+    # all files
+    for i, File in enumerate(Files):
+        d = netCDF.Dataset(File)
+        if i == 0: # initialize U and V transports from first file
+            U = d.variables['U'][:]
+            V = d.variables['V'][:]
+            T0 = np.sum(d.variables['T0'][:])
+        else: # add in transports from subsequent simulations
+            U = U + d.variables['U'][:]
+            V = V + d.variables['V'][:]
+            T0 = T0 + np.sum(d.variables['T0'][:])
+
+        # Add initial drifter location (all drifters start at the same location)
+        lon0 = d.variables['lonp'][:,0]
+        lat0 = d.variables['latp'][:,0]
+        d.close()
+
+    return U, V, lon0, lat0, T0
