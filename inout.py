@@ -6,7 +6,7 @@ Contains:
     readgrid
     readfields
     savetracks
-    load tracks
+    loadtracks
 """
 
 import netCDF4 as netCDF
