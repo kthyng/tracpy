@@ -359,11 +359,14 @@ def stream(lonp, latp, fname, which='contour', \
     savefig('figures/' + fname + 'stream.png', bbox_inches='tight')
     # savefig('figures/' + fname + 'histhexbin.pdf',bbox_inches='tight')
 
-def transport(name, U, V, lon0, lat0, T0, dmax, extraname, Title, N,
-                llcrnrlon, llcrnrlat, urcrnrlat, urcrnrlon, colormap):
+def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
+                llcrnrlon=-98.5, llcrnrlat=22.5, urcrnrlat=31.0, urcrnrlon=-87.5,
+                colormap='Blues'):
     '''
     Make plot of zoomed-in area near DWH spill of transport of drifters over 
     time.
+
+    FILL IN
 
     Inputs:
         name
@@ -373,6 +376,13 @@ def transport(name, U, V, lon0, lat0, T0, dmax, extraname, Title, N,
         lat0
         T0
     '''
+
+
+# (name=None, U, V, lon0, lat0, T0, dmax, extraname, Title, N,
+                # llcrnrlon, llcrnrlat, urcrnrlat, urcrnrlon, colormap):
+
+    # Load in transport information
+    U, V, lon0, lat0, T0 = inout.load(name,fmod=fmod)
 
     # Smaller basemap parameters.
     loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
