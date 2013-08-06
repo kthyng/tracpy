@@ -46,7 +46,7 @@ def setupROMSfiles(loc,date,ff,tout):
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
-    pdb.set_trace()
+    # pdb.set_trace()
     if 'http' in loc or len(loc) == 2: # use just input file
         if len(loc) == 2:
             nc = netCDF.Dataset(loc[0])
