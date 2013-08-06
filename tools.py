@@ -170,21 +170,22 @@ def interpolate3d(x,y,z,zin,order=1,mode='nearest',cval=0.):
     # pdb.set_trace()
     return zi, dt
 
-def find_final(xp,yp):
+def find_final(xp, yp, ind=-1):
     """
     Loop through drifters and find final location of drifters
     within the tracks arrays. This can be necessary because when
     drifters exit the numerical domain, they are nan'ed out.
+    default is to search for the final non-nan location (-1), but can 
+    search for others instead, for example, the first non-nan position, 
+    which is helpful if we are looking at the flipped output from a backward run.
     """
-
-    # pdb.set_trace()
 
     # Find final position for drifters (since they are nan'ed out after they hit the open boundary)
     # Make this a separate function later
     xpc = []
     ypc = []
     # I THINK THIS SHOULDN"T HAVE THE -1 but need to check
-    for idrift in xrange(xp.shape[0]-1):
+    for idrift in xrange(xp.shape[0]):
         # pdb.set_trace()
         # print idrift
         # Find last non-nan and make sure it is in the desired month start time
@@ -194,19 +195,19 @@ def find_final(xp,yp):
         # in order to plot the tracks that "started" in the plotted month
         if np.sum(ind3) > 1: # don't want tracks that start on land
             # This is for if we care when the drifter stopped
-            # if t[find(ind3)[-1]] >= datetime(year,startMonth,startDay,0) and \
-            #   t[find(ind3)[-1]] <= datetime(year,startMonth+1,startDay,0):
+            # if t[find(ind3)[ind]] >= datetime(year,startMonth,startDay,0) and \
+            #   t[find(ind3)[ind]] <= datetime(year,startMonth+1,startDay,0):
             # ind2 = ~np.isnan(xp[idrift,:])
             if np.sum(np.isnan(xp[idrift,:])) > 0 and np.sum(np.isnan(xp[idrift,:])) < xp.shape[1]: # if there is a nan
-                # ax.plot(xp[idrift,find(ind2)[-1]].T,yp[idrift,find(ind2)[-1]].T,'o',color='orange',linewidth=.5,label='_nolegend_')
-                xpc.append(xp[idrift,find(ind3)[-1]])
-                ypc.append(yp[idrift,find(ind3)[-1]])
+                # ax.plot(xp[idrift,find(ind2)[ind]].T,yp[idrift,find(ind2)[ind]].T,'o',color='orange',linewidth=.5,label='_nolegend_')
+                xpc.append(xp[idrift,find(ind3)[ind]])
+                ypc.append(yp[idrift,find(ind3)[ind]])
             else:
-                # ax.plot(xp[idrift,-1].T,yp[idrift,-1].T,'o',color='orange',linewidth=.5,label='_nolegend_')
-                xpc.append(xp[idrift,find(ind3)[-1]])
-                ypc.append(yp[idrift,find(ind3)[-1]])
+                # ax.plot(xp[idrift,ind].T,yp[idrift,ind].T,'o',color='orange',linewidth=.5,label='_nolegend_')
+                xpc.append(xp[idrift,find(ind3)[ind]])
+                ypc.append(yp[idrift,find(ind3)[ind]])
 
-    return xpc,ypc
+    return xpc, ypc
 
 
 def convert_indices(direction,x,y):
