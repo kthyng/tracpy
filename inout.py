@@ -659,16 +659,55 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
         rootgrp.createDimension('xvl',xvl)
         rootgrp.createDimension('yvl',yvl)
 
-    # Create variables
-    # Main track information
+    # Do the rest of this by variable so they can be deleted as I go for memory.
+    # Create variable
     lonp = rootgrp.createVariable('lonp','f8',('ntrac','nt')) # 64-bit floating point
+    # Set some attributes
+    lonp.long_name = 'longitudinal position of drifter'
+    lonp.units = 'degrees'
+    lonp.time = 'tp'
+    # Write data to netCDF variables
+    lonp[:] = lonpin
+    # Delete to save space
+    del(lonpin)
+
     latp = rootgrp.createVariable('latp','f8',('ntrac','nt')) # 64-bit floating point
+    latp.long_name = 'latitudinal position of drifter'
+    latp.units = 'degrees'
+    latp.time = 'tp'
+    latp[:] = latpin
+    del(latpin)
+
     zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
+    zp.long_name = 'vertical position of drifter (negative is downward from surface)'
+    zp.units = 'meter'
+    zp.time = 'tp'
+    zp[:] = zpin
+    del(zpin)
+
     tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
+    tp.long_name = 'time at drifter locations'
+    tp.units = 'seconds since 1970-01-01 00:00:00'
+    tp[:] = tpin
+    del(tpin)
+
     if Uin is not None:
         T0 = rootgrp.createVariable('T0','f8',('ntrac')) # 64-bit floating point
         U = rootgrp.createVariable('U','f8',('xul','yul')) # 64-bit floating point
         V = rootgrp.createVariable('V','f8',('xvl','yvl')) # 64-bit floating point
+        T0.long_name = 'Initial volume transport associated with each drifter'
+        U.long_name = 'Aggregation of x volume transports of drifters'
+        V.long_name = 'Aggregation of y volume transports of drifters'
+        T0.units = 'meter3 second-1'
+        U.units = 'meter3 second-1'
+        V.units = 'meter3 second-1'
+        T0[:] = T0in
+        U[:] = Uin
+        V[:] = Vin
+        del(T0in,Uin,Vin)
+
+    # Create variables
+    # Main track information
     # Include other run details
     nsteps = rootgrp.createVariable('nsteps','i4')
     ff = rootgrp.createVariable('ff','i4')
@@ -682,10 +721,6 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     git_hash = rootgrp.createVariable('git_hash','i4')
 
     # Set some attributes
-    lonp.long_name = 'longitudinal position of drifter'
-    latp.long_name = 'latitudinal position of drifter'
-    zp.long_name = 'vertical position of drifter (negative is downward from surface)'
-    tp.long_name = 'time at drifter locations'
     nsteps.long_name = 'number of linear interpolation steps in time between model outputs'
     ff.long_name = 'forward (1) or backward (-1) in time'
     tseas.long_name = 'time between model outputs'
@@ -698,26 +733,11 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     else:
         loc.long_name = 'location of model output information used for drifter experiment\n' + locin
     git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
-    if Uin is not None:
-        T0.long_name = 'Initial volume transport associated with each drifter'
-        U.long_name = 'Aggregation of x volume transports of drifters'
-        V.long_name = 'Aggregation of y volume transports of drifters'
 
-    lonp.units = 'degrees'
-    latp.units = 'degrees'
-    zp.units = 'meter'
-    tp.units = 'seconds since 1970-01-01 00:00:00'
     tseas.units = 'second'
     ah.units = 'meter2 second-1'
     av.units = 'meter2 second-1'
-    if Uin is not None:
-        T0.units = 'meter3 second-1'
-        U.units = 'meter3 second-1'
-        V.units = 'meter3 second-1'
 
-    lonp.time = 'tp'
-    latp.time = 'tp'
-    zp.time = 'tp'
 
     # lonp._FillValue = 'nan'
     # latp._FillValue = 'nan'
@@ -728,10 +748,6 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     # pdb.set_trace()
 
     # Write data to netCDF variables
-    lonp[:] = lonpin
-    latp[:] = latpin
-    zp[:] = zpin
-    tp[:] = tpin
     nsteps[:] = nstepsin
     ff[:] = ffin
     tseas[:] = tseasin
@@ -741,10 +757,6 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     doturb[:] = doturbin
     #loc[:] = ''
     #git_hash[:] = ''
-    if Uin is not None:
-        T0[:] = T0in
-        U[:] = Uin
-        V[:] = Vin
 
     rootgrp.close()
 
