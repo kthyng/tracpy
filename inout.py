@@ -639,11 +639,10 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     # Open file for writing.
     # Using netCDF3-Classic because the ROMS output does and
     # MFDataset does not work with NetCDF4
-    # Can't save variables over 2GB without "LargeFile" format
+    # Can't save variables over 2GB without special format:
     # http://www.ncl.ucar.edu/Support/talk_archives/2011/0599.html
-    # rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='LargeFile')
-    # setfileoption("nc","Format","LargeFile") 
     # rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_CLASSIC')
+    # Hoping that this format will both allow large variables and aggregation
     rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_64BIT')
 
     # Define dimensions
