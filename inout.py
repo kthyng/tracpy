@@ -641,8 +641,9 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     # MFDataset does not work with NetCDF4
     # Can't save variables over 2GB without "LargeFile" format
     # http://www.ncl.ucar.edu/Support/talk_archives/2011/0599.html
-    rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='LargeFile')
-    # rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_CLASSIC')
+    # rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='LargeFile')
+    setfileoption("nc","Format","LargeFile") 
+    rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_CLASSIC')
 
     # Define dimensions
     rootgrp.createDimension('ntrac',ntrac)
