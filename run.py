@@ -354,7 +354,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     nc.close()
     t = t + t0save # add back in base time in seconds
 
-    pdb.set_trace()
+    # pdb.set_trace()
 
     # Add on to front location for first time step
     xg=np.concatenate((xstart0.reshape(xstart0.size,1),xend),axis=1)
