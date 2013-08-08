@@ -99,7 +99,10 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     units = 'seconds since 1970-01-01'
 
     # Number of model outputs to use
-    tout = np.int((ndays*(24*3600))/tseas)
+    # Adding one index so that all necessary indices are captured by this number.
+    # Then the run loop uses only the indices determined by tout instead of needing
+    # an extra one beyond
+    tout = np.int((ndays*(24*3600))/tseas + 1)
 
     # Convert date to number
     date = netCDF.date2num(date, units)
@@ -218,7 +221,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     yr3 = grid['yr'].reshape((grid['yr'].shape[0],grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
     # Loop through model outputs. tinds is in proper order for moving forward
     # or backward in time, I think.
-    for j,tind in enumerate(tinds):
+    for j,tind in enumerate(tinds[:-1]):
         # pdb.set_trace()
         # Move previous new time step to old time step info
         ufold = ufnew
@@ -230,9 +233,9 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         tic_read[j] = time.time()
         # Read stuff in for next time loop
         if is_string_like(z0): # isoslice case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tind+1,grid,nc,z0,zpar)
+            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[j+1],grid,nc,z0,zpar)
         else: # 3d case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tind+1,grid,nc)
+            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[j+1],grid,nc)
         toc_read[j] = time.time()
         # print "readfields run time:",toc_read-tic_read
 

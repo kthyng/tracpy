@@ -118,9 +118,10 @@ def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest',cval=0
                                         cval=cval).reshape(y.shape)
 
     # Need to retain nan's since are changed them to zeros here
-    ind = np.isnan(x)
-    xi[ind] = np.nan
-    yi[ind] = np.nan
+    if xi.size > 1:
+        ind = np.isnan(x)
+        xi[ind] = np.nan
+        yi[ind] = np.nan
 
     dt = time.time() - tic
 
