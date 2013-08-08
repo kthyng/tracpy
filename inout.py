@@ -678,12 +678,15 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     latp[:] = latpin
     del(latpin)
 
-    zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
-    zp.long_name = 'vertical position of drifter (negative is downward from surface)'
-    zp.units = 'meter'
-    zp.time = 'tp'
-    zp[:] = zpin
-    del(zpin)
+    if do3din:
+        zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
+        zp.long_name = 'vertical position of drifter (negative is downward from surface)'
+        zp.units = 'meter'
+        zp.time = 'tp'
+        zp[:] = zpin
+        del(zpin)
+    else:
+        del(zpin)
 
     tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
     tp.long_name = 'time at drifter locations'
@@ -737,15 +740,6 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     tseas.units = 'second'
     ah.units = 'meter2 second-1'
     av.units = 'meter2 second-1'
-
-
-    # lonp._FillValue = 'nan'
-    # latp._FillValue = 'nan'
-    # zp._FillValue = 'nan'
-    # tp._FillValue = 'nan'
-
-
-    # pdb.set_trace()
 
     # Write data to netCDF variables
     nsteps[:] = nstepsin
