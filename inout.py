@@ -628,7 +628,9 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     nt = lonpin.shape[1] # number of time steps (with interpolation steps and starting point)
     
     # save hash for the particular commit version that is currently being used
-    git_hash_in = os.popen('git log -1 --format="%H"').read()
+    tempfile = os.popen('git log -1 --format="%H"')
+    git_hash_in = tempfile.read()
+    tempfile.close()
     # remove \n on the end that I can't get rid of
     git_hash_in = git_hash_in[0:git_hash_in.find('\n')]
 
