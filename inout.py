@@ -627,12 +627,12 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     ntrac = lonpin.shape[0] # number of drifters
     nt = lonpin.shape[1] # number of time steps (with interpolation steps and starting point)
     
-    # save hash for the particular commit version that is currently being used
-    tempfile = os.popen('git log -1 --format="%H"')
-    git_hash_in = tempfile.read()
-    tempfile.close()
-    # remove \n on the end that I can't get rid of
-    git_hash_in = git_hash_in[0:git_hash_in.find('\n')]
+    # # save hash for the particular commit version that is currently being used
+    # tempfile = os.popen('git log -1 --format="%H"')
+    # git_hash_in = tempfile.read()
+    # tempfile.close()
+    # # remove \n on the end that I can't get rid of
+    # git_hash_in = git_hash_in[0:git_hash_in.find('\n')]
 
     # Save file into a local directory called tracks. Make directory if it doesn't exist.
     if not os.path.exists('tracks'):
@@ -723,7 +723,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
     doturb = rootgrp.createVariable('doturb','i4')
     # pdb.set_trace()
     loc = rootgrp.createVariable('loc','i4')
-    git_hash = rootgrp.createVariable('git_hash','i4')
+    # git_hash = rootgrp.createVariable('git_hash','i4')
 
     # Set some attributes
     nsteps.long_name = 'number of linear interpolation steps in time between model outputs'
@@ -737,7 +737,7 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
         loc.long_name = 'location of model output information used for drifter experiment\n' + locin[0]
     else:
         loc.long_name = 'location of model output information used for drifter experiment\n' + locin
-    git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
+    # git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
 
     tseas.units = 'second'
     ah.units = 'meter2 second-1'
