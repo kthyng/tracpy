@@ -21,7 +21,7 @@ import op
 import netCDF4 as netCDF
 import tools
 
-def background(grid=None):
+def background(grid=None, ax=None):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
@@ -33,19 +33,28 @@ def background(grid=None):
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         grid = inout.readgrid(loc)
 
+    if ax is None:
+        ax = gca()
+    else:
+        ax = ax
+
     # Do plot   
-    grid['basemap'].drawcoastlines()
-    grid['basemap'].fillcontinents('0.8')
-    grid['basemap'].drawparallels(np.arange(18, 35), dashes=(1, 0), linewidth=0.15, labels=[1, 0, 0, 0])
-    grid['basemap'].drawmeridians(np.arange(-100, -80), dashes=(1, 0), linewidth=0.15, labels=[0, 0, 0, 1])
+    grid['basemap'].drawcoastlines(ax=ax)
+    grid['basemap'].fillcontinents('0.8',ax=ax)
+    grid['basemap'].drawparallels(np.arange(18, 35), dashes=(1, 0), 
+                            linewidth=0.15, labels=[1, 0, 0, 0], ax=ax)
+    grid['basemap'].drawmeridians(np.arange(-100, -80), dashes=(1, 0), 
+                            linewidth=0.15, labels=[0, 0, 0, 1], ax=ax)
     hold('on')
-    contour(grid['xr'], grid['yr'], grid['h'], np.hstack(([10,20],np.arange(50,500,50))), colors='lightgrey', linewidths=0.25)
+    ax.contour(grid['xr'], grid['yr'], grid['h'], 
+                            np.hstack(([10,20],np.arange(50,500,50))), 
+                            colors='lightgrey', linewidths=0.25)
 
     # Outline numerical domain
-    plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
-    plot(grid['xr'][-1,:], grid['yr'][-1,:], 'k:')
-    plot(grid['xr'][:,0], grid['yr'][:,0], 'k:')
-    plot(grid['xr'][:,-1], grid['yr'][:,-1], 'k:')
+    ax.plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
+    ax.plot(grid['xr'][-1,:], grid['yr'][-1,:], 'k:')
+    ax.plot(grid['xr'][:,0], grid['yr'][:,0], 'k:')
+    ax.plot(grid['xr'][:,-1], grid['yr'][:,-1], 'k:')
 
 
 def hist(lonp, latp, fname, tind='final', which='contour', \
@@ -218,7 +227,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         # savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
 
-def tracks(lonp,latp,fname,grid=None):
+def tracks(lonp,latp,fname,grid=None, fig=None, ax=None, Title=None):
     """
     Plot tracks as lines with starting points in green and ending points in red.
 
@@ -231,31 +240,43 @@ def tracks(lonp,latp,fname,grid=None):
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         grid = inout.readgrid(loc)
 
+    if fig is None:
+        figure(figsize=(12,10))
+    else:
+        fig = fig
+
+    if ax is None:
+        ax = gca()
+    else:
+        ax = ax
+
     # Change positions from lon/lat to x/y
     xp,yp = grid['basemap'](lonp,latp)
     # Need to retain nan's since basemap changes them to values
     ind = np.isnan(lonp)
     xp[ind] = np.nan
     yp[ind] = np.nan
-
-    figure(figsize=(12,10))
-    background(grid) # Plot coastline and such
+  
+    background(grid, ax=ax) # Plot coastline and such
 
     # pdb.set_trace()
 
     # Starting marker
-    plot(xp[:,0],yp[:,0],'o',color='g',markersize=3,label='_nolegend_',alpha=0.4)
+    ax.plot(xp[:,0],yp[:,0],'o',color='g',markersize=3,label='_nolegend_',alpha=0.4)
 
     # Plot tracks
-    plot(xp.T,yp.T,'-',color='grey',linewidth=.2)
+    ax.plot(xp.T,yp.T,'-',color='grey',linewidth=.2)
 
     # Find final positions of drifters
     xpc,ypc = tools.find_final(xp,yp)
-    plot(xpc,ypc,'o',color='r',label='_nolegend_')
+    ax.plot(xpc,ypc,'o',color='r',label='_nolegend_')
     # pdb.set_trace()
 
+    if Title is not None:
+        ax.set_title(Title)
+
     # Legend, of sorts
-    ax = gca()
+    # ax = gca()
     xtext = 0.45; ytext = 0.18;
     text(xtext, ytext, 'starting location', fontsize=16, color='green', 
         alpha=.8, transform = ax.transAxes)
