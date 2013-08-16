@@ -135,15 +135,15 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     t0save = dates[tinds[0]] # time at start of drifter test from file in seconds since 1970-01-01, add this on at the end since it is big
 
     # Initialize drifter grid positions and indices
-    xend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    yend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    zend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    zp = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    iend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    jend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    kend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    ttend = np.ones((ia.size,len(tinds)*nsteps))*np.nan
-    t = np.zeros((len(tinds)*nsteps+1))
+    xend = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    yend = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    zend = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    zp = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    iend = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    jend = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    kend = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    ttend = np.ones((ia.size,len(tinds-1)*nsteps))*np.nan
+    t = np.zeros((len(tinds-1)*nsteps+1))
     flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
     # Initialize vertical stuff and fluxes
