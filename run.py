@@ -233,19 +233,21 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         # zwtold = zwtnew
 
         tic_read[jj] = time.time()
+        # pdb.set_trace()
         # Read stuff in for next time loop
         if is_string_like(z0): # isoslice case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[jj+1:jj+1+nmodel],grid,nc,z0,zpar)
+            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[jj:jj+nmodel+1],grid,nc,z0,zpar)
         else: # 3d case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[jj+1:jj+1+nmodel],grid,nc)
+            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[jj:jj+nmodel+1],grid,nc)
         toc_read[jj] = time.time()
         # print "readfields run time:",toc_read-tic_read
 
-        for j in xrange(nmodel):
+        for j in xrange(nmodel): # loop between the model outputs
 
-            print jj+j
+            print j+jj
+            # pdb.set_trace()
             #  flux fields at starting time for this step
-            if j != 0:
+            if (j+jj) != 0:
                 xstart = xend[:,(j+jj)*nsteps-1]
                 ystart = yend[:,(j+jj)*nsteps-1]
                 zstart = zend[:,(j+jj)*nsteps-1]
@@ -308,9 +310,9 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                             tracmass.step(np.ma.compressed(xstart),\
                                             np.ma.compressed(ystart),
                                             np.ma.compressed(zstart),
-                                            tseas, ufnew[:,:,:,0:2], vfnew[:,:,:,0:2], \
+                                            tseas, ufnew[:,:,:,j:j+2], vfnew[:,:,:,j:j+2], \
                                             ff, grid['kmt'].astype(int), \
-                                            dztnew[:,:,:,0:2], grid['dxdy'], grid['dxv'], \
+                                            dztnew[:,:,:,j:j+2], grid['dxdy'], grid['dxv'], \
                                             grid['dyu'], grid['h'], nsteps, \
                                             ah, av, do3d, doturb, dostream, \
                                             t0=T0[ind],
@@ -345,9 +347,9 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                             tracmass.step(np.ma.compressed(xstart),\
                                             np.ma.compressed(ystart),
                                             np.ma.compressed(zstart),
-                                            tseas, ufnew[:,:,:,0:2], vfnew[:,:,:,0:2], \
+                                            tseas, ufnew[:,:,:,j:j+2], vfnew[:,:,:,j:j+2], \
                                             ff, grid['kmt'].astype(int), \
-                                            dztnew[:,:,:,0:2], grid['dxdy'], grid['dxv'], \
+                                            dztnew[:,:,:,j:j+2], grid['dxdy'], grid['dxv'], \
                                             grid['dyu'], grid['h'], nsteps, \
                                             ah, av, do3d, doturb, dostream)
                     # xend[ind,j*nsteps:j*nsteps+nsteps],\
@@ -392,7 +394,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                         # interpolate to a specific output time
                         # pdb.set_trace()
                         zwt = (1.-r[n])*zwtold + r[n]*zwtnew
-                        zp[ind,j*nsteps:j*nsteps+nsteps], dt = tools.interpolate3d(xend[ind,(j+jj)*nsteps:(j+jj)*nsteps+nsteps], \
+                        zp[ind,(j+jj)*nsteps:(j+jj)*nsteps+nsteps], dt = tools.interpolate3d(xend[ind,(j+jj)*nsteps:(j+jj)*nsteps+nsteps], \
                                                                 yend[ind,(j+jj)*nsteps:(j+jj)*nsteps+nsteps], \
                                                                 zend[ind,(j+jj)*nsteps:(j+jj)*nsteps+nsteps], \
                                                                 zwt)
