@@ -483,34 +483,48 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     h = grid['h'].T.copy(order='c')
     # Use octant to calculate depths for the appropriate vertical grid parameters
     # have to transform a few back to ROMS coordinates and python ordering for this
-    zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
-                    h, grid['hc'], zeta=ssh, Hscale=3)
-    # Change dzt to tracmass/fortran ordering
-    # zwt = zwt.T.copy(order='f')
-    # dzt = zwt[:,:,1:] - zwt[:,:,:-1]
-    dzt = zwt[1:,:,:] - zwt[:-1,:,:]
-    # pdb.set_trace()
-    # time_zw = time.time()-tic_temp
+    if not np.isscalar(tind):
+        zwt = np.ones((ssh.shape[0], grid['km']+1, ssh.shape[1], ssh.shape[2]))
+        for i in xrange(ssh.shape[0]):
+            zwt[i,:,:,:] = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+                            h, grid['hc'], zeta=ssh[i,:,:], Hscale=3)
+        dzt = zwt[:,1:,:,:] - zwt[:,:-1,:,:]
+        dzu = .5*(dzt[:,:,:,0:grid['imt']-1] + dzt[:,:,:,1:grid['imt']])
+        dzv = .5*(dzt[:,:,0:grid['jmt']-1,:] + dzt[:,:,1:grid['jmt'],:])
+    else:
+        zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+                        h, grid['hc'], zeta=ssh, Hscale=3)
+        # Change dzt to tracmass/fortran ordering
+        # zwt = zwt.T.copy(order='f')
+        # dzt = zwt[:,:,1:] - zwt[:,:,:-1]
+        dzt = zwt[1:,:,:] - zwt[:-1,:,:]
+        # pdb.set_trace()
+        # time_zw = time.time()-tic_temp
+
+        # tic_temp = time.time()
+        dzu = .5*(dzt[:,:,0:grid['imt']-1] + dzt[:,:,1:grid['imt']])
+        dzv = .5*(dzt[:,0:grid['jmt']-1,:] + dzt[:,1:grid['jmt'],:])
+        # dzu = .5*(dzt[0:grid['imt']-1,:,:] + dzt[1:grid['imt'],:,:])
+        # dzv = .5*(dzt[:,0:grid['jmt']-1,:] + dzt[:,1:grid['jmt'],:])
+        # dzu = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
+        # dzv = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
+        # dzu[0:grid['imt']-1,:,:] = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
+        # dzv[:,0:grid['jmt']-1,:] = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
+        # pdb.set_trace()
+        # time_interp = time.time()-tic_temp
 
     # tic_temp = time.time()
     # also want depths on rho grid
-    zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
-                    h, grid['hc'], zeta=ssh, Hscale=3)
-    # Change dzt to tracmass/fortran ordering
-    # zrt = zrt.T.copy(order='f')
-    # time_zr = time.time()-tic_temp
+    if not np.isscalar(tind):
+        zrt = np.ones((ssh.shape[0], grid['km'], ssh.shape[1], ssh.shape[2]))
+        for i in xrange(ssh.shape[0]):
+            zrt[i,:,:,:] = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+                            h, grid['hc'], zeta=ssh[i,:,:], Hscale=3)
+    else:
+        zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+                        h, grid['hc'], zeta=ssh, Hscale=3)
 
-    # tic_temp = time.time()
-    dzu = .5*(dzt[:,:,0:grid['imt']-1] + dzt[:,:,1:grid['imt']])
-    dzv = .5*(dzt[:,0:grid['jmt']-1,:] + dzt[:,1:grid['jmt'],:])
-    # dzu = .5*(dzt[0:grid['imt']-1,:,:] + dzt[1:grid['imt'],:,:])
-    # dzv = .5*(dzt[:,0:grid['jmt']-1,:] + dzt[:,1:grid['jmt'],:])
-    # dzu = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
-    # dzv = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
-    # dzu[0:grid['imt']-1,:,:] = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
-    # dzv[:,0:grid['jmt']-1,:] = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
-    # pdb.set_trace()
-    # time_interp = time.time()-tic_temp
+    # time_zr = time.time()-tic_temp
 
     # tic_temp = time.time()
     # Change order back to ROMS/python for this calculation
@@ -531,13 +545,19 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
         uflux1 = u*dzu*dyu
         vflux1 = v*dzv*dxv
     elif z0 == 's': # want a specific s level zpar
-        uflux1 = u*dzu[zpar,:,:]*dyu
-        vflux1 = v*dzv[zpar,:,:]*dxv
-        dzt = dzt[zpar,:,:]
-        zrt = zrt[zpar,:,:]
+        if not np.isscalar(tind):
+            uflux1 = u*dzu[:,zpar,...]*dyu
+            vflux1 = v*dzv[:,zpar,...]*dxv
+            dzt = dzt[:,zpar,...]
+            zrt = zrt[:,zpar,...]
+        else:
+            uflux1 = u*dzu[zpar,...]*dyu
+            vflux1 = v*dzv[zpar,...]*dxv
+            dzt = dzt[zpar,...]
+            zrt = zrt[zpar,...]
     elif z0 == 'rho' or z0 == 'salt' or z0 == 'temp':
         # the vertical setup we're selecting an isovalue of
-        vert = nc.variables[z0][tind,:,:,:]
+        vert = nc.variables[z0][tind,...]
         # pdb.set_trace()
         # Calculate flux and then take slice
         uflux1 = octant.tools.isoslice(u*dzu*dyu,op.resize(vert,2),zpar)
@@ -582,11 +602,17 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 
     # tic_temp = time.time()
     # make sure that all fluxes have a placeholder for depth
-    if is_string_like(z0):
+    if is_string_like(z0) and np.isscalar(tind):
         uflux1 = uflux1.reshape(np.append(uflux1.shape,1))
         vflux1 = vflux1.reshape(np.append(vflux1.shape,1))
         dzt = dzt.reshape(np.append(dzt.shape,1))
         zrt = zrt.reshape(np.append(zrt.shape,1))
+    elif is_string_like(z0) and not np.isscalar(tind):
+        uflux1 = uflux1.reshape(np.insert(uflux1.shape,2,1))
+        vflux1 = vflux1.reshape(np.insert(vflux1.shape,2,1))
+        dzt = dzt.reshape(np.insert(dzt.shape,2,1))
+        zrt = zrt.reshape(np.insert(zrt.shape,2,1))
+
     # time_reshape = time.time()-tic_temp
 
 

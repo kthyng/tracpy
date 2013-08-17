@@ -221,7 +221,9 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     yr3 = grid['yr'].reshape((grid['yr'].shape[0],grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
     # Loop through model outputs. tinds is in proper order for moving forward
     # or backward in time, I think.
-    for j,tind in enumerate(tinds[:-1]):
+    nmodel = 10 # number of extra model outputs to read in at a time
+    for jj in xrange(0,len(tinds[:-1]),nmodel):
+    # for j,tind in enumerate(tinds[:-1]):
         # pdb.set_trace()
         # Move previous new time step to old time step info
         ufold = ufnew
@@ -230,129 +232,171 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         zrtold = zrtnew
         zwtold = zwtnew
 
-        tic_read[j] = time.time()
+        tic_read[jj] = time.time()
         # Read stuff in for next time loop
         if is_string_like(z0): # isoslice case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[j+1],grid,nc,z0,zpar)
+            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[jj+1:jj+1+nmodel],grid,nc,z0,zpar)
         else: # 3d case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[j+1],grid,nc)
-        toc_read[j] = time.time()
+            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[jj+1:jj+1+nmodel],grid,nc)
+        toc_read[jj] = time.time()
         # print "readfields run time:",toc_read-tic_read
 
-        print j
-        #  flux fields at starting time for this step
-        if j != 0:
-            xstart = xend[:,j*nsteps-1]
-            ystart = yend[:,j*nsteps-1]
-            zstart = zend[:,j*nsteps-1]
-            # mask out drifters that have exited the domain
-            xstart = np.ma.masked_where(flag[:]==1,xstart)
-            ystart = np.ma.masked_where(flag[:]==1,ystart)
-            zstart = np.ma.masked_where(flag[:]==1,zstart)
-            ind = (flag[:] == 0) # indices where the drifters are still inside the domain
-        else: # first loop, j==0
-            xstart = xstart0
-            ystart = ystart0
-            zstart = zstart0
-            # TODO: Do a check to make sure all drifter starting locations are within domain
-            ind = (flag[:] == 0) # indices where the drifters are inside the domain to start
+        for j in xrange(nmodel):
 
-        # Find drifter locations
-        # only send unmasked values to step
-        if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
-            break
-        else:
-            # Combine times for arrays for input to tracmass
-            # from [ixjxk] to [ixjxkxt]
-            # Change ordering for these three arrays here instead of in readfields since
-            # concatenate does not seem to preserve ordering
-            uflux = np.asfortranarray(np.concatenate((ufold.reshape(np.append(ufold.shape,1)), \
-                                    ufnew.reshape(np.append(ufnew.shape,1))), \
-                                    axis=ufold.ndim))
-            vflux = np.asfortranarray(np.concatenate((vfold.reshape(np.append(vfold.shape,1)), \
-                                    vfnew.reshape(np.append(vfnew.shape,1))), \
-                                    axis=vfold.ndim))
-            dzt = np.asfortranarray(np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
-                                    dztnew.reshape(np.append(dztnew.shape,1))), \
-                                    axis=dztold.ndim))
+            print j
+            #  flux fields at starting time for this step
+            if j != 0:
+                xstart = xend[:,j*nsteps-1]
+                ystart = yend[:,j*nsteps-1]
+                zstart = zend[:,j*nsteps-1]
+                # mask out drifters that have exited the domain
+                xstart = np.ma.masked_where(flag[:]==1,xstart)
+                ystart = np.ma.masked_where(flag[:]==1,ystart)
+                zstart = np.ma.masked_where(flag[:]==1,zstart)
+                ind = (flag[:] == 0) # indices where the drifters are still inside the domain
+            else: # first loop, j==0
+                xstart = xstart0
+                ystart = ystart0
+                zstart = zstart0
+                # TODO: Do a check to make sure all drifter starting locations are within domain
+                ind = (flag[:] == 0) # indices where the drifters are inside the domain to start
 
-            # Change the horizontal indices from python to fortran indexing 
-            # (vertical are zero-based in tracmass)
-            xstart, ystart = tools.convert_indices('py2f',xstart,ystart)
-
-            # km that is sent to tracmass is determined from uflux (see tracmass?)
-            # so it will be the correct value for whether we are doing the 3D
-            # or isoslice case.
-            # vec = np.arange(j*nsteps,j*nsteps+nsteps) # indices for storing new track locations
-            tic_tracmass[j] = time.time()
-            # pdb.set_trace()
-            if dostream: # calculate Lagrangian stream functions
-                xend[ind,j*nsteps:j*nsteps+nsteps],\
-                    yend[ind,j*nsteps:j*nsteps+nsteps],\
-                    zend[ind,j*nsteps:j*nsteps+nsteps], \
-                    iend[ind,j*nsteps:j*nsteps+nsteps],\
-                    jend[ind,j*nsteps:j*nsteps+nsteps],\
-                    kend[ind,j*nsteps:j*nsteps+nsteps],\
-                    flag[ind],\
-                    ttend[ind,j*nsteps:j*nsteps+nsteps], U, V = \
-                        tracmass.step(np.ma.compressed(xstart),\
-                                        np.ma.compressed(ystart),
-                                        np.ma.compressed(zstart),
-                                        tseas, uflux, vflux, ff, \
-                                        grid['kmt'].astype(int), \
-                                        dzt, grid['dxdy'], grid['dxv'], \
-                                        grid['dyu'], grid['h'], nsteps, \
-                                        ah, av, do3d, doturb, dostream, \
-                                        t0=T0[ind],
-                                        ut=U, vt=V)
-            else: # don't calculate Lagrangian stream functions
-                xend[ind,j*nsteps:j*nsteps+nsteps],\
-                    yend[ind,j*nsteps:j*nsteps+nsteps],\
-                    zend[ind,j*nsteps:j*nsteps+nsteps], \
-                    iend[ind,j*nsteps:j*nsteps+nsteps],\
-                    jend[ind,j*nsteps:j*nsteps+nsteps],\
-                    kend[ind,j*nsteps:j*nsteps+nsteps],\
-                    flag[ind],\
-                    ttend[ind,j*nsteps:j*nsteps+nsteps], _, _ = \
-                        tracmass.step(np.ma.compressed(xstart),\
-                                        np.ma.compressed(ystart),
-                                        np.ma.compressed(zstart),
-                                        tseas, uflux, vflux, ff, \
-                                        grid['kmt'].astype(int), \
-                                        dzt, grid['dxdy'], grid['dxv'], \
-                                        grid['dyu'], grid['h'], nsteps, \
-                                        ah, av, do3d, doturb, dostream)
-            toc_tracmass[j] = time.time()
-            # pdb.set_trace()
-
-            # Change the horizontal indices from python to fortran indexing
-            xend[ind,j*nsteps:j*nsteps+nsteps], \
-                yend[ind,j*nsteps:j*nsteps+nsteps] \
-                                = tools.convert_indices('f2py', \
-                                    xend[ind,j*nsteps:j*nsteps+nsteps], \
-                                    yend[ind,j*nsteps:j*nsteps+nsteps])
-
-            # Calculate times for the output frequency
-            if ff == 1:
-                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+            # Find drifter locations
+            # only send unmasked values to step
+            if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
+                break
             else:
-                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] - np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
-            
-            # Skip calculating real z position if we are doing surface-only drifters anyway
-            if z0 != 's' and zpar != grid['km']-1:
-                tic_zinterp[j] = time.time()
-                # Calculate real z position
-                r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
+                # Combine times for arrays for input to tracmass
+                # from [ixjxk] to [ixjxkxt]
+                # Change ordering for these three arrays here instead of in readfields since
+                # concatenate does not seem to preserve ordering
+                # uflux = np.asfortranarray(np.concatenate((ufold.reshape(np.append(ufold.shape,1)), \
+                #                         ufnew.reshape(ufnew.shape)),axis=ufold.ndim))
+                # vflux = np.asfortranarray(np.concatenate((vfold.reshape(np.append(vfold.shape,1)), \
+                #                         vfnew.reshape(vfnew.shape)),axis=vfold.ndim))
+                # dzt = np.asfortranarray(np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
+                #                         dztnew.reshape(dztnew.shape)),axis=dztold.ndim))
+                # # uflux = np.asfortranarray(np.concatenate((ufold.reshape(np.append(ufold.shape,1)), \
+                # #                         ufnew.reshape(np.append(ufnew.shape,1))), \
+                # #                         axis=ufold.ndim))
+                # # vflux = np.asfortranarray(np.concatenate((vfold.reshape(np.append(vfold.shape,1)), \
+                # #                         vfnew.reshape(np.append(vfnew.shape,1))), \
+                # #                         axis=vfold.ndim))
+                # # dzt = np.asfortranarray(np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
+                # #                         dztnew.reshape(np.append(dztnew.shape,1))), \
+                # #                         axis=dztold.ndim))
 
-                for n in xrange(nsteps): # loop through time steps
-                    # interpolate to a specific output time
-                    # pdb.set_trace()
-                    zwt = (1.-r[n])*zwtold + r[n]*zwtnew
-                    zp[ind,j*nsteps:j*nsteps+nsteps], dt = tools.interpolate3d(xend[ind,j*nsteps:j*nsteps+nsteps], \
-                                                            yend[ind,j*nsteps:j*nsteps+nsteps], \
-                                                            zend[ind,j*nsteps:j*nsteps+nsteps], \
-                                                            zwt)
-                toc_zinterp[j] = time.time()
+                # Change the horizontal indices from python to fortran indexing 
+                # (vertical are zero-based in tracmass)
+                xstart, ystart = tools.convert_indices('py2f',xstart,ystart)
+
+                # km that is sent to tracmass is determined from uflux (see tracmass?)
+                # so it will be the correct value for whether we are doing the 3D
+                # or isoslice case.
+                # vec = np.arange(j*nsteps,j*nsteps+nsteps) # indices for storing new track locations
+                tic_tracmass[j] = time.time()
+                # pdb.set_trace()
+                if dostream: # calculate Lagrangian stream functions
+                    xend[ind,j*nsteps:j*nsteps+nsteps],\
+                        yend[ind,j*nsteps:j*nsteps+nsteps],\
+                        zend[ind,j*nsteps:j*nsteps+nsteps], \
+                        iend[ind,j*nsteps:j*nsteps+nsteps],\
+                        jend[ind,j*nsteps:j*nsteps+nsteps],\
+                        kend[ind,j*nsteps:j*nsteps+nsteps],\
+                        flag[ind],\
+                        ttend[ind,j*nsteps:j*nsteps+nsteps], U, V = \
+                            tracmass.step(np.ma.compressed(xstart),\
+                                            np.ma.compressed(ystart),
+                                            np.ma.compressed(zstart),
+                                            tseas, ufnew[:,:,:,0:2], vfnew[:,:,:,0:2], \
+                                            ff, grid['kmt'].astype(int), \
+                                            dztnew[:,:,:,0:2], grid['dxdy'], grid['dxv'], \
+                                            grid['dyu'], grid['h'], nsteps, \
+                                            ah, av, do3d, doturb, dostream, \
+                                            t0=T0[ind],
+                                            ut=U, vt=V)
+                    # xend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     yend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     zend[ind,j*nsteps:j*nsteps+nsteps], \
+                    #     iend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     jend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     kend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     flag[ind],\
+                    #     ttend[ind,j*nsteps:j*nsteps+nsteps], U, V = \
+                    #         tracmass.step(np.ma.compressed(xstart),\
+                    #                         np.ma.compressed(ystart),
+                    #                         np.ma.compressed(zstart),
+                    #                         tseas, uflux, vflux, ff, \
+                    #                         grid['kmt'].astype(int), \
+                    #                         dzt, grid['dxdy'], grid['dxv'], \
+                    #                         grid['dyu'], grid['h'], nsteps, \
+                    #                         ah, av, do3d, doturb, dostream, \
+                    #                         t0=T0[ind],
+                    #                         ut=U, vt=V)
+                else: # don't calculate Lagrangian stream functions
+                    xend[ind,j*nsteps:j*nsteps+nsteps],\
+                        yend[ind,j*nsteps:j*nsteps+nsteps],\
+                        zend[ind,j*nsteps:j*nsteps+nsteps], \
+                        iend[ind,j*nsteps:j*nsteps+nsteps],\
+                        jend[ind,j*nsteps:j*nsteps+nsteps],\
+                        kend[ind,j*nsteps:j*nsteps+nsteps],\
+                        flag[ind],\
+                        ttend[ind,j*nsteps:j*nsteps+nsteps], _, _ = \
+                            tracmass.step(np.ma.compressed(xstart),\
+                                            np.ma.compressed(ystart),
+                                            np.ma.compressed(zstart),
+                                            tseas, ufnew[:,:,:,0:2], vfnew[:,:,:,0:2], \
+                                            ff, grid['kmt'].astype(int), \
+                                            dztnew[:,:,:,0:2], grid['dxdy'], grid['dxv'], \
+                                            grid['dyu'], grid['h'], nsteps, \
+                                            ah, av, do3d, doturb, dostream)
+                    # xend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     yend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     zend[ind,j*nsteps:j*nsteps+nsteps], \
+                    #     iend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     jend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     kend[ind,j*nsteps:j*nsteps+nsteps],\
+                    #     flag[ind],\
+                    #     ttend[ind,j*nsteps:j*nsteps+nsteps], _, _ = \
+                    #         tracmass.step(np.ma.compressed(xstart),\
+                    #                         np.ma.compressed(ystart),
+                    #                         np.ma.compressed(zstart),
+                    #                         tseas, uflux, vflux, ff, \
+                    #                         grid['kmt'].astype(int), \
+                    #                         dzt, grid['dxdy'], grid['dxv'], \
+                    #                         grid['dyu'], grid['h'], nsteps, \
+                    #                         ah, av, do3d, doturb, dostream)
+                toc_tracmass[j] = time.time()
+                # pdb.set_trace()
+
+                # Change the horizontal indices from python to fortran indexing
+                xend[ind,j*nsteps:j*nsteps+nsteps], \
+                    yend[ind,j*nsteps:j*nsteps+nsteps] \
+                                    = tools.convert_indices('f2py', \
+                                        xend[ind,j*nsteps:j*nsteps+nsteps], \
+                                        yend[ind,j*nsteps:j*nsteps+nsteps])
+
+                # Calculate times for the output frequency
+                if ff == 1:
+                    t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+                else:
+                    t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] - np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+                
+                # Skip calculating real z position if we are doing surface-only drifters anyway
+                if z0 != 's' and zpar != grid['km']-1:
+                    tic_zinterp[j] = time.time()
+                    # Calculate real z position
+                    r = np.linspace(1./nsteps,1,nsteps) # linear time interpolation constant that is used in tracmass
+
+                    for n in xrange(nsteps): # loop through time steps
+                        # interpolate to a specific output time
+                        # pdb.set_trace()
+                        zwt = (1.-r[n])*zwtold + r[n]*zwtnew
+                        zp[ind,j*nsteps:j*nsteps+nsteps], dt = tools.interpolate3d(xend[ind,j*nsteps:j*nsteps+nsteps], \
+                                                                yend[ind,j*nsteps:j*nsteps+nsteps], \
+                                                                zend[ind,j*nsteps:j*nsteps+nsteps], \
+                                                                zwt)
+                    toc_zinterp[j] = time.time()
 
     nc.close()
     t = t + t0save # add back in base time in seconds
