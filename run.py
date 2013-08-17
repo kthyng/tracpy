@@ -221,7 +221,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     yr3 = grid['yr'].reshape((grid['yr'].shape[0],grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
     # Loop through model outputs. tinds is in proper order for moving forward
     # or backward in time, I think.
-    nmodel = 50 # number of extra model outputs to read in at a time
+    nmodel = 100 # number of extra model outputs to read in at a time
     for jj in xrange(0,len(tinds[:-1]),nmodel):
         # pdb.set_trace()
         if nmodel > len(tinds[jj:]): #at the end of the run
