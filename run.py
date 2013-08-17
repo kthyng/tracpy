@@ -223,6 +223,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     # or backward in time, I think.
     nmodel = 50 # number of extra model outputs to read in at a time
     for jj in xrange(0,len(tinds[:-1]),nmodel):
+        if nmodel > len(tinds[jj:]): #at the end of the run
+            nmodel = len(tinds[jj:])
     # for j,tind in enumerate(tinds[:-1]):
         # pdb.set_trace()
         # # Move previous new time step to old time step info
