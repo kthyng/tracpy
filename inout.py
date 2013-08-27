@@ -79,7 +79,7 @@ def setupROMSfiles(loc,date,ff,tout):
             nctemp.close()
             # If datenum_in is larger than the first time in the file but smaller
             # than the last time, then this is the correct file to use to start
-            if date > ttemp[0] and date <= ttemp[-1]:
+            if date >= ttemp[0] and date <= ttemp[-1]:
                 ifile = i # this is the starting file identifier then
                 break
 
@@ -111,7 +111,7 @@ def setupROMSfiles(loc,date,ff,tout):
         if ff==1:
             # if the final index we want is beyond the length of these files,
             # keep adding files on
-            while tinds[-1] >= len(dates): 
+            while tinds[-1] > len(dates): 
                 # if tdir: #forward - add 2nd file on end
                 fname.append(files[ifile+i])
                 nc = netCDF.MFDataset(fname) # files in fname are in chronological order
