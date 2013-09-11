@@ -111,7 +111,7 @@ def setupROMSfiles(loc,date,ff,tout):
         if ff==1:
             # if the final index we want is beyond the length of these files,
             # keep adding files on
-            while tinds[-1] >= len(dates): 
+            while tinds[-1] > len(dates): 
                 # if tdir: #forward - add 2nd file on end
                 fname.append(files[ifile+i])
                 nc = netCDF.MFDataset(fname) # files in fname are in chronological order
