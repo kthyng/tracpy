@@ -79,7 +79,7 @@ def setupROMSfiles(loc,date,ff,tout):
             nctemp.close()
             # If datenum_in is larger than the first time in the file but smaller
             # than the last time, then this is the correct file to use to start
-            if date > ttemp[0] and date <= ttemp[-1]:
+            if date >= ttemp[0] and date <= ttemp[-1]:
                 ifile = i # this is the starting file identifier then
                 break
 
@@ -304,6 +304,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # Triangulation for grid space to curvilinear space
     tri = delaunay.Triangulation(X.flatten(),Y.flatten())
     # Triangulation for curvilinear space to grid space
+    # pdb.set_trace()
     trir = delaunay.Triangulation(xr.flatten(),yr.flatten())
     trirllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
 
