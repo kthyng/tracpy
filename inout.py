@@ -140,7 +140,7 @@ def setupROMSfiles(loc,date,ff,tout):
     return nc, tinds
 
 def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
-            urcrnrlon=-87.5, urcrnrlat=31.0):
+            urcrnrlon=-87.5, urcrnrlat=31.0, res='i'):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -199,7 +199,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # Basemap parameters.
     llcrnrlon=llcrnrlon; llcrnrlat=llcrnrlat; 
     urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection='lcc'
-    lat_0=30; lon_0=-94; resolution='i'; area_thresh=0.
+    lat_0=30; lon_0=-94; resolution=res; area_thresh=0.
     basemap = Basemap(llcrnrlon=llcrnrlon,
                  llcrnrlat=llcrnrlat,
                  urcrnrlon=urcrnrlon,
@@ -244,7 +244,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     h = gridfile.variables['h'][:]
 
     # Vertical grid metrics
-    if 'http' in loc or len(loc) == 2:
+    if 'http' in loc or len(loc) == 2 or 's_w' in gridfile.variables:
         sc_r = gridfile.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = gridfile.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = gridfile.variables['hc'][:]
@@ -291,7 +291,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     imt = h.shape[0] # 671
     jmt = h.shape[1] # 191
     # km = sc_r.shape[0] # 31
-    if ('http' in loc) or (nc is not None) or len(loc) == 2:
+    if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
         km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
     # Index grid, for interpolation between real and grid space
@@ -332,7 +332,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()
-    if ('http' in loc) or (nc is not None) or len(loc) == 2:
+    if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
         mask2 = mask.copy()
         kmt = np.ones((imt,jmt),order='f')*km
         ind = (mask2[1:imt,:]==1)
@@ -362,7 +362,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
     # Fill in grid structure
-    if ('http' in loc) or (nc is not None) or len(loc) == 2:
+    if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
         grid = {'imt':imt,'jmt':jmt,'km':km, 
             'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
             'mask':mask,'kmt':kmt,'dzt0':dzt0,
