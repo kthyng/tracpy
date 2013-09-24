@@ -234,7 +234,7 @@ def convert_indices(direction,x,y):
 
     return x, y
 
-def check_points(lon0,lat0,grid):
+def check_points(lon0,lat0,grid, nobays=False):
     """
     Eliminate starting locations for drifters that are outside numerical domain
     and that are masked out.
@@ -242,6 +242,7 @@ def check_points(lon0,lat0,grid):
     Inputs:
         lon0,lat0   Starting locations for drifters in lon/lat
         grid        Grid made from readgrid.py
+        nobays      Whether to use points in bays or not. Default is False.
 
     Outputs:
         lon0,lat0   Fixed lon0,lat0
@@ -287,12 +288,19 @@ def check_points(lon0,lat0,grid):
     mask0 = fmask(lon0,lat0) # mask for lon0/lat0 points
     ind1 = (mask0==1.) # indices select out where points are masked
 
-    ind2 = ~np.isnan(lon0)*ind1
+    # If nobays, eliminate points with shallow bathymetry
+    if nobays:
+        fh = grid['trirllrho'].nn_interpolator(grid['h'].flatten())
+        h0 = fh(lon0, lat0)
+        ind2 = (h0>10.)
+    else:
+        ind2 = np.ones(ind1.shape).astype(bool)
+
+    ind2 = ~np.isnan(lon0)*ind1*ind2
     lon0 = lon0[ind2].flatten()
     lat0 = lat0[ind2].flatten()
 
     return lon0,lat0
-
 
 def seed(lon, lat, dlon=.5, dlat=.5, N=30):
     '''
