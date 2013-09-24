@@ -546,7 +546,8 @@ ntracLoop: do ntrac=1,ntractot
 !         print *,'x1=', x1, ' dble(ib)=', dble(ib), ' x0=', x0, ' dble(ia)=', dble(ia)
 !         print *,'y1=', y1, ' dble(jb)=', dble(jb), ' y0=', y0, ' dble(ja)=', dble(ja)
         if (dostream==1) then
-            if(x1==dble(ia) .and. x1.ne.x0 .and. x1>x0) then ! moving in positive x direction
+            if(idint(x1)>idint(x0)) then ! moving in positive x direction
+!             if(x1==dble(ia) .and. x1>x0) then ! moving in positive x direction
 !                 print *, 'moving in positive x direction'
 !                 print *, 'ut(ia, jb)=', ut(ia, jb), &
 !                             ' ut(ib, jb)=', ut(ib, jb), &
@@ -556,7 +557,9 @@ ntracLoop: do ntrac=1,ntractot
 !                 ut(ib, jb) = ut(ib, jb) + T0(ntrac) ! entering cell
 !                 print *, 'ut(ia, jb)=', ut(ia, jb), &
 !                             ' ut(ib, jb)=', ut(ib, jb)
-            else if(x1==dble(ia-1) .and. x1.ne.x0 .and. x1<x0) then ! moving in negative x direction
+
+            else if(idint(x1)<idint(x0)) then
+!             else if(x1==dble(ia-1) .and. x1<x0) then ! moving in negative x direction
 !                 print *, 'moving in negative x direction'
 !                 print *, 'ut(ia, jb)=', ut(ia, jb), &
 !                             ' ut(ib, jb)=', ut(ib, jb), &
@@ -566,7 +569,8 @@ ntracLoop: do ntrac=1,ntractot
 !                 ut(ib, jb) = ut(ib, jb) + T0(ntrac) ! entering cell
 !                 print *, 'ut(ia, jb)=', ut(ia, jb), &
 !                             ' ut(ib, jb)=', ut(ib, jb)
-            else if(y1==dble(ja) .and. y1.ne.y0 .and. y1>y0) then ! moving in positive y direction
+            else if(idint(y1)>idint(y0)) then
+!             else if(y1==dble(ja) .and. y1>y0) then ! moving in positive y direction
 !                 print *, 'moving in positive y direction'
 !                 print *, 'vt(ib, ja)=', vt(ib, ja), &
 !                             ' vt(ib, jb)=', vt(ib, jb), &
@@ -576,7 +580,8 @@ ntracLoop: do ntrac=1,ntractot
 !                 vt(ib, jb) = vt(ib, jb) + T0(ntrac)
 !                 print *, 'vt(ib, ja)=', vt(ib, ja), &
 !                             ' vt(ib, jb)=', vt(ib, jb)
-            else if(y1==dble(ja-1) .and. y1.ne.y0 .and. y1<y0) then ! moving in negative y direction
+            else if(idint(y1)<idint(y0)) then
+!             else if(y1==dble(ja-1) .and. y1<y0) then ! moving in negative y direction
 !                 print *, 'moving in negative y direction'
 !                 print *, 'vt(ib, ja)=', vt(ib, ja), &
 !                             ' vt(ib, jb)=', vt(ib, jb), &
