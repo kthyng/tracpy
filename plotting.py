@@ -21,13 +21,16 @@ import op
 import netCDF4 as netCDF
 import tools
 
-def background(grid=None, ax=None):
+def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, -80)):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
+
+    pars    parallels to plot
+    mers    meridians to plot
     """
 
-    matplotlib.rcParams.update({'font.size': 20})#,'font.weight': 'bold'})
+    matplotlib.rcParams.update({'font.size': 18})#,'font.weight': 'bold'})
 
     if grid is None:
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
@@ -41,14 +44,14 @@ def background(grid=None, ax=None):
     # Do plot   
     grid['basemap'].drawcoastlines(ax=ax)
     grid['basemap'].fillcontinents('0.8',ax=ax)
-    grid['basemap'].drawparallels(np.arange(18, 35), dashes=(1, 0), 
+    grid['basemap'].drawparallels(pars, dashes=(1, 0), 
                             linewidth=0.15, labels=[1, 0, 0, 0], ax=ax)
-    grid['basemap'].drawmeridians(np.arange(-100, -80), dashes=(1, 0), 
+    grid['basemap'].drawmeridians(mers, dashes=(1, 0), 
                             linewidth=0.15, labels=[0, 0, 0, 1], ax=ax)
     hold('on')
     ax.contour(grid['xr'], grid['yr'], grid['h'], 
                             np.hstack(([10,20],np.arange(50,500,50))), 
-                            colors='lightgrey', linewidths=0.25)
+                            colors='lightgrey', linewidths=0.5)
 
     # Outline numerical domain
     ax.plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
@@ -57,8 +60,9 @@ def background(grid=None, ax=None):
     ax.plot(grid['xr'][:,-1], grid['yr'][:,-1], 'k:')
 
 
-def hist(lonp, latp, fname, tind='final', which='contour', \
-            bins=(40,40), N=10, grid=None, xlims=None, ylims=None):
+def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, ax=None, \
+            bins=(40,40), N=10, grid=None, xlims=None, ylims=None, C=None, Title=None,
+            weights=None, Label='Final drifter location (%)'):
     """
     Plot histogram of given track data at time index tind.
 
@@ -94,7 +98,10 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
     xp[ind] = np.nan
     yp[ind] = np.nan
 
-    fig = figure(figsize=(12,10))
+    if fig is None:
+        fig = figure(figsize=(11,10))
+    else:
+        fig = fig
     background(grid) # Plot coastline and such
 
     # pdb.set_trace()
@@ -128,6 +135,10 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         # levs = locator()
         con = contourf(XE, YE, d.T, N)#,levels=levs)#(0,15,30,45,60,75,90,105,120))
         con.set_cmap('YlOrRd')
+
+        if Title is not None:
+            set_title(Title)
+
         # Horizontal colorbar below plot
         cax = fig.add_axes([0.3725, 0.25, 0.48, 0.02]) #colorbar axes
         cb = colorbar(con, cax=cax, orientation='horizontal')
@@ -148,9 +159,23 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
                                 grid['xr'].max()], \
                                 [grid['yr'].min(), \
                                 grid['yr'].max()]],
-                                bins=bins)
+                                bins=bins, weights=weights)
+        # print H.T.max()
+
+        # pdb.set_trace()
         # Pcolor plot
-        p = pcolor(xedges, yedges, (H.T/H.sum())*100, cmap='YlOrRd')
+        
+        # C is the z value plotted, and is normalized by the total number of drifters
+        if C is None:
+            C = (H.T/H.sum())*100
+        else:
+            # or, provide some other weighting
+            C = (H.T/C)*100
+
+        p = pcolor(xedges, yedges, C, cmap='YlOrRd')
+
+        if Title is not None:
+            set_title(Title)
 
         # Set x and y limits
         # pdb.set_trace()
@@ -173,12 +198,21 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
 
     elif which == 'hexbin':
 
-        # C with the reduce_C_function as sum is what makes it a percent
-        C = np.ones(len(xpc))*(1./len(xpc))*100
+
+        if ax is None:
+            ax = gca()
+        else:
+            ax = ax
+        
+        if C is None:
+            # C with the reduce_C_function as sum is what makes it a percent
+            C = np.ones(len(xpc))*(1./len(xpc))*100
+        else:
+            C = C*np.ones(len(xpc))*100
         hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0], 
                 extent=(grid['xr'].min(), grid['xr'].max(), 
                 grid['yr'].min(), grid['yr'].max()), 
-                reduce_C_function=sum)
+                reduce_C_function=sum, vmax=vmax, axes=ax)
 
         # Set x and y limits
         # pdb.set_trace()
@@ -187,10 +221,26 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         if ylims is not None:
             ylim(ylims)
 
-        # Horizontal colorbar below plot
-        cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
+        if Title is not None:
+            ax.set_title(Title)
+
+        # Want colorbar at the given location relative to axis so this works regardless of # of subplots, 
+        # so convert from axis to figure coordinates
+        # To do this, first convert from axis to display coords
+        # transformations: http://matplotlib.org/users/transforms_tutorial.html
+        ax_coords = [0.35, 0.25, 0.6, 0.02] # axis: [x_left, y_bottom, width, height]
+        disp_coords = ax.transAxes.transform([(ax_coords[0],ax_coords[1]),(ax_coords[0]+ax_coords[2],ax_coords[1]+ax_coords[3])]) # display: [x_left,y_bottom,x_right,y_top]
+        inv = fig.transFigure.inverted() # inverter object to go from display coords to figure coords
+        fig_coords = inv.transform(disp_coords) # figure: [x_left,y_bottom,x_right,y_top]
+        # actual desired figure coords. figure: [x_left, y_bottom, width, height]
+        fig_coords = [fig_coords[0,0],fig_coords[0,1],fig_coords[1,0]-fig_coords[0,0],fig_coords[1,1]-fig_coords[0,1]]
+        # Inlaid colorbar
+        cax = fig.add_axes(fig_coords)
+
+        # # Horizontal colorbar below plot
+        # cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) #colorbar axes
         cb = colorbar(cax=cax, orientation='horizontal')
-        cb.set_label('Final drifter location (percent)')
+        cb.set_label(Label)
 
         # pdb.set_trace()
         # Save figure into a local directory called figures. Make directory if it doesn't exist.
@@ -227,7 +277,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', \
         # savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
 
-def tracks(lonp,latp,fname,grid=None, fig=None, ax=None, Title=None):
+def tracks(lonp,latp,fname,grid=None, fig=None, ax=None, Title=None, mers=None, pars=None):
     """
     Plot tracks as lines with starting points in green and ending points in red.
 
@@ -257,8 +307,10 @@ def tracks(lonp,latp,fname,grid=None, fig=None, ax=None, Title=None):
     xp[ind] = np.nan
     yp[ind] = np.nan
   
-    background(grid, ax=ax) # Plot coastline and such
-
+    if mers is not None:
+        background(grid, ax=ax, mers=mers, pars=pars) # Plot coastline and such
+    else:
+        background(grid, ax=ax) # Plot coastline and such
     # pdb.set_trace()
 
     # Starting marker
@@ -311,7 +363,7 @@ def tracks(lonp,latp,fname,grid=None, fig=None, ax=None, Title=None):
 
 def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
                 llcrnrlon=-98.5, llcrnrlat=22.5, urcrnrlat=31.0, urcrnrlon=-87.5,
-                colormap='Blues'):
+                colormap='Blues',fig=None, ax=None):
     '''
     Make plot of zoomed-in area near DWH spill of transport of drifters over 
     time.
@@ -351,25 +403,43 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     locator.set_bounds(0,dmax)#d.min(),d.max())
     levs = locator()
 
-    fig = figure(figsize=(12,10))
+    if fig is None:
+        fig = figure(figsize=(11,10))
+    else:
+        fig = fig
     background(grid=grid)
     c = contourf(grid['xpsi'], grid['ypsi'], Splot,             
             cmap=colormap, extend='max', levels=levs)
     title(Title)
 
-    # Add initial drifter location (all drifters start at the same location)
-    lon0 = lon0.mean()
-    lat0 = lat0.mean()
-    x0, y0 = grid['basemap'](lon0, lat0)
-    plot(x0, y0, 'go', markersize=10)
+    # # Add initial drifter location (all drifters start at the same location)
+    # lon0 = lon0.mean()
+    # lat0 = lat0.mean()
+    # x0, y0 = grid['basemap'](lon0, lat0)
+    # plot(x0, y0, 'go', markersize=10)
 
+    if ax is None:
+        ax = gca()
+    else:
+        ax = ax
+    # Want colorbar at the given location relative to axis so this works regardless of # of subplots, 
+    # so convert from axis to figure coordinates
+    # To do this, first convert from axis to display coords
+    # transformations: http://matplotlib.org/users/transforms_tutorial.html
+    ax_coords = [0.35, 0.25, 0.6, 0.02] # axis: [x_left, y_bottom, width, height]
+    disp_coords = ax.transAxes.transform([(ax_coords[0],ax_coords[1]),(ax_coords[0]+ax_coords[2],ax_coords[1]+ax_coords[3])]) # display: [x_left,y_bottom,x_right,y_top]
+    inv = fig.transFigure.inverted() # inverter object to go from display coords to figure coords
+    fig_coords = inv.transform(disp_coords) # figure: [x_left,y_bottom,x_right,y_top]
+    # actual desired figure coords. figure: [x_left, y_bottom, width, height]
+    fig_coords = [fig_coords[0,0],fig_coords[0,1],fig_coords[1,0]-fig_coords[0,0],fig_coords[1,1]-fig_coords[0,1]]
     # Inlaid colorbar
-    cax = fig.add_axes([0.49, 0.25, 0.39, 0.02])
-    # cax = fig.add_axes([0.5, 0.2, 0.35, 0.02])
+    cax = fig.add_axes(fig_coords)
+    # cax = fig.add_axes([0.39, 0.25, 0.49, 0.02])
+    # cax = fig.add_axes([0.49, 0.25, 0.39, 0.02])
     cb = colorbar(cax=cax,orientation='horizontal')
     cb.set_label('Normalized drifter transport (%)')
 
     if extraname is None:
         savefig('figures/' + name + '/transport', bbox_inches='tight')
     else:
-        savefig('figures/' + name + '/transport' + extraname, bbox_inches='tight')
+        savefig('figures/' + name + '/' + extraname + 'transport', bbox_inches='tight')
