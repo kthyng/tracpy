@@ -304,6 +304,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # Triangulation for grid space to curvilinear space
     tri = delaunay.Triangulation(X.flatten(),Y.flatten())
     # Triangulation for curvilinear space to grid space
+    # pdb.set_trace()
     trir = delaunay.Triangulation(xr.flatten(),yr.flatten())
     trirllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
 
