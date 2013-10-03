@@ -250,12 +250,16 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         hc = gridfile.variables['hc'][:]
         theta_s = gridfile.variables['theta_s'][:]
         theta_b = gridfile.variables['theta_b'][:]
+        Vtransform = gridfile.variables['Vtransform'][:]
+        Vstretching = gridfile.variables['Vstretching'][:]
     elif nc is not None: # for if running off local grid/nc files
         sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = nc.variables['hc'][:]
         theta_s = nc.variables['theta_s'][:]
         theta_b = nc.variables['theta_b'][:]
+        Vtransform = nc.variables['Vtransform'][:]
+        Vstretching = nc.variables['Vstretching'][:]
 
     # make arrays in same order as is expected in the fortran code
     # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
@@ -349,10 +353,10 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
 
         # Use octant to calculate depths/thicknesses for the appropriate vertical grid parameters
         # have to transform a few back to ROMS coordinates and python ordering for this
-        zwt0 = octant.depths.get_zw(1, 1, km+1, theta_s, theta_b, 
+        zwt0 = octant.depths.get_zw(Vtransform, Vstretching, km+1, theta_s, theta_b, 
                         h.T.copy(order='c'), 
                         hc, zeta=0, Hscale=3)
-        zrt0 = octant.depths.get_zrho(1, 1, km, theta_s, theta_b, 
+        zrt0 = octant.depths.get_zrho(Vtransform, Vstretching, km, theta_s, theta_b, 
                         h.T.copy(order='c'), 
                         hc, zeta=0, Hscale=3)
         # Change dzt to tracmass/fortran ordering
@@ -375,6 +379,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
             'latr':latr,'latu':latu,'latv':yv,'latpsi':latpsi,
             'Cs_r':Cs_r,'sc_r':sc_r,'hc':hc,'h':h, 
             'theta_s':theta_s,'theta_b':theta_b,
+            'Vtransform':Vtransform, 'Vstretching':Vstretching,
             'basemap':basemap}
     else:
         grid = {'imt':imt,'jmt':jmt, 
@@ -446,11 +451,18 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     if z0 == 's': # read in less model output to begin with, to save time
         u = nc.variables['u'][tind,zpar,:,:] 
         v = nc.variables['v'][tind,zpar,:,:]
-        ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+        if 'zeta' in nc.variables:
+            ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+        else:
+            sshread = False
     else:
         u = nc.variables['u'][tind,:,:,:] 
         v = nc.variables['v'][tind,:,:,:]
-        ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+        if 'zeta' in nc.variables:
+            ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+        else:
+            sshread = False
+    
     # time_read = time.time()-tic_temp
 
     # tic_temp = time.time()
@@ -484,8 +496,12 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     h = grid['h'].T.copy(order='c')
     # Use octant to calculate depths for the appropriate vertical grid parameters
     # have to transform a few back to ROMS coordinates and python ordering for this
-    zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
-                    h, grid['hc'], zeta=ssh, Hscale=3)
+    if sshread:
+        zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+                        h, grid['hc'], zeta=ssh, Hscale=3)
+    else: # if ssh isn't available, approximate as 0
+        zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+                        h, grid['hc'], zeta=0, Hscale=3)
     # Change dzt to tracmass/fortran ordering
     # zwt = zwt.T.copy(order='f')
     # dzt = zwt[:,:,1:] - zwt[:,:,:-1]
@@ -495,8 +511,12 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
 
     # tic_temp = time.time()
     # also want depths on rho grid
-    zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
-                    h, grid['hc'], zeta=ssh, Hscale=3)
+    if sshread:
+        zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+                        h, grid['hc'], zeta=ssh, Hscale=3)
+    else:
+        zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+                        h, grid['hc'], zeta=0, Hscale=3)
     # Change dzt to tracmass/fortran ordering
     # zrt = zrt.T.copy(order='f')
     # time_zr = time.time()-tic_temp
@@ -575,7 +595,8 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     # vflux1 = np.asfortranarray(vflux1.T)
     # dzt = np.asfortranarray(dzt.T)
     zrt = np.asfortranarray(zrt.T)
-    ssh = np.asfortranarray(ssh.T)
+    if sshread:
+        ssh = np.asfortranarray(ssh.T)
     zwt = np.asfortranarray(zwt.T)
     # print "fortran time",time.time()-tic
     # time_flip3 = time.time()-tic_temp
