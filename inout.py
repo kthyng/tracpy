@@ -398,7 +398,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     return grid
 
 
-def readfields(tind,grid,nc,z0=None,zpar=None):
+def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
     '''
     readfields()
     Kristen Thyng, March 2013
@@ -418,6 +418,10 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
      z0     (optional) if doing 2d isoslice, z0 contains string saying which kind
      zpar   (optional) if doing 2d isoslice, zpar is the depth/level/density
             at which we are to get the level
+     zparuv (optional) Use this if the k index for the model output fields (e.g, u, v) is different
+            from the k index in the grid. This might happen if, for example, only the surface current
+            were saved, but the model run originally did have many layers. This parameter
+            represents the k index for the u and v output, not for the grid.
 
     Output:
      uflux1     Zonal (x) flux at tind
@@ -446,11 +450,17 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
      vflux1     Meriodional (y) fluxes [imt,jmt-1,km] (m^3/s)?
     '''
 
+    # this parameter is in case there is less model output available vertically than
+    # was actually run on the grid
+    # pdb.set_trace()
+    if zparuv is None:
+        zpar = zparuv
+
     # tic_temp = time.time()
     # Read in model output for index tind
     if z0 == 's': # read in less model output to begin with, to save time
-        u = nc.variables['u'][tind,zpar,:,:] 
-        v = nc.variables['v'][tind,zpar,:,:]
+        u = nc.variables['u'][tind,zparuv,:,:] 
+        v = nc.variables['v'][tind,zparuv,:,:]
         if 'zeta' in nc.variables:
             ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
         else:
@@ -497,10 +507,10 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     # Use octant to calculate depths for the appropriate vertical grid parameters
     # have to transform a few back to ROMS coordinates and python ordering for this
     if sshread:
-        zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+        zwt = octant.depths.get_zw(grid['Vtransform'], grid['Vstretching'], grid['km']+1, grid['theta_s'], grid['theta_b'], 
                         h, grid['hc'], zeta=ssh, Hscale=3)
     else: # if ssh isn't available, approximate as 0
-        zwt = octant.depths.get_zw(1, 1, grid['km']+1, grid['theta_s'], grid['theta_b'], 
+        zwt = octant.depths.get_zw(grid['Vtransform'], grid['Vstretching'], grid['km']+1, grid['theta_s'], grid['theta_b'], 
                         h, grid['hc'], zeta=0, Hscale=3)
     # Change dzt to tracmass/fortran ordering
     # zwt = zwt.T.copy(order='f')
@@ -512,10 +522,10 @@ def readfields(tind,grid,nc,z0=None,zpar=None):
     # tic_temp = time.time()
     # also want depths on rho grid
     if sshread:
-        zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+        zrt = octant.depths.get_zrho(grid['Vtransform'], grid['Vstretching'], grid['km'], grid['theta_s'], grid['theta_b'], 
                         h, grid['hc'], zeta=ssh, Hscale=3)
     else:
-        zrt = octant.depths.get_zrho(1, 1, grid['km'], grid['theta_s'], grid['theta_b'], 
+        zrt = octant.depths.get_zrho(grid['Vtransform'], grid['Vstretching'], grid['km'], grid['theta_s'], grid['theta_b'], 
                         h, grid['hc'], zeta=0, Hscale=3)
     # Change dzt to tracmass/fortran ordering
     # zrt = zrt.T.copy(order='f')
