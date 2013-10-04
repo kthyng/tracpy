@@ -91,8 +91,8 @@ def setupROMSfiles(loc,date,ff,tout):
         fname = [files[ifile]]
 
         nc = netCDF.MFDataset(fname) # files in fname are in chronological order
-        # number of indices included in opened files so far
-        ninds = nc.variables['ocean_time'][:].size 
+        # # number of indices included in opened files so far
+        # ninds = nc.variables['ocean_time'][:].size 
         # Find which output in ifile is closest to the user-input start time (choose lower index)
         # Dates for drifters from this start date
         dates = nc.variables['ocean_time'][:]   
