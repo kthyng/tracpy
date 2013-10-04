@@ -79,6 +79,10 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                  and zpar = grid['km']-1 to put them in the upper s level
                  z0='s' is currently not working correctly!!!
                  In the meantime, do surface using the 3d set up option but with 2d flag set
+    zparuv      (optional) Use this if the k index for the model output fields (e.g, u, v) is different
+                 from the k index in the grid. This might happen if, for example, only the surface current
+                 were saved, but the model run originally did have many layers. This parameter
+                 represents the k index for the u and v output, not for the grid.
     xp          x-locations in x,y coordinates for drifters
     yp          y-locations in x,y coordinates for drifters
     zp          z-locations (depths from mean sea level) for drifters
