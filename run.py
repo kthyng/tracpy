@@ -21,7 +21,7 @@ from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         zpar, do3d, doturb, name, grid=None, dostream=0, \
-        T0=None, U=None, V=None):
+        T0=None, U=None, V=None, zparuv=None):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -125,6 +125,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     ja = np.ceil(ystart0) #[57]#,40]
 
     # don't use nan's
+    # pdb.set_trace()
     ind2 = ~np.isnan(ia) * ~np.isnan(ja)
     ia = ia[ind2]
     ja = ja[ind2]
@@ -150,7 +151,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     # Read initial field in - to 'new' variable since will be moved
     # at the beginning of the time loop ahead
     if is_string_like(z0): # isoslice case
-        ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[0],grid,nc,z0,zpar)
+        ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[0],grid,nc,z0,zpar,zparuv=zparuv)
     else: # 3d case
         ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[0],grid,nc)
 
@@ -233,13 +234,14 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         tic_read[j] = time.time()
         # Read stuff in for next time loop
         if is_string_like(z0): # isoslice case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[j+1],grid,nc,z0,zpar)
+            ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[j+1],grid,nc,z0,zpar,zparuv=zparuv)
         else: # 3d case
             ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[j+1],grid,nc)
         toc_read[j] = time.time()
         # print "readfields run time:",toc_read-tic_read
 
         print j
+        # pdb.set_trace()
         #  flux fields at starting time for this step
         if j != 0:
             xstart = xend[:,j*nsteps-1]
