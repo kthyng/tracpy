@@ -21,13 +21,15 @@ import op
 import netCDF4 as netCDF
 import tools
 
-def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, -80)):
+def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, -80), 
+                hlevs=np.hstack(([10,20],np.arange(50,500,50))), col='lightgrey'):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
 
     pars    parallels to plot
     mers    meridians to plot
+    hlevs   which depth contours to plot
     """
 
     matplotlib.rcParams.update({'font.size': 18})#,'font.weight': 'bold'})
@@ -49,9 +51,8 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
     grid['basemap'].drawmeridians(mers, dashes=(1, 0), 
                             linewidth=0.15, labels=[0, 0, 0, 1], ax=ax)
     hold('on')
-    ax.contour(grid['xr'], grid['yr'], grid['h'], 
-                            np.hstack(([10,20],np.arange(50,500,50))), 
-                            colors='lightgrey', linewidths=0.5)
+    ax.contour(grid['xr'], grid['yr'], grid['h'], hlevs, 
+                            colors=col, linewidths=0.5)
 
     # Outline numerical domain
     ax.plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')

@@ -23,7 +23,7 @@ from matplotlib.pyplot import *
 import op
 import os
 
-def setupROMSfiles(loc,date,ff,tout):
+def setupROMSfiles(loc,date,ff,tout, tstride=1):
     '''
     setupROMSfiles()
     Kristen Thyng, March 2013
@@ -32,14 +32,16 @@ def setupROMSfiles(loc,date,ff,tout):
     model output indices within those files to use.
 
     Input:
-     loc    File location
-     date   datetime format start date
-     ff     Time direction. ff=1 forward, ff=-1 backward
-     tout   Number of model outputs to use
+     loc        File location
+     date       datetime format start date
+     ff         Time direction. ff=1 forward, ff=-1 backward
+     tout       Number of model outputs to use
+     tstride    Stride in time, in case want to use less model output
+                 than is available. Default is 1, using all output.
 
     Output:
-     nc     NetCDF object for relevant files
-     tinds  Indices of outputs to use from fname files
+     nc         NetCDF object for relevant files
+     tinds      Indices of outputs to use from fname files
     '''
     # This addresses an issue in netCDF4 that was then fixed, but
     # this line makes updating unnecessary. Issue described here: 
@@ -53,17 +55,17 @@ def setupROMSfiles(loc,date,ff,tout):
         else:
             nc = netCDF.Dataset(loc)
         if ff == 1: #forward in time
-            dates = nc.variables['ocean_time'][:]   
+            dates = nc.variables['ocean_time'][:] # don't stride here, need all times to make index determinations
             ilow = date >= dates
             # time index with time value just below datenum_in (relative to file ifile)
             istart = dates[ilow].size - 1
-            tinds = range(istart,istart+tout)
+            tinds = range(istart,istart+tout, tstride) #use tstride here to get tinds correct
         else: #backward
             dates = nc.variables['ocean_time'][:]   
             ilow = date >= dates
             # time index with time value just below datenum_in (relative to file ifile)
             istart = dates[ilow].size - 1
-            tinds = range(istart,istart-tout,-1)
+            tinds = range(istart,istart-tout, -tstride) #use tstride here to get tinds correct
 
     # This is for the case when we have a bunch of files to sort through
     else:
@@ -102,10 +104,10 @@ def setupROMSfiles(loc,date,ff,tout):
         nc.close()
         # Select indices 
         if ff==1:
-            tinds = range(istart,istart+tout) # indices of model outputs desired
+            tinds = range(istart,istart+tout, tstride) # indices of model outputs desired
         else: # backward in time
             # have to shift istart since there are now new indices behind since going backward
-            tinds = range(istart,istart-tout,-1)
+            tinds = range(istart,istart-tout, -tstride)
         # If we need more indices than available in these files, add another
 
         if ff==1:
@@ -119,7 +121,7 @@ def setupROMSfiles(loc,date,ff,tout):
                 ilow = date >= dates
                 # time index with time value just below datenum_in (relative to file ifile)
                 istart = dates[ilow].size - 1
-                tinds = range(istart,istart+tout)
+                tinds = range(istart,istart+tout, tstride)
                 nc.close()
                 i = i + 1
         else: #backwards in time
@@ -130,7 +132,7 @@ def setupROMSfiles(loc,date,ff,tout):
                 ilow = date >= dates
                 # time index with time value just below datenum_in (relative to file ifile)
                 istart = dates[ilow].size - 1
-                tinds = range(istart,istart-tout,-1)
+                tinds = range(istart,istart-tout, -tstride)
                 nc.close()
                 i = i + 1
 

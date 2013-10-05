@@ -21,7 +21,7 @@ from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
         zpar, do3d, doturb, name, grid=None, dostream=0, \
-        T0=None, U=None, V=None, zparuv=None):
+        T0=None, U=None, V=None, zparuv=None, tseas_use=None):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -83,6 +83,10 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                  from the k index in the grid. This might happen if, for example, only the surface current
                  were saved, but the model run originally did have many layers. This parameter
                  represents the k index for the u and v output, not for the grid.
+    tseas_use   (optional) Desired time between outputs in seconds, as opposed to the actual time between outputs
+                 (tseas). Should be >= tseas since this is just an ability to use model output at less 
+                 frequency than is available, probably just for testing purposes or matching other models.
+                 Should to be a multiple of tseas (or will be rounded later).
     xp          x-locations in x,y coordinates for drifters
     yp          y-locations in x,y coordinates for drifters
     zp          z-locations (depths from mean sea level) for drifters
@@ -102,17 +106,27 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     # Units for time conversion with netCDF.num2date and .date2num
     units = 'seconds since 1970-01-01'
 
-    # Number of model outputs to use
+    # If tseas_use isn't set, use all available model output
+    if tseas_use is None:
+        tseas_use = tseas
+
+    # Number of model outputs to use (based on tseas, actual amount of model output)
+    # This should not be updated with tstride since it represents the full amount of
+    # indices in the original model output. tstride will be used separately to account
+    # for the difference.
     # Adding one index so that all necessary indices are captured by this number.
     # Then the run loop uses only the indices determined by tout instead of needing
     # an extra one beyond
     tout = np.int((ndays*(24*3600))/tseas + 1)
 
+    # Calculate time outputs stride. Will be 1 if want to use all model output.
+    tstride = int(tseas_use/tseas) # will round down
+    pdb.set_trace()
     # Convert date to number
     date = netCDF.date2num(date, units)
 
     # Figure out what files will be used for this tracking
-    nc, tinds = inout.setupROMSfiles(loc, date, ff, tout)
+    nc, tinds = inout.setupROMSfiles(loc, date, ff, tout, tstride=tstride)
 
     # Read in grid parameters into dictionary, grid
     if grid is None:
@@ -304,7 +318,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                         tracmass.step(np.ma.compressed(xstart),\
                                         np.ma.compressed(ystart),
                                         np.ma.compressed(zstart),
-                                        tseas, uflux, vflux, ff, \
+                                        tseas_use, uflux, vflux, ff, \
                                         grid['kmt'].astype(int), \
                                         dzt, grid['dxdy'], grid['dxv'], \
                                         grid['dyu'], grid['h'], nsteps, \
@@ -323,7 +337,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
                         tracmass.step(np.ma.compressed(xstart),\
                                         np.ma.compressed(ystart),
                                         np.ma.compressed(zstart),
-                                        tseas, uflux, vflux, ff, \
+                                        tseas_use, uflux, vflux, ff, \
                                         grid['kmt'].astype(int), \
                                         dzt, grid['dxdy'], grid['dxv'], \
                                         grid['dyu'], grid['h'], nsteps, \
@@ -340,9 +354,9 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
 
             # Calculate times for the output frequency
             if ff == 1:
-                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] + np.linspace(tseas_use/nsteps,tseas_use,nsteps) # update time in seconds to match drifters
             else:
-                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] - np.linspace(tseas/nsteps,tseas,nsteps) # update time in seconds to match drifters
+                t[j*nsteps+1:j*nsteps+nsteps+1] = t[j*nsteps] - np.linspace(tseas_use/nsteps,tseas_use,nsteps) # update time in seconds to match drifters
             
             # Skip calculating real z position if we are doing surface-only drifters anyway
             if z0 != 's' and zpar != grid['km']-1:
@@ -403,11 +417,11 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
 
     # Save results to netcdf file
     if dostream:
-        inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
+        inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas_use, ah, av, \
                             do3d, doturb, loc, T0, U, V)
         return lonp, latp, zp, t, grid, T0, U, V
     else:
-        inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas, ah, av, \
+        inout.savetracks(lonp, latp, zp, t, name, nsteps, ff, tseas_use, ah, av, \
                             do3d, doturb, loc)
         return lonp, latp, zp, t, grid
 
