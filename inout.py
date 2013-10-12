@@ -465,6 +465,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
         v = nc.variables['v'][tind,zparuv,:,:]
         if 'zeta' in nc.variables:
             ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+            sshread = True
         else:
             sshread = False
     else:
@@ -472,6 +473,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
         v = nc.variables['v'][tind,:,:,:]
         if 'zeta' in nc.variables:
             ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
+            sshread = True
         else:
             sshread = False
     
