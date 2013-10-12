@@ -121,7 +121,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
 
     # Calculate time outputs stride. Will be 1 if want to use all model output.
     tstride = int(tseas_use/tseas) # will round down
-    pdb.set_trace()
+    # pdb.set_trace()
     # Convert date to number
     date = netCDF.date2num(date, units)
 

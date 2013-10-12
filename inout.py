@@ -455,8 +455,8 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
     # this parameter is in case there is less model output available vertically than
     # was actually run on the grid
     # pdb.set_trace()
-    if zparuv is None:
-        zpar = zparuv
+    if zparuv is None and z0=='s':
+        zparuv = zpar
 
     # tic_temp = time.time()
     # Read in model output for index tind
