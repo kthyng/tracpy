@@ -69,10 +69,9 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
     # This is for the case when we have a bunch of files to sort through
     else:
-        if len(loc) == 1:
-            files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
-        elif len(loc) == 2:
-            files = np.sort(glob.glob(loc[0] + 'ocean_his_????.nc')) # sorted list of file names
+        # pdb.set_trace()
+        files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
+        # files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
 
         # Find the list of files that cover the desired time period
         for i,name in enumerate(files): # Loop through files
@@ -456,8 +455,8 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
     # this parameter is in case there is less model output available vertically than
     # was actually run on the grid
     # pdb.set_trace()
-    if zparuv is None and z0=='s':
-        zparuv = zpar
+    if zparuv is None:
+        zpar = zparuv
 
     # tic_temp = time.time()
     # Read in model output for index tind
@@ -466,7 +465,6 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
         v = nc.variables['v'][tind,zparuv,:,:]
         if 'zeta' in nc.variables:
             ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
-            sshread = True
         else:
             sshread = False
     else:
@@ -474,7 +472,6 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
         v = nc.variables['v'][tind,:,:,:]
         if 'zeta' in nc.variables:
             ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
-            sshread = True
         else:
             sshread = False
     
