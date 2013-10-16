@@ -69,9 +69,10 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
     # This is for the case when we have a bunch of files to sort through
     else:
-        # pdb.set_trace()
-        files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
-        # files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
+        if len(loc) == 1:
+            files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
+        elif len(loc) == 2:
+            files = np.sort(glob.glob(loc[0] + 'ocean_his_????.nc')) # sorted list of file names
 
         # Find the list of files that cover the desired time period
         for i,name in enumerate(files): # Loop through files
