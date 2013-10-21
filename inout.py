@@ -49,7 +49,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # pdb.set_trace()
-    if 'http' in loc or len(loc) == 2: # use just input file
+    if 'http' in loc or (len(loc) == 2 and '.nc' in loc[0]): # use just input file
         if len(loc) == 2:
             nc = netCDF.Dataset(loc[0])
         else:
@@ -69,8 +69,10 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
     # This is for the case when we have a bunch of files to sort through
     else:
-        # pdb.set_trace()
-        files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
+        if len(loc) == 2:
+            files = np.sort(glob.glob(loc[0] + 'ocean_his_????.nc')) # sorted list of file names
+        else:
+            files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
         # files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
 
         # Find the list of files that cover the desired time period
@@ -456,7 +458,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
     # was actually run on the grid
     # pdb.set_trace()
     if zparuv is None:
-        zpar = zparuv
+        zparuv = zpar
 
     # tic_temp = time.time()
     # Read in model output for index tind
