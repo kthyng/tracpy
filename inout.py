@@ -254,8 +254,8 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         hc = gridfile.variables['hc'][:]
         theta_s = gridfile.variables['theta_s'][:]
         theta_b = gridfile.variables['theta_b'][:]
-        Vtransform = gridfile.variables['Vtransform'][:]
-        Vstretching = gridfile.variables['Vstretching'][:]
+        Vtransform = gridfile.variables['Vtransform'][0]
+        Vstretching = gridfile.variables['Vstretching'][0]
     elif nc is not None: # for if running off local grid/nc files
         sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
@@ -340,7 +340,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # dyu = dyu[:-1,:]
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
-    # pdb.set_trace()
+    pdb.set_trace()
     if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
         mask2 = mask.copy()
         kmt = np.ones((imt,jmt),order='f')*km
