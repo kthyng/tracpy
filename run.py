@@ -399,6 +399,12 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
 
     runtime = time.time()-tic_start
 
+
+    print "============================================="
+    print ""
+    print "Simulation name: ", name
+    print ""
+    print "============================================="
     print "run time:\t\t\t", runtime
     print "---------------------------------------------"
     print "Time spent on:"
@@ -414,6 +420,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
 
     tractime = np.sum(toc_tracmass-tic_tracmass)
     print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
+    print "============================================="
 
     # Save results to netcdf file
     if dostream:
