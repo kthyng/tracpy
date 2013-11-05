@@ -22,7 +22,7 @@ import netCDF4 as netCDF
 import tools
 
 def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, -80), 
-                hlevs=np.hstack(([10,20],np.arange(50,500,50))), col='lightgrey'):
+                hlevs=np.hstack(([10,20],np.arange(50,500,50))), col='lightgrey', fig=None):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
@@ -38,10 +38,11 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         grid = inout.readgrid(loc)
 
+    if fig is None:
+        fig = gcf()
+
     if ax is None:
         ax = gca()
-    else:
-        ax = ax
 
     # Do plot   
     grid['basemap'].drawcoastlines(ax=ax)
@@ -50,7 +51,7 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
                             linewidth=0.15, labels=[1, 0, 0, 0], ax=ax)
     grid['basemap'].drawmeridians(mers, dashes=(1, 0), 
                             linewidth=0.15, labels=[0, 0, 0, 1], ax=ax)
-    hold('on')
+    # hold('on')
     ax.contour(grid['xr'], grid['yr'], grid['h'], hlevs, 
                             colors=col, linewidths=0.5)
 
