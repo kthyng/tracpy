@@ -8,6 +8,8 @@ Contains:
     savetracks
     loadtracks
     loadtransport
+    save_ll2grid
+    save_grid2ll
 """
 
 import netCDF4 as netCDF
@@ -652,19 +654,21 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
 
     return uflux1, vflux1, dzt, zrt, zwt
 
-def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
-                ahin,avin,do3din,doturbin,locin, T0in=None, Uin=None, Vin=None):
+def savetracks(xin,yin,zpin,tpin,name,nstepsin,ffin,tseasin,
+                ahin,avin,do3din,doturbin,locin, T0in=None, Uin=None, Vin=None,
+                savell=True):
     """
     Save tracks that have been calculated by tracmass into a netcdf file.
 
     Inputs:
-        lonpin,latpin,zpin  Drifter track positions [drifter x time]
+        xin,yin,zpin        Drifter track positions [drifter x time]
         tpin                Time vector for drifters [time]
         name                Name of simulation, to use for saving file
+        savell              Whether saving in latlon (True) or grid coords (False). Default True.
     """
 
-    ntrac = lonpin.shape[0] # number of drifters
-    nt = lonpin.shape[1] # number of time steps (with interpolation steps and starting point)
+    ntrac = xin.shape[0] # number of drifters
+    nt = xin.shape[1] # number of time steps (with interpolation steps and starting point)
     
     # # save hash for the particular commit version that is currently being used
     # tempfile = os.popen('git log -1 --format="%H"')
@@ -701,23 +705,43 @@ def savetracks(lonpin,latpin,zpin,tpin,name,nstepsin,ffin,tseasin,
         rootgrp.createDimension('yvl',yvl)
 
     # Do the rest of this by variable so they can be deleted as I go for memory.
-    # Create variable
-    lonp = rootgrp.createVariable('lonp','f8',('ntrac','nt')) # 64-bit floating point
-    # Set some attributes
-    lonp.long_name = 'longitudinal position of drifter'
-    lonp.units = 'degrees'
-    lonp.time = 'tp'
-    # Write data to netCDF variables
-    lonp[:] = lonpin
-    # Delete to save space
-    del(lonpin)
+    if savell: # if saving in latlon
+        # Create variable
+        lonp = rootgrp.createVariable('lonp','f8',('ntrac','nt')) # 64-bit floating point
+        # Set some attributes
+        lonp.long_name = 'longitudinal position of drifter'
+        lonp.units = 'degrees'
+        lonp.time = 'tp'
+        # Write data to netCDF variables
+        lonp[:] = xin
+        # Delete to save space
+        del(xin)
 
-    latp = rootgrp.createVariable('latp','f8',('ntrac','nt')) # 64-bit floating point
-    latp.long_name = 'latitudinal position of drifter'
-    latp.units = 'degrees'
-    latp.time = 'tp'
-    latp[:] = latpin
-    del(latpin)
+        latp = rootgrp.createVariable('latp','f8',('ntrac','nt')) # 64-bit floating point
+        latp.long_name = 'latitudinal position of drifter'
+        latp.units = 'degrees'
+        latp.time = 'tp'
+        latp[:] = yin
+        del(yin)
+    else: # then saving in grid coordinates
+        # Create variable
+        xg = rootgrp.createVariable('xg','f8',('ntrac','nt')) # 64-bit floating point
+        # Set some attributes
+        xg.long_name = 'x grid position of drifter'
+        xg.units = 'grid units'
+        xg.time = 'tp'
+        # Write data to netCDF variables
+        xg[:] = xin
+        # Delete to save space
+        del(xin)
+
+        yg = rootgrp.createVariable('yg','f8',('ntrac','nt')) # 64-bit floating point
+        yg.long_name = 'y grid position of drifter'
+        yg.units = 'grid units'
+        yg.time = 'tp'
+        yg[:] = yin
+        del(yin)
+
 
     if do3din:
         zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
@@ -864,3 +888,36 @@ def loadtransport(name,fmod=None):
         d.close()
 
     return U, V, lon0, lat0, T0
+
+def save_ll2grid(name, grid):
+    '''
+    Input drifter tracks from saved file in grid coordinates and save a new file with
+    drifter tracks in lat/lon instead.
+    '''
+
+    # load in tracks
+    d = netCDF.Dataset(name)
+    lonp = d.variables['lonp'][:]
+    latp = d.variables['latp'][:]
+
+    # Convert to grid coords
+    x, y, dt = tracpy.tools.interpolate2d(lonp, latp, grid, 'd_ll2ij')
+
+    # save new file
+    # transport calculation included
+    if d.variables['Uin'][:] is not None:
+        savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
+                    d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
+                    d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], 
+                    d.variables['T0'][:], d.variables['Uin'][:], d.variables['Vin'][:])
+    else:
+        savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
+                    d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
+                    d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:])
+
+
+def save_grid2ll(name):
+    '''
+    Input drifter tracks from saved file in lat/lon and save a new file with
+    drifter tracks in grid coordinates instead.
+    '''
