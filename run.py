@@ -19,9 +19,9 @@ import plotting
 import tools
 from scipy import ndimage
 
-def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
-        zpar, do3d, doturb, name, grid=None, dostream=0, \
-        T0=None, U=None, V=None, zparuv=None, tseas_use=None):
+def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, 
+        zpar, do3d, doturb, name, grid=None, dostream=0, 
+        T0=None, U=None, V=None, zparuv=None, tseas_use=None, savell=True):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -93,6 +93,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     t           time for drifter tracks
     name        Name of simulation to be used for netcdf file containing final tracks
     grid        (optional) Grid information, as read in by tracpy.inout.readgrid().
+    savell      Whether to save tracks in lat/lon or grid coords. True is latlon, false is grid coords,
+                and default is latlon.
 
     The following inputs are for calculating Lagrangian stream functions
     dostream    Calculate streamfunctions (1) or not (0). Default is 0.
@@ -390,10 +392,15 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, \
     # lonp, latp, dt = tools.interpolation(xg,yg,grid,'d_ij2ll')
 
     ## map coordinates interpolation
-    # xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
-    # tic = time.time()
-    lonp, latp, dt = tools.interpolate2d(xg,yg,grid,'m_ij2ll',mode='constant',cval=np.nan)
-    # print '2d interp time=', time.time()-tic
+    if savell:
+        # xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
+        # tic = time.time()
+        lonp, latp, dt = tools.interpolate2d(xg,yg,grid,'m_ij2ll',mode='constant',cval=np.nan)
+        name = name + 'll' # lat lon
+        # print '2d interp time=', time.time()-tic
+    else: # for grid coords, just rename to save some space
+        lonp = xg; latp = yg;
+        name = name + 'gc' #grid coordinates
 
     # pdb.set_trace()
 
