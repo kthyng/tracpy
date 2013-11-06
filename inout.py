@@ -893,6 +893,11 @@ def save_ll2grid(name, grid):
     '''
     Input drifter tracks from saved file in grid coordinates and save a new file with
     drifter tracks in lat/lon instead.
+
+    Example usage:
+     loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc' # TXLA model/grid output location
+     grid = tracpy.inout.readgrid(loc)
+     tracpy.inout.save_ll2grid([trackfile], grid)
     '''
 
     # load in tracks
