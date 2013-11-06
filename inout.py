@@ -9,7 +9,6 @@ Contains:
     loadtracks
     loadtransport
     save_ll2grid
-    save_grid2ll
 """
 
 import netCDF4 as netCDF
@@ -24,6 +23,7 @@ import time
 from matplotlib.pyplot import *
 import op
 import os
+import tracpy
 
 def setupROMSfiles(loc,date,ff,tout, tstride=1):
     '''
@@ -785,7 +785,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,ffin,tseasin,
     do3d = rootgrp.createVariable('do3d','i4')
     doturb = rootgrp.createVariable('doturb','i4')
     # pdb.set_trace()
-    loc = rootgrp.createVariable('loc','i4')
+    # loc = rootgrp.createVariable('loc','i4')
     # git_hash = rootgrp.createVariable('git_hash','i4')
 
     # Set some attributes
@@ -796,10 +796,10 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,ffin,tseasin,
     av.long_name = 'vertical diffusion'
     do3d.long_name = 'flag for running in 3d (1) or 2d (0)'
     doturb.long_name = 'flag for using no subgrid parameterization (0), added turbulent velocities (1), displacement to particle position on a circle (2), displacement to particle position on an ellipse (3)'
-    if len(locin) == 2:
-        loc.long_name = 'location of model output information used for drifter experiment\n' + locin[0]
-    else:
-        loc.long_name = 'location of model output information used for drifter experiment\n' + locin
+    # if len(locin) == 2:
+    #     loc.long_name = 'location of model output information used for drifter experiment\n' + locin[0]
+    # else:
+    #     loc.long_name = 'location of model output information used for drifter experiment\n' + locin
     # git_hash.long_name = 'unique identifier for commit version of tracpy\n' + git_hash_in
 
     tseas.units = 'second'
@@ -896,28 +896,33 @@ def save_ll2grid(name, grid):
     '''
 
     # load in tracks
-    d = netCDF.Dataset(name)
+    d = netCDF.Dataset('tracks/' + name)
     lonp = d.variables['lonp'][:]
     latp = d.variables['latp'][:]
 
     # Convert to grid coords
     x, y, dt = tracpy.tools.interpolate2d(lonp, latp, grid, 'd_ll2ij')
+    print dt
 
     # save new file
     # transport calculation included
-    if d.variables['Uin'][:] is not None:
-        savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
-                    d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
-                    d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], 
-                    d.variables['T0'][:], d.variables['Uin'][:], d.variables['Vin'][:])
+    if 'Uin' in d.variables:
+        if d.variables['do3d'][:]:
+            savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
+                        d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
+                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], 
+                        d.variables['T0'][:], d.variables['Uin'][:], d.variables['Vin'][:], savell=False)
+        else: # have to input something for z but it won't be saved
+            savetracks(x, y, y, d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
+                        d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
+                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], 
+                        d.variables['T0'][:], d.variables['Uin'][:], d.variables['Vin'][:], savell=False)
     else:
-        savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
-                    d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
-                    d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:])
-
-
-def save_grid2ll(name):
-    '''
-    Input drifter tracks from saved file in lat/lon and save a new file with
-    drifter tracks in grid coordinates instead.
-    '''
+        if d.variables['do3d'][:]:
+            savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
+                        d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
+                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], savell=False)
+        else: # have to input something for z but it won't be saved
+            savetracks(x, y, y, d.variables['tp'][:], name[:-3] + 'gc', d.variables['nsteps'][:],
+                        d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
+                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], savell=False)
