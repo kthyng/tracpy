@@ -248,7 +248,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     pm = gridfile.variables['pm'][:]
     pn = gridfile.variables['pn'][:]
     h = gridfile.variables['h'][:]
-    angle = gridfile.variables['angle'][:]
+    # angle = gridfile.variables['angle'][:]
 
     # Vertical grid metrics
     if 'http' in loc or len(loc) == 2 or 's_w' in gridfile.variables:
@@ -347,10 +347,12 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
         mask2 = mask.copy()
         kmt = np.ones((imt,jmt),order='f')*km
-        ind = (mask2[1:imt,:]==1)
-        mask2[0:imt-1,ind] = 1
-        ind = (mask2[:,1:jmt]==1)
-        mask2[ind,0:jmt-1] = 1
+        ind = (mask2==1)
+        ind[0:imt-1,:] = ind[1:imt,:]
+        mask2[ind] = 1
+        ind = (mask2==1)
+        ind[:,0:jmt-1] = ind[:,1:jmt]
+        mask2[ind] = 1
         # ind = (mask[1:imt-1,:]==1)
         # mask[0:imt-2,ind] = 1
         # ind = (mask[:,1:imt-1]==1)
@@ -375,7 +377,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
 
     # Fill in grid structure
     if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
-        grid = {'imt':imt,'jmt':jmt,'km':km,'angle':angle, 
+        grid = {'imt':imt,'jmt':jmt,'km':km,#'angle':angle, 
             'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
             'mask':mask,'kmt':kmt,'dzt0':dzt0,
             'zrt0':zrt0,'zwt0':zwt0,
@@ -389,7 +391,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
             'Vtransform':Vtransform, 'Vstretching':Vstretching,
             'basemap':basemap}
     else:
-        grid = {'imt':imt,'jmt':jmt, 'angle':angle,
+        grid = {'imt':imt,'jmt':jmt, #'angle':angle,
             'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
             'mask':mask,
             'pm':pm,'pn':pn,'tri':tri,'trir':trir,'trirllrho':trirllrho,
