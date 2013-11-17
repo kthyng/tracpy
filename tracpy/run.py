@@ -14,7 +14,7 @@ from mpl_toolkits.basemap import Basemap
 import time
 from matplotlib.mlab import *
 import inout
-import init
+#import init
 import plotting
 import tools
 from scipy import ndimage

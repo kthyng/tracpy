@@ -31,11 +31,10 @@ Modules available in tracmass include:
 * vertvel.f95
 '''
 
-import init
 import inout
 import op
-import plotting
-import run
+#import plotting
+#import run
 import tools
 
 __authors__ = ['Kristen Thyng <kthyng@tamu.edu>']
