@@ -33,8 +33,8 @@ Modules available in tracmass include:
 
 import inout
 import op
-#import plotting
-#import run
+# import plotting
+import run
 import tools
 
 __authors__ = ['Kristen Thyng <kthyng@tamu.edu>']
