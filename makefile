@@ -38,7 +38,7 @@ CC                = gcc -O  $(INC_DIR)
 COMPUTER = $(shell uname -n)
 
 ifeq ($(COMPUTER),rainier)
-	F2PY = f2py-2.7
+	F2PY = f2py
 else ifeq ($(findstring hafen,$(COMPUTER)),hafen)
 	F2PY = f2py2.7
 else
