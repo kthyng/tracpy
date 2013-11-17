@@ -47,9 +47,9 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
     # Do plot   
     grid['basemap'].drawcoastlines(ax=ax)
     grid['basemap'].fillcontinents('0.8',ax=ax)
-    grid['basemap'].drawparallels(pars, dashes=(1, 0), 
+    grid['basemap'].drawparallels(pars, dashes=(1, 1), 
                             linewidth=0.15, labels=[1, 0, 0, 0], ax=ax)
-    grid['basemap'].drawmeridians(mers, dashes=(1, 0), 
+    grid['basemap'].drawmeridians(mers, dashes=(1, 1), 
                             linewidth=0.15, labels=[0, 0, 0, 1], ax=ax)
     # hold('on')
     ax.contour(grid['xr'], grid['yr'], grid['h'], hlevs, 
