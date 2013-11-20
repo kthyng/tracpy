@@ -1,29 +1,48 @@
-#tracpy
+# TracPy
 
-Fortran core of Tracmass + Python wrapping around the outside.
+Fortran core of TRACMASS + Python wrapping around the outside.
 
-To get the Fortran Tracmass code ready:
 
-1. `make clean`
-1. Compile tracmass code in Fortran: `make f2py`
+## To get the code
 
-Note: if the code will not compile, a first step could be to change the flag in the makefile from -m64 to -m32 if you are set up to use 32 bit instead of 64 bit.
+1. Make your new TracPy directory and change directories into it.
+1. Clone the TracPy repository from GitHub. 
+In the command prompt, type: 
+`git clone https://github.com/kthyng/tracpy.git`
+1. Install the package.
+`pip install -e .`
+This makes the package an editable install so that it can be updated with future additions to TracPy.
 
-To learn about the module Tracpy:
 
-1. Open an iPython notebook server in the tracpy directory: `ipython notebook`
-1. A webpage will open in your browser showing the available notebooks in the current directory. Open the notebook called manual
-1. The cells of the notebook can be run in order by pushing "shift" and "enter" together or the whole notebook can be run by selecting Cell > Run all. The notebook demonstrates how to initialize and run a numerical drifter experiment using tracpy.
-1. Alternatively, a static PDF version of the manual has been saved and can be viewed (manual.pdf) but not run.
+## To update the code later
 
-For projects, it is suggested to start a separate directory with its own initialization and run file for the simulation(s). Then tracpy can be imported as a module and the run script can be run from the project. An example project can be found at https://github.com/kthyng/gisr.git.
+1. Move into your TracPy directory.
+1. Update your GitHub repository.
+`git pull`
+1. Edit your install of TracPy.
+`pip install -e .` 
+or
+`pip install --force-reinstall -e .`
 
-Some more information about running on Linux machines with taskset to control what cores a given process is run on (the syntax of these commands depends on your run.py script):
-Multiple instances of the simulation can be run on different cores if you have a multi-core Linux machine. To do this, use `taskset`:
-`taskset 3 python2.7 run.py > temp_log.txt &`
-This command runs the run.py script for a specific project in the background (due to the &), redirects the output from the screen to the text file 'temp_log.txt', and runs the process on core 3. This command can then be used for other instances by choosing a different core after the command `taskset`.
 
-If a process is already running, you can check its current core using its PID:
-`taskset -p [PID]`
-Then you can move the process to a different core using
-`taskset -p [CORE NUMBER] [PID]`
+## To learn more about the module TracPy
+
+Learn more by running a small test case. Internet required.
+1. Open an iPython notebook server in the TracPy `docs` directory.
+`ipython notebook`
+1. A webpage will open in your browser showing the available notebooks in the current directory. Open the notebook called manual.
+1. The cells of the notebook can be run in order by pushing "shift" and "enter" together or the whole notebook can be run by selecting Cell > Run all. The notebook demonstrates how to initialize and run a numerical drifter experiment using TracPy.
+1. Alternatively, a static PDF version of the manual can be viewed at `http://nbviewer.ipython.org/urls/raw.github.com/kthyng/tracpy/master/docs/manual.ipynb`.
+
+
+## To run your own projects
+
+For projects, it is suggested to start a separate directory with its own initialization and run file for the simulation(s). Then TracPy can be imported as a module and the run script can be run from the project. An example set of projects can be found at `https://github.com/kthyng/gisr.git`.
+
+
+## To learn more about TRACMASS
+
+* Döös, K., Kjellsson, J., & Jönsson, B. (2013). TRACMASS—A Lagrangian Trajectory Model. In Preventive Methods for Coastal Protection (pp. 225-249). Springer International Publishing.
+* Döös, K., Rupolo, V., & Brodeau, L. (2011). Dispersion of surface drifters and model-simulated trajectories. Ocean Modelling, 39(3), 301-310.
+* Döös, K., & Engqvist, A. (2007). Assessment of water exchange between a discharge region and the open sea–A comparison of different methodological concepts. Estuarine, Coastal and Shelf Science, 74(4), 709-721.
+* TRACMASS on GitHub: https://github.com/TRACMASS
