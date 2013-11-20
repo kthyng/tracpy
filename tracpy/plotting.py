@@ -32,7 +32,7 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
     hlevs   which depth contours to plot
     """
 
-    matplotlib.rcParams.update({'font.size': 18})#,'font.weight': 'bold'})
+    # matplotlib.rcParams.update({'font.size': 18})#,'font.weight': 'bold'})
 
     if grid is None:
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
