@@ -903,7 +903,7 @@ def save_ll2grid(name, grid):
     '''
 
     # load in tracks
-    d = netCDF.Dataset('tracks/' + name)
+    d = netCDF.Dataset(name)
     lonp = d.variables['lonp'][:]
     latp = d.variables['latp'][:]
 
