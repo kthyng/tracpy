@@ -94,6 +94,7 @@ def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest',cval=0
         yi = fy(x+0.5, y+0.5)
 
     elif itype == 'm_ij2xy':
+        # .5's are to shift from u/v grid to rho grid for interpolator
         xi = ndimage.map_coordinates(grid['xr'], np.array([x.flatten()+.5,\
                                         y.flatten()+.5]), \
                                         order=order,\
@@ -156,6 +157,9 @@ def interpolate3d(x,y,z,zin,order=1,mode='nearest',cval=0.):
 
     tic = time.time()
 
+    # Shift of .5 is assuming that input x/y are on a staggered grid frame (counting from 
+    # the cell edge and across the cell) but that the z values are at the cell center,
+    # or rho locations.
     zi = ndimage.map_coordinates(zin, np.array([x.flatten()+.5, \
                                 y.flatten()+.5, \
                                 z.flatten()]), \
