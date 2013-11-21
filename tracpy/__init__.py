@@ -9,13 +9,16 @@ Tracmass is available online.
 
 Modules available in tracpy include:
 
-* init.py
 * inout.py
-* manual.ipynb
 * op.py
-* plotting.py
 * run.py
 * tools.py
+
+Modules available but not imported directly with TracPy include:
+* plotting.py
+* init.py
+* manual.ipynb
+* calcs.py
 
 Modules available in tracmass include:
 
