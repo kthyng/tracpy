@@ -226,7 +226,7 @@ def abs_dispersion(lonp, latp, squared=True):
                         not squared. Squared by default.
 
     Outputs:
-        D2              Relative dispersion (squared or not) averaged over drifter 
+        D2              Absolute dispersion (squared or not) averaged over drifter 
                         pairs [ntime].
         tp              Times along drifter track (input)
         nnans           Number of non-nan time steps in calculations for averaging properly.
@@ -251,6 +251,59 @@ def abs_dispersion(lonp, latp, squared=True):
         dist = get_dist(lonp[idrifter,0], lonp[idrifter,:], 
                     latp[idrifter,0], latp[idrifter,:])
 
+        # dispersion can be presented as squared or not
+        if squared:
+            D2 = np.nansum(np.vstack([D2, dist**2]), axis=0)
+        else:
+            D2 = np.nansum(np.vstack([D2, dist]), axis=0)
+        nnans = nnans + ~np.isnan(dist) # save these for averaging
+    D2 = D2.squeeze()/nnans # average over all pairs
+    print 'time for finding D: ', time.time()-tstart
+
+    # # Distances squared, separately; times; number of non-nans for this set
+    # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
+    # pdb.set_trace()
+    return D2, nnans
+
+
+def path(lonp, latp, squared=True):
+    '''
+    Calculate the path length in time of a set of tracks. The distance traveled or length
+    of path from each drifter's initial location as it moves in time is calculated in time, 
+    and the lengths are averaged over all drifters.
+
+    Inputs:
+        lonp, latp      Longitude/latitude of the drifter tracks [ndrifter,ntime]
+        squared         Whether to present the results as separation distance squared or 
+                        not squared. Squared by default.
+
+    Outputs:
+        D2              Path length (squared or not) averaged over drifter 
+                        pairs [ntime].
+        tp              Times along drifter track (input)
+        nnans           Number of non-nan time steps in calculations for averaging properly.
+                        Otherwise drifters that have exited the domain could affect calculations.
+
+    To combine with other calculations of path length, first multiply by nnans, then
+    combine with other path length calculations, then divide by the total number
+    of nnans.
+
+    Example call:
+    tracpy.calcs.path(d.variables['lonp'][:], d.variables['latp'][:], squared=True)
+    '''
+
+    tstart = time.time()
+    # Loop through pairs of drifters and calculate the separation distance in time
+    D2 = np.ones(lonp.shape[1]-1)*np.nan
+    # to collect number of non-nans over all drifters and time steps
+    nnans = np.zeros(lonp.shape[1]-1) 
+    for idrifter in xrange(lonp.shape[0]):
+
+        # calculate distance in time
+        dist = get_dist(lonp[idrifter,1:], lonp[idrifter,:-1], 
+                    latp[idrifter,1:], latp[idrifter,:-1])
+        dist = np.cumsum(dist)
+        # pdb.set_trace()
         # dispersion can be presented as squared or not
         if squared:
             D2 = np.nansum(np.vstack([D2, dist**2]), axis=0)
