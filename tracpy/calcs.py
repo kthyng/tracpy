@@ -214,6 +214,109 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
     return D2, nnans
 
 
+def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1, squared=True):
+    '''
+    Calculate the relative dispersion of tracks lonp, latp as directly compared with
+    the tracks described by lonpc, latpc. The two sets of tracks must start in the same 
+    locations since this is assumed for making "pairs" of drifters for comparison (and 
+    therefore pairs do not need to be found). The relative dispersion in this case is a
+    measure of the difference between the two simulations, and is aimed at being used
+    for examining differences in tracks due to changes in the numerical simulation.
+    The tracks should also be coincident in time, but the script will find a way to match
+    them up for the overlap periods.
+
+
+    Inputs:
+        lonpc, latpc    Longitude/latitude of the control drifter tracks [ndrifter,ntime]
+        tpc             Time vector associated with lonpc, latpc
+        lonp, latp      Longitude/latitude of the drifter tracks [ndrifter,ntime]
+        tp              Time vector associated with lonp, latp
+        squared         Whether to present the results as separation distance squared or 
+                        not squared. Squared by default.
+
+    Outputs:
+        D2              Relative dispersion (squared or not) averaged over drifter 
+                        pairs [ntime].
+        tp              Times along drifter track (input)
+        nnans           Number of non-nan time steps in calculations for averaging properly.
+                        Otherwise drifters that have exited the domain could affect calculations.
+
+    To combine with other calculations of relative dispersion, first multiply by nnans, then
+    combine with other relative dispersion calculations, then divide by the total number
+    of nnans.
+
+    Example call:
+    dc = netCDF.Dataset('tracks/tseas_use300_nsteps1.nc') (5 min, control output)
+    d = netCDF.Dataset('tracks/tseas_use1200_nsteps1.nc') (20 min, comparison output)
+    tracpy.calcs.rel_dispersion_comp(dc.variables['lonp'][:], dc.variables['latp'][:], dc.variables['tp'][:],
+                                     d.variables['lonp'][:], d.variables['latp'][:], d.variables['tp'][:],
+                                     squared=True)
+    '''
+
+
+    # Account for time difference between two simulations
+    pdb.set_trace()
+    tstart = time.time()
+
+    # Find overlapping period between the two sets of drifter tracks. For now, 
+    # assume that the "c" case is the one to match to start.
+    istart = find(tp==tpc[0]) # index to start secondary case at, in time
+    # assume that the secondary case is the one to match to end.
+    iend = find(tpc==tp[-1]) 
+    tpc = tpc[:iend]
+    tp = tp[istart:]
+
+    # Since drifters may be at different time steps, find the correct stride to
+    # use to equalize, assuming one is a multiple of the other
+    dt = (tp[1]-tp[0])
+    dtc = (tpc[1]-tpc[0])
+
+    if dt > dtc: # control case has higher temporal resolution
+        tstride = int(dt/dtc)
+    elif dtc > dt:
+        tstride = int(dtc/dt)
+
+    # Use tstride to equate arrays
+    if dt > dtc:
+        lonpc = lonpc[:,::tstride]
+        latpc = latpc[:,::tstride]
+        tpc = tpc[::tstride]
+    elif dtc > dt:
+        lonp = lonp[:,::tstride]
+        latp = latp[:,::tstride]
+        tp = tp[::tstride]
+
+    print 'time for fixing timing: ', time.time()-tstart
+
+
+
+
+    # Calculate relative dispersion
+
+    tstart = time.time()
+
+
+    # We know that drifters from the two sets have a one to one correspondence
+    D2 = np.ones(lonp.shape[1])*np.nan
+    nnans = np.zeros(lonp.shape[1]) # to collect number of non-nans over all drifters for a time
+    for i in xrange(lonp.shape[0]): # loop through drifters, time is in array, axis=1
+        dist = get_dist(lonpc[i,:], lonp[i,:], 
+                    latpc[i,:], latp[i,:])
+        if squared:
+            D2 = np.nansum(np.vstack([D2, dist**2]), axis=0)
+        else:
+            D2 = np.nansum(np.vstack([D2, dist]), axis=0)
+        nnans = nnans + ~np.isnan(dist)
+    D2 = D2.squeeze()/nnans #len(pairs) # average over all pairs
+
+    print 'time for finding D: ', time.time()-tstart
+
+    # # Distances squared, separately; times; number of non-nans for this set
+    # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
+    # pdb.set_trace()
+    return D2, nnans
+
+
 def abs_dispersion(lonp, latp, squared=True):
     '''
     Calculate the absolute dispersion of a set of tracks. The distance between the position
