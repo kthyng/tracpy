@@ -261,10 +261,9 @@ def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1, squared=True):
     # Find overlapping period between the two sets of drifter tracks. For now, 
     # assume that the "c" case is the one to match to start.
     istart = find(tp==tpc[0]) # index to start secondary case at, in time
-    # assume that the secondary case is the one to match to end.
-    iend = find(tpc==tp[-1]) 
-    tpc = tpc[:iend]
-    tp = tp[istart:]
+    iend = find(tp==tpc[-1]) 
+    tpc = tpc[istart:iend]
+    # tp = tp[istart:]
 
     # Since drifters may be at different time steps, find the correct stride to
     # use to equalize, assuming one is a multiple of the other
