@@ -146,6 +146,9 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
     To combine with other calculations of relative dispersion, first multiply by nnans, then
     combine with other relative dispersion calculations, then divide by the total number
     of nnans.
+
+    Example call:
+    tracpy.calcs.rel_dispersion(dr.variables['lonp'][:], dr.variables['latp'][:], r=1, squared=True)
     '''
 
     # Find pairs of drifters based on initial position
@@ -195,6 +198,58 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
         # calculate distance in time
         dist = get_dist(lonp[pairs[ipair][0],:], lonp[pairs[ipair][1],:], 
                     latp[pairs[ipair][0],:], latp[pairs[ipair][1],:])
+
+        # dispersion can be presented as squared or not
+        if squared:
+            D2 = np.nansum(np.vstack([D2, dist**2]), axis=0)
+        else:
+            D2 = np.nansum(np.vstack([D2, dist]), axis=0)
+        nnans = nnans + ~np.isnan(dist) # save these for averaging
+    D2 = D2.squeeze()/nnans # average over all pairs
+    print 'time for finding D: ', time.time()-tstart
+
+    # # Distances squared, separately; times; number of non-nans for this set
+    # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
+    # pdb.set_trace()
+    return D2, nnans
+
+
+def abs_dispersion(lonp, latp, squared=True):
+    '''
+    Calculate the absolute dispersion of a set of tracks. The distance between the position
+    of a drifter and its original location are calculated in time, and averaged over all
+    drifters.
+
+    Inputs:
+        lonp, latp      Longitude/latitude of the drifter tracks [ndrifter,ntime]
+        squared         Whether to present the results as separation distance squared or 
+                        not squared. Squared by default.
+
+    Outputs:
+        D2              Relative dispersion (squared or not) averaged over drifter 
+                        pairs [ntime].
+        tp              Times along drifter track (input)
+        nnans           Number of non-nan time steps in calculations for averaging properly.
+                        Otherwise drifters that have exited the domain could affect calculations.
+
+    To combine with other calculations of absolute dispersion, first multiply by nnans, then
+    combine with other absolute dispersion calculations, then divide by the total number
+    of nnans.
+
+    Example call:
+    tracpy.calcs.abs_dispersion(d.variables['lonp'][:], d.variables['latp'][:], squared=True)
+    '''
+
+    tstart = time.time()
+    # Loop through pairs of drifters and calculate the separation distance in time
+    D2 = np.ones(lonp.shape[1])*np.nan
+    # to collect number of non-nans over all drifters and time steps
+    nnans = np.zeros(lonp.shape[1]) 
+    for idrifter in xrange(lonp.shape[0]):
+
+        # calculate distance in time
+        dist = get_dist(lonp[idrifter,0], lonp[idrifter,:], 
+                    latp[idrifter,0], latp[idrifter,:])
 
         # dispersion can be presented as squared or not
         if squared:
