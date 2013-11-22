@@ -11,7 +11,7 @@ import pdb
 from matplotlib.mlab import find
 import netCDF4 as netCDF
 from scipy import ndimage
-
+import time
 
 def Var(xp, yp, tp, varin, nc):
     '''
@@ -38,7 +38,7 @@ def Var(xp, yp, tp, varin, nc):
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         nc = netCDF.Dataset(loc)
     Call this function 
-        tracpy.calcs.Var(d.variables['xg'][:], d.variables['yg'][:], d.variables['tp'][:], 'h', nc)
+        varp = tracpy.calcs.Var(d.variables['xg'][:], d.variables['yg'][:], d.variables['tp'][:], 'h', nc)
     '''
 
     # Time indices for the drifter track points
@@ -104,3 +104,108 @@ def Var(xp, yp, tp, varin, nc):
     return varp
 
 
+def get_dist(lon1, lons, lat1, lats): 
+    '''
+    Function to compute great circle distance between point lat1 and lon1 
+    and arrays of points given by lons, lats or both same length arrays.
+    Uses Haversine formula.
+    '''
+
+    lon1 = lon1*np.pi/180.
+    lons = lons*np.pi/180.
+    lat1 = lat1*np.pi/180.
+    lats = lats*np.pi/180.
+
+    earth_radius = 6373.
+    distance = earth_radius*2.0*np.arcsin(np.sqrt(np.sin(0.50*(lat1-lats))**2 \
+                                       + np.cos(lat1)*np.cos(lats) \
+                                       * np.sin(0.50*(lon1-lons))**2))
+    return distance
+
+
+def rel_dispersion(lonp, latp, r=1, squared=True):
+    '''
+    Calculate the relative dispersion of a set of tracks. First, initial pairs
+    of drifters are found, based on a maximum initial separation distance, then
+    find the separation distance in time.
+
+    Inputs:
+        lonp, latp      Longitude/latitude of the drifter tracks [ndrifter,ntime]
+        r               Initial separation distance (kilometers) defining pairs of drifters. 
+                        Default is 1 kilometer.
+        squared         Whether to present the results as separation distance squared or 
+                        not squared. Squared by default.
+
+    Outputs:
+        D2              Relative dispersion (squared or not) averaged over drifter 
+                        pairs [ntime].
+        tp              Times along drifter track (input)
+        nnans           Number of non-nan time steps in calculations for averaging properly.
+                        Otherwise drifters that have exited the domain could affect calculations.
+
+    To combine with other calculations of relative dispersion, first multiply by nnans, then
+    combine with other relative dispersion calculations, then divide by the total number
+    of nnans.
+    '''
+
+    # Find pairs of drifters based on initial position
+
+    # Calculate the initial separation distances for each drifter from each other drifter
+    tstart = time.time()
+    dist = np.zeros((lonp.shape[0],lonp.shape[0]))*np.nan
+    for idrifter in xrange(lonp.shape[0]):
+        # dist contains all of the distances from other drifters for each drifter
+        dist[idrifter, idrifter+1:] = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
+                                    latp[idrifter,0], latp[idrifter+1:,0])
+        # dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
+    print 'time for initial particle separation: ', time.time()-tstart
+
+    tstart = time.time()
+    # let the index in axis 0 be the drifter id
+    ID = np.arange(lonp.shape[0])
+
+    # # save pairs to save time since they are always the same
+    # if not os.path.exists('tracks/pairs.npz'):
+
+    # Loop through all drifters and find initial separation distances smaller than r.
+    # Then exclude repeated pairs.
+    pairs = []
+    for idrifter in xrange(lonp.shape[0]):
+        ind = find(dist[idrifter,:]<=r)
+        for i in ind:
+            if ID[idrifter] != ID[i]:
+                pairs.append([min(ID[idrifter], ID[i]), 
+                                max(ID[idrifter], ID[i])])
+    pairs_set = set(map(tuple,pairs))
+    pairs = map(list,pairs_set)# now pairs has only unique pairs of drifters
+    # pairs.sort() #unnecessary but handy for checking work
+    #     np.savez('tracks/pairs.npz', pairs=pairs)
+    # else:
+    #     pairs = np.load('tracks/pairs.npz')['pairs']
+    print 'time for finding pairs: ', time.time()-tstart
+    # Calculate relative dispersion
+
+    tstart = time.time()
+    # Loop through pairs of drifters and calculate the separation distance in time
+    D2 = np.ones(lonp.shape[1])*np.nan
+    # to collect number of non-nans over all drifters and time steps
+    nnans = np.zeros(lonp.shape[1]) 
+    for ipair in xrange(len(pairs)):
+
+        # calculate distance in time
+        dist = get_dist(lonp[pairs[ipair][0],:], lonp[pairs[ipair][1],:], 
+                    latp[pairs[ipair][0],:], latp[pairs[ipair][1],:])
+
+        # dispersion can be presented as squared or not
+        if squared:
+            D2 = np.nansum(np.vstack([D2, dist**2]), axis=0)
+        else:
+            D2 = np.nansum(np.vstack([D2, dist]), axis=0)
+        nnans = nnans + ~np.isnan(dist) # save these for averaging
+    D2 = D2.squeeze()/nnans # average over all pairs
+    print 'time for finding D: ', time.time()-tstart
+
+    # # Distances squared, separately; times; number of non-nans for this set
+    # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
+    # pdb.set_trace()
+    return D2, nnans
