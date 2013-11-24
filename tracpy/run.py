@@ -434,22 +434,22 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                             do3d, doturb, loc)
         return lonp, latp, zp, t, grid
 
-def start_run():
-    '''
-    Choose what initialization from above and then run.
-    '''
+# def start_run():
+#     '''
+#     Choose what initialization from above and then run.
+#     '''
 
-    # Choose which initialization to use
-    loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init.test1()
+#     # Choose which initialization to use
+#     loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init.test1()
 
-    # Run tracmass!
-    lonp,latp,zp,t,grid = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
+#     # Run tracmass!
+#     lonp,latp,zp,t,grid = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
 
-    # pdb.set_trace()
+#     # pdb.set_trace()
 
-    # Plot tracks
-    plotting.tracks(lonp,latp,name,grid=grid)
+#     # Plot tracks
+#     plotting.tracks(lonp,latp,name,grid=grid)
 
-    # Plot final location (by time index) histogram
-    plotting.hist(lonp,latp,name,grid=grid,which='contour')
-    plotting.hist(lonp,latp,name,grid=grid,which='pcolor')  
+#     # Plot final location (by time index) histogram
+#     plotting.hist(lonp,latp,name,grid=grid,which='contour')
+#     plotting.hist(lonp,latp,name,grid=grid,which='pcolor')  
