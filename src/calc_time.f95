@@ -89,11 +89,7 @@ else
     endif
 end if
 ! === time interpolation constant ===
-! KMT change: using the dmod function makes the final rb,rbg values be switched
-! in value, so rb=1, rbg=0 when it should be the opposite at the end of a model time step
-! However, I am not sure why this would be wrong here, so I want to ask in the future.
-rbg=ts/1.d0 
-!     rbg=dmod(ts,1.d0) 
-rb =1.d0-rbg
+rbg = ts 
+rb = 1.d0-rbg
 
 end subroutine calc_time

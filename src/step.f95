@@ -161,7 +161,7 @@ jstart = ceiling(ystart)
 kstart = ceiling(zstart)
 
 ! controls the iterative stepping between the two input model outputs
-dstep=1.d0/dble(iter)
+dstep = 1.d0/dble(iter)
 dtmin = dstep*tseas 
 
 flag = 0
@@ -194,12 +194,9 @@ ntracLoop: do ntrac=1,ntractot
     niterLoop: do 
         niter=niter+1 ! iterative step of trajectory
 !         print *,'niter=',niter
-        ! KMT change: using the dmod function makes the final rr,rg values be switched
-        ! in value, so rr=1, rg=0 when it should be the opposite at the end of a model time step
-        ! However, I am not sure why this would be wrong here, so I want to ask in the future.
-        rg=ts/1.d0 
+        rg = ts 
 !         rg=dmod(ts,1.d0) ! time interpolation constant between 0 and 1
-        rr=1.d0-rg
+        rr = 1.d0-rg
 !         print *,'ts=',ts,' rg=',rg,' rr=',rr
         ! Update particle indices and locations
         x0 = x1
