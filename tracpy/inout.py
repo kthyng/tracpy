@@ -656,7 +656,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
 
     return uflux1, vflux1, dzt, zrt, zwt
 
-def savetracks(xin,yin,zpin,tpin,name,nstepsin,ffin,tseasin,
+def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
                 ahin,avin,do3din,doturbin,locin, T0in=None, Uin=None, Vin=None,
                 savell=True):
     """
@@ -780,6 +780,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,ffin,tseasin,
     # Main track information
     # Include other run details
     nsteps = rootgrp.createVariable('nsteps','i4')
+    N = rootgrp.createVariable('N','i4')
     ff = rootgrp.createVariable('ff','i4')
     tseas = rootgrp.createVariable('tseas','f8')
     ah = rootgrp.createVariable('ah','f8')
@@ -791,7 +792,8 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,ffin,tseasin,
     # git_hash = rootgrp.createVariable('git_hash','i4')
 
     # Set some attributes
-    nsteps.long_name = 'number of linear interpolation steps in time between model outputs'
+    nsteps.long_name = 'sets max time steps between time interpolations between model outputs'
+    N.long_name = 'sets number of samplings of drifter track'
     ff.long_name = 'forward (1) or backward (-1) in time'
     tseas.long_name = 'time between model outputs'
     ah.long_name = 'horizontal diffusion'
@@ -810,6 +812,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,ffin,tseasin,
 
     # Write data to netCDF variables
     nsteps[:] = nstepsin
+    N[:] = Nin
     ff[:] = ffin
     tseas[:] = tseasin
     ah[:] = ahin

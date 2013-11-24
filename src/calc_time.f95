@@ -68,19 +68,18 @@ if(tss+dt/tseas*dble(iter).ge.dble(iter)) then
 ! KMT adding a condition to stop at the time interpolation between model outputs
 ! trying to find when the trajectory timing is switching from below to above an
 ! interpolation step in order to stop at time interpolation step and later write
-elseif(dble(idint(tss))<dble(idint(tss+dt/tseas*dble(iter)))) then
-    print *, 'mine'
-    tss=dble(idint(tss)+1) ! time interpolation step (should be whole number)
-    ts=tss/dble(iter) ! fractional number of time steps, but 1 is the biggest if my output looping is outside tracmass
-    dt=ts*tseas-tt
-    tt=ts*tseas
-    ds=dt/dxyz
-    dsc=ds
+! KMT: I think this is unnecessary and slightly wrong.
+! elseif(dble(idint(tss))<dble(idint(tss+dt/tseas*dble(iter)))) then
+!     tss=dble(idint(tss)+1) ! time interpolation step (should be whole number)
+!     ts=tss/dble(iter) ! fractional number of time steps, but 1 is the biggest if my output looping is outside tracmass
+!     dt=ts*tseas-tt
+!     tt=ts*tseas
+!     ds=dt/dxyz
+!     dsc=ds
 
 else
     tt=tt+dt
     if(dt == dtmin) then ! If the particle is moving the full time of the outputs, step it accordingly
-        print *, 'other'
         ts=ts+dstep ! step to the next interpolated step between model outputs
         tss=tss+1.d0 ! add 1 iteration on to iteration counter tss
     else ! Otherwise, step it within the outputs

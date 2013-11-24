@@ -1,7 +1,7 @@
 SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
-                & iter,ah,av,do3d,doturb, dostream, T0, &
+                & iter,ah,av,do3d,doturb, dostream, N, T0, &
                 & ut, vt)
 
 !============================================================================
@@ -34,7 +34,8 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !    h              : Depths [imt,jmt]
 !    ntractoc       : Total number of drifters
 !    iter           : number of interpolation time steps to do between model outputs, 
-!                     was called nsteps in run.py
+!                     was called nsteps in run.py. This controls the max time step 
+!                     between drifter steps but not how often the drifter location is sampled.
 !    ah             : horizontal diffusion in m^2/s. Input parameter.
 !                   : For -turb and -diffusion flags
 !    av             : vertical diffusion in m^2/s. Input parameter. For -diffusion flag.
@@ -47,6 +48,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                   : doturb=3 means adding diffusion on an ellipse (anisodiffusion)
 !    dostream       : Either calculate (dostream=1) or don't (dostream=0) the
 !                     Lagrangian stream function variables.
+!    N              : The number of samplings of the drifter tracks will be N+1 total.
 !  Optional inputs:
 !    T0             : (optional) Initial volume transport of drifters (m^3/s)
 !    ut, vt     : (optional) Array aggregating volume transports as drifters move [imt,jmt]
@@ -102,6 +104,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                     has values between 0 and 1
 !    ntrac          : Index in arrays for current drifter in ntracLoop
 !    niter          : Index in arrays for current point in drifter loop in niterLoop
+!    Ni             : Counter for N for when to write to file
 !    ia,ja,ka       : original position in integers
 !    iam            : index for grid index ia-1
 !    ib,jb,kb       : new position in grid space indices
@@ -110,13 +113,14 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                     optional because only used if using turb flag for diffusion
 !                     size [6,2]. The 2nd dimension is for two time steps.
 !                     The 1st dimension is: [u'_ia,u'_ia-1,v'_ja,v'_ja-1,w'_ka,w'_ka-1]
+!    rwn, rwp       : Interpolation constants for when outputting.
 !
 !====================================================================
 
 implicit none
 
 integer,    intent(in)                                  :: ff, imt, jmt, km, ntractot, iter
-integer,    intent(in)                                  :: do3d, doturb, dostream
+integer,    intent(in)                                  :: do3d, doturb, dostream, N
 integer,    intent(in),     dimension(imt,jmt)          :: kmt
 real*8,     intent(in),     dimension(imt-1,jmt)        :: dyu
 real*8,     intent(in),     dimension(imt,jmt-1)        :: dxv
@@ -128,8 +132,8 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
-real*8,     intent(out),    dimension(ntractot,iter)    :: xend, yend, zend, ttend
-integer,    intent(out),    dimension(ntractot,iter)    :: iend, jend, kend
+real*8,     intent(out),    dimension(ntractot,N)    :: xend, yend, zend, ttend
+integer,    intent(out),    dimension(ntractot,N)    :: iend, jend, kend
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
@@ -138,9 +142,9 @@ real*8                                                  :: rr, rg, rb, dsc, &
                                                            dsmin, ds, dse, dsw, dsn, &
                                                            dss, dsd, dsu, &
                                                            x0, y0, z0, x1, y1, z1, &
-                                                           tt, tss, ts
+                                                           tt, tss, ts, rwn, rwp
 integer                                                 :: ntrac, niter, ia, ja, ka, &
-                                                           iam, ib, jb, kb, errCode
+                                                           iam, ib, jb, kb, errCode, Ni
 real*8,     parameter                                   :: UNDEF=1.d20
 
 real*8, dimension(6,2)                                    :: upr
@@ -173,6 +177,7 @@ ntracLoop: do ntrac=1,ntractot
 !     errCode = 0
     ! Counter for sub-interations for each drifter. In the source, this was read in but I am not sure why.
     niter = 0
+    Ni = 1 ! counter for when to write to file
     ! Initialize drifter parameters for this drifter (x0,y0,x0 will be updated from these at the start of the loop)
     x1 = xstart(ntrac)
     y1 = ystart(ntrac)
@@ -592,16 +597,26 @@ ntracLoop: do ntrac=1,ntractot
             end if
         end if
 
-        ! If no errors have caught the loop, and it is at an interpolation step,
-        ! write to array to save drifter location
-        if(dmod(tss,dble(idint(tss)))<0.00001d0) then
-            xend(ntrac,idint(tss)) = x1
-            yend(ntrac,idint(tss)) = y1
-            zend(ntrac,idint(tss)) = z1
-            iend(ntrac,idint(tss)) = ib
-            jend(ntrac,idint(tss)) = jb
-            kend(ntrac,idint(tss)) = kb
-            ttend(ntrac,idint(tss)) = tt
+        ! Check for case in which the model iteration has passed a write time
+       if(tt/tseas >= dble(Ni)/dble(N)) then
+
+            ! Time interpolation weights
+            ! Time at the output time minus the time for x0 over the time window, weight for x0, etc
+            rwn = 1 - (((tseas/dble(N))*dble(Ni) - (tt-dt))/dt)
+            rwp = 1 - rwn ! weight for x1, etc
+
+            ! Interpolate to find values at the desired output time.
+            ! linear combination of previous step and current step to find output
+            ! at the output time between
+            xend(ntrac,Ni) = rwn*x0 + rwp*x1 
+            yend(ntrac,Ni) = rwn*y0 + rwp*y1
+            zend(ntrac,Ni) = rwn*z0 + rwp*z1
+            iend(ntrac,Ni) = rwn*ia + rwp*ib
+            jend(ntrac,Ni) = rwn*ja + rwp*jb
+            kend(ntrac,Ni) = rwn*ka + rwp*kb
+            ttend(ntrac,Ni) = rwn*(tt-dt) + rwp*tt
+
+            Ni = Ni + 1 ! counter for writing
         endif
 
 ! This is the normal stopping routine for the loop. I am going to do a shorter one
