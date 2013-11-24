@@ -43,7 +43,8 @@ real(kind=8),   intent(in)                                      :: rr
 real(kind=8),   intent(in),     dimension(imt-1,jmt,km,2)       :: uflux
 real(kind=8),   intent(in),     dimension(imt,jmt-1,km,2)       :: vflux
 real(kind=8),   intent(out),    dimension(0:km,2)               :: wflux
-real(kind=8)                                                    :: uu,um,rg
+real(kind=8)                                                    :: rg
+! real(kind=8)                                                    :: uu,um,rg
 integer                                                         :: nsm=1,nsp=2,k,n,iam
    
 

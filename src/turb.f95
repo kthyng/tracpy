@@ -53,7 +53,7 @@ real*8,         intent(out),    dimension(6,2)                  :: upr
 integer                                                         :: im,jm,n
 integer                                                         :: nsm=1,nsp=2
 real*8                                                          :: uv(12),rg,localW !,en
-real*4                                                          :: qran(12),amp
+real*8                                                          :: qran(12),amp
 
 !amp=ah/sqrt(dt)
 !amp=ah/dtmin

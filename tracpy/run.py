@@ -10,7 +10,6 @@ from matplotlib import delaunay
 from matplotlib.pyplot import *
 import glob
 from datetime import datetime, timedelta
-from mpl_toolkits.basemap import Basemap
 import time
 from matplotlib.mlab import *
 import inout

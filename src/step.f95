@@ -128,8 +128,8 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
-real*8,     intent(out),    dimension(ntractot,iter)    :: xend, yend, zend
-integer,    intent(out),    dimension(ntractot,iter)    :: iend, jend, kend, ttend
+real*8,     intent(out),    dimension(ntractot,iter)    :: xend, yend, zend, ttend
+integer,    intent(out),    dimension(ntractot,iter)    :: iend, jend, kend
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
@@ -173,14 +173,12 @@ ntracLoop: do ntrac=1,ntractot
 !     errCode = 0
     ! Counter for sub-interations for each drifter. In the source, this was read in but I am not sure why.
     niter = 0
-    ! model dataset time step of trajectory. Initialize to the incoming time step for all drifters.
-    ts = 0 !t1
     ! Initialize drifter parameters for this drifter (x0,y0,x0 will be updated from these at the start of the loop)
     x1 = xstart(ntrac)
     y1 = ystart(ntrac)
     z1 = zstart(ntrac)
-    tt = 0 !+ 0.d0 !time of trajectory in seconds... start at zero for this test case
-    ts = 0.d0 ! model dataset time step of trajectory... start at zero for this test case
+    tt = 0 ! time of trajectory in seconds
+    ts = 0.d0 ! model dataset time step of trajectory
     tss = 0.d0
     ib = istart(ntrac)
     jb = jstart(ntrac)
@@ -215,7 +213,7 @@ ntracLoop: do ntrac=1,ntractot
 
 ! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
 
-        call calc_dxyz(ib,jb,kb,rr,imt,jmt,km,kmt,dzt,dxdy,dxyz)
+        call calc_dxyz(ib,jb,kb,rr,imt,jmt,km,dzt,dxdy,dxyz)
         ! I am putting the error checks directly in the loop for convenience
         !         call errorCheck('dxyzError',errCode,dxyz,flag)
         ! Check the grid box volume

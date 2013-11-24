@@ -1,4 +1,4 @@
-subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av,do3d,doturb)
+subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,dxv,dyu,dzt,h,ah,av,do3d,doturb)
 
 !============================================================================
 ! Add a small displacement to a particle s.t. it is still in the model area.
@@ -7,7 +7,6 @@ subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av
 !    dt             : time step of trajectory iteration in seconds  
 !    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
 !                     horizontal and vertical rho grid [scalar]
-!    kmt            : Number of vertical levels in horizontal space [imt,jmt]
 !    dxv            : Horizontal grid cell walls areas in x direction [imt,jmt-1]
 !    dyu            : Horizontal grid cell walls areas in y direction [imt-1,jmt]
 !    dzt            : Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
@@ -32,7 +31,6 @@ subroutine diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av
   
 implicit none
 
-integer,        intent(in),     dimension(imt,jmt)          :: kmt
 integer,        intent(in)                                  :: do3d, doturb
 real(kind=8),   intent(in)                                  :: ah,av,dt
 real*8,         intent(in),     dimension(imt-1,jmt)        :: dyu
@@ -67,7 +65,7 @@ itno=0
 do while(tryAgain)
     itno=itno+1
     ! find random displacement 
-    call displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu,do3d,doturb)
+    call displacement(xd, yd, zd, ib, jb, dt,imt,jmt,h,ah,av,dxv,dyu,do3d,doturb)
 !     CALL displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,kmt,h,ah,av)
 !     print *,'xd=',xd,' yd=',yd,' zd=',zd
 !     print *,'dzt(ib,jb,:,1)=',dzt(ib,jb,:,1)
@@ -163,11 +161,11 @@ end subroutine diffuse
 ! xd, yd, zd : Variables in which the displacement will be stored
 ! dt: Model time step
 !===============================================================================
-subroutine displacement(xd, yd, zd, ib, jb, kb, dt,imt,jmt,h,ah,av,dxv,dyu,do3d,doturb) 
+subroutine displacement(xd, yd, zd, ib, jb, dt,imt,jmt,h,ah,av,dxv,dyu,do3d,doturb) 
 
 implicit none
   
-integer,        intent(in)                          :: ib,jb,kb,imt,jmt   ! box indices
+integer,        intent(in)                          :: ib,jb,imt,jmt   ! box indices
 integer,        intent(in)                          :: do3d, doturb
 real(kind=8),   intent(in)                          :: dt,ah,av
 real*8,         intent(in), dimension(imt,jmt)      :: h
@@ -175,8 +173,7 @@ real*8,         intent(in), dimension(imt-1,jmt)    :: dyu
 real*8,         intent(in), dimension(imt,jmt-1)    :: dxv
 real(kind=8),   intent(out)                         :: xd, yd, zd
 real(kind=8),   parameter                           :: pi = 3.14159265358979323846
-real(kind=8)                                        :: q1, q2, q3, q4, r, elip, xx, yy, hp, hm
-
+real(kind=8)                                        :: q1, q2, q3, q4, r, elip, xx, yy
 real(kind=8)                                        :: grdx, grdy, grad, theta
 integer                                             :: ip,im,jp,jm
     
