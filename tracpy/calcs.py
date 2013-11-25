@@ -40,6 +40,7 @@ def Var(xp, yp, tp, varin, nc):
     Call this function 
         varp = tracpy.calcs.Var(d.variables['xg'][:], d.variables['yg'][:], d.variables['tp'][:], 'h', nc)
     '''
+    tstart = time.time()
 
     # Time indices for the drifter track points
     units = 'seconds since 1970-01-01'
@@ -100,6 +101,7 @@ def Var(xp, yp, tp, varin, nc):
                                     xp.flatten()]), \
                                     order=1, \
                                     mode='nearest').reshape(xp.shape)
+    print 'time for finding ' + var + ': ', time.time()-tstart
 
     return varp
 
@@ -302,7 +304,7 @@ def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1, squared=True):
         nnans = nnans + ~np.isnan(dist)
     D2 = D2.squeeze()/nnans #len(pairs) # average over all pairs
 
-    print 'time for finding D: ', time.time()-tstart
+    print 'time for finding numerical D: ', time.time()-tstart
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -354,7 +356,7 @@ def abs_dispersion(lonp, latp, squared=True):
             D2 = np.nansum(np.vstack([D2, dist]), axis=0)
         nnans = nnans + ~np.isnan(dist) # save these for averaging
     D2 = D2.squeeze()/nnans # average over all pairs
-    print 'time for finding D: ', time.time()-tstart
+    print 'time for finding a: ', time.time()-tstart
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -407,7 +409,7 @@ def path(lonp, latp, squared=True):
             D2 = np.nansum(np.vstack([D2, dist]), axis=0)
         nnans = nnans + ~np.isnan(dist) # save these for averaging
     D2 = D2.squeeze()/nnans # average over all pairs
-    print 'time for finding D: ', time.time()-tstart
+    print 'time for finding s: ', time.time()-tstart
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
