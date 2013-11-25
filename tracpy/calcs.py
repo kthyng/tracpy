@@ -287,14 +287,8 @@ def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1, squared=True):
 
     print 'time for fixing timing: ', time.time()-tstart
 
-
-
-
     # Calculate relative dispersion
-
     tstart = time.time()
-
-
     # We know that drifters from the two sets have a one to one correspondence
     D2 = np.ones(lonp.shape[1])*np.nan
     nnans = np.zeros(lonp.shape[1]) # to collect number of non-nans over all drifters for a time
