@@ -249,9 +249,9 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     pn = gridfile.variables['pn'][:]
     h = gridfile.variables['h'][:]
     # angle = gridfile.variables['angle'][:]
-
+    pdb.set_trace()
     # Vertical grid metrics
-    if 'http' in loc or len(loc) == 2 or 's_w' in gridfile.variables:
+    if 'http' in loc or 's_w' in gridfile.variables:
         sc_r = gridfile.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = gridfile.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = gridfile.variables['hc'][:]
