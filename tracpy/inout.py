@@ -249,7 +249,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     pn = gridfile.variables['pn'][:]
     h = gridfile.variables['h'][:]
     # angle = gridfile.variables['angle'][:]
-    pdb.set_trace()
+    # pdb.set_trace()
     # Vertical grid metrics
     if 'http' in loc or 's_w' in gridfile.variables:
         sc_r = gridfile.variables['s_w'][:] # sigma coords, 31 layers
