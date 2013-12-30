@@ -3,6 +3,7 @@ import netCDF4 as netCDF
 import tracpy
 import tracpy.plotting
 import datetime
+import matplotlib.pyplot as plt
 
 units = 'seconds since 1970-01-01'
 
@@ -51,7 +52,7 @@ do3d = 0
 
 ## Choose method for vertical placement of drifters
 z0 = 's' #'z' #'salt' #'s' 
-zpar = 19 #-10 #grid['km']-1 # 30 #grid['km']-1
+zpar = 2 #-10 #grid['km']-1 # 30 #grid['km']-1
 
 # simulation name, used for saving results into netcdf file
 name = 'rectangle'
@@ -59,11 +60,12 @@ name = 'rectangle'
 lonp, latp, zp, t, grd = tracpy.run.run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, 
                                             z0, zpar, do3d, doturb, name, grid=grd, dostream=0, N=N)
 
-figure(figsize=(14,10))
-plot(grd['lonr'], grd['latr'], 'lightgrey')
-plot(grd['lonr'].T,grd['latr'].T,'lightgrey')
-plot(lonp.T,latp.T,'k', linewidth=5)
-plot(lonp[:,0], latp[:,0], 'go', markersize=10)
-plot(lonp[:,-1], latp[:,-1], 'ro', markersize=10)
-xlim(grd['lonr'].min(), grd['lonr'].max()) 
-ylim(grd['latr'].min(), grd['latr'].max())
+plt.figure(figsize=(14,10))
+plt.plot(grd['lonr'], grd['latr'], 'lightgrey')
+plt.plot(grd['lonr'].T,grd['latr'].T,'lightgrey')
+plt.plot(lonp.T,latp.T,'k', linewidth=5)
+plt.plot(lonp[:,0], latp[:,0], 'go', markersize=10)
+plt.plot(lonp[:,-1], latp[:,-1], 'ro', markersize=10)
+plt.xlim(grd['lonr'].min(), grd['lonr'].max()) 
+plt.ylim(grd['latr'].min(), grd['latr'].max())
+plt.show()
