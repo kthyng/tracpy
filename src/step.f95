@@ -510,7 +510,7 @@ ntracLoop: do ntrac=1,ntractot
         ! === position to the new trajectory          ===
 
         if(doturb==2 .or. doturb==3) then
-            call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km,kmt,dxv,dyu,dzt,h,ah,av,do3d,doturb)
+            call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km, dxv,dyu,dzt,h,ah,av,do3d,doturb)
         endif
         !         nout=nout+1 ! number of trajectories that have exited the space and time domain
 
