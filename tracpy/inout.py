@@ -145,7 +145,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     # pdb.set_trace()
     return nc, tinds
 
-def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
+def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
             urcrnrlon=-87.5, urcrnrlat=31.0, res='i'):
     '''
     readgrid(loc)
@@ -159,8 +159,9 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     right away after reading in.
 
     Input:
-     loc            File location
-     nc             (optional) NetCDF object for relevant files
+     grid_source    File name (with extension) where grid information is stored
+     vert_source    (optional) File name (with extension) where vertical grid information
+                    is stored, if not in grid_loc.
      also optional basemap box parameters. Default is for full shelf model.
 
 
@@ -225,13 +226,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
     # pdb.set_trace()
-    # grid is included in nc file if using thredds or forecast output
-    if 'http' in loc:
-        gridfile = netCDF.Dataset(loc)
-    elif len(loc) == 2:
-        gridfile = netCDF.Dataset(loc[1])
-    else:
-        gridfile = netCDF.Dataset(loc + 'grid.nc')
+    gridfile = netCDF.Dataset(grid_source)
     lonu = gridfile.variables['lon_u'][:]
     latu = gridfile.variables['lat_u'][:]
     xu, yu = basemap(lonu,latu)
@@ -251,7 +246,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # angle = gridfile.variables['angle'][:]
     # pdb.set_trace()
     # Vertical grid metrics
-    if 'http' in loc or 's_w' in gridfile.variables:
+    if 's_w' in gridfile.variables: # then given grid file contains vertical grid info
         sc_r = gridfile.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = gridfile.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = gridfile.variables['hc'][:]
@@ -259,7 +254,9 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         theta_b = gridfile.variables['theta_b'][:]
         Vtransform = gridfile.variables['Vtransform'][0]
         Vstretching = gridfile.variables['Vstretching'][0]
-    elif nc is not None: # for if running off local grid/nc files
+    else:
+    # elif nc is not None: # for if running off local grid/nc files
+        nc = netCDF.Dataset(vert_source)
         sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = nc.variables['hc'][:]
@@ -302,7 +299,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     imt = h.shape[0] # 671
     jmt = h.shape[1] # 191
     # km = sc_r.shape[0] # 31
-    if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
+    if 's_w' in gridfile.variables:
         km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
     # Index grid, for interpolation between real and grid space
@@ -344,7 +341,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()
-    if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
+    if 's_w' in gridfile.variables:
         mask2 = mask.copy()
         kmt = np.ones((imt,jmt),order='f')*km
         ind = (mask2==1)
@@ -376,7 +373,7 @@ def readgrid(loc, nc=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
     # Fill in grid structure
-    if ('http' in loc) or (nc is not None) or len(loc) == 2 or 's_w' in gridfile.variables:
+    if 's_w' in gridfile.variables:
         grid = {'imt':imt,'jmt':jmt,'km':km,#'angle':angle, 
             'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
             'mask':mask,'kmt':kmt,'dzt0':dzt0,
