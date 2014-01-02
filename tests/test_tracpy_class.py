@@ -30,7 +30,19 @@ def test_initWithGridSource():
 
 def test_readgrid():
 	'''
-	Test for initializing grid.
+	Test for initializing grid without vertical grid information.
+	'''
+
+	tp = Tracpy(os.path.join(here, 'input', 'grid.nc'))
+	tp._readgrid()
+
+	assert True
+
+	assert tp.grid
+
+def test_readgridWithVertical():
+	'''
+	Test for initializing grid and saving vertical grid information.
 	'''
 
 	tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'),
@@ -40,3 +52,5 @@ def test_readgrid():
 	assert True
 
 	assert tp.grid
+
+	assert tp.grid['Vtransform'] # make sure vertical info is in there
