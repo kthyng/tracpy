@@ -147,7 +147,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     # pdb.set_trace()
     return nc, tinds
 
-def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
+def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
             urcrnrlon=-87.5, urcrnrlat=31.0, res='i'):
     '''
     readgrid(loc)
@@ -161,8 +161,8 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     right away after reading in.
 
     Input:
-     grid_source    File name (with extension) where grid information is stored
-     vert_source    (optional) File name (with extension) where vertical grid information
+     grid_filename    File name (with extension) where grid information is stored
+     vert_filename    (optional) File name (with extension) where vertical grid information
                     is stored, if not in grid_loc. Can also skip this if don't need 
                     vertical grid info.
      also optional basemap box parameters. Default is for full shelf model.
@@ -229,7 +229,7 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
     # pdb.set_trace()
-    gridfile = netCDF.Dataset(grid_source)
+    gridfile = netCDF.Dataset(grid_filename)
     lonu = gridfile.variables['lon_u'][:]
     latu = gridfile.variables['lat_u'][:]
     xu, yu = basemap(lonu,latu)
@@ -258,9 +258,9 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         Vtransform = gridfile.variables['Vtransform'][0]
         Vstretching = gridfile.variables['Vstretching'][0]
     # Still want vertical grid metrics, but are in separate file
-    elif vert_source is not None:
+    elif vert_filename is not None:
     # elif nc is not None: # for if running off local grid/nc files
-        nc = netCDF.Dataset(vert_source)
+        nc = netCDF.Dataset(vert_filename)
         sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = nc.variables['hc'][:]
