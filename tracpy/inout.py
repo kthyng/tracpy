@@ -51,11 +51,13 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # pdb.set_trace()
-    if 'http' in loc or (len(loc) == 2 and '.nc' in loc[0]): # use just input file
-        if len(loc) == 2:
-            nc = netCDF.Dataset(loc[0])
-        else:
-            nc = netCDF.Dataset(loc)
+    if type(loc) == str:
+        nc = netCDF.Dataset(loc)
+    # if 'http' in loc or (len(loc) == 2 and '.nc' in loc[0]): # use just input file
+        # if len(loc) == 2:
+        #     nc = netCDF.Dataset(loc[0])
+        # else:
+        #     nc = netCDF.Dataset(loc)
         if ff == 1: #forward in time
             dates = nc.variables['ocean_time'][:] # don't stride here, need all times to make index determinations
             ilow = date >= dates
@@ -161,7 +163,8 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     Input:
      grid_source    File name (with extension) where grid information is stored
      vert_source    (optional) File name (with extension) where vertical grid information
-                    is stored, if not in grid_loc.
+                    is stored, if not in grid_loc. Can also skip this if don't need 
+                    vertical grid info.
      also optional basemap box parameters. Default is for full shelf model.
 
 
@@ -254,7 +257,8 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         theta_b = gridfile.variables['theta_b'][:]
         Vtransform = gridfile.variables['Vtransform'][0]
         Vstretching = gridfile.variables['Vstretching'][0]
-    else:
+    # Still want vertical grid metrics, but are in separate file
+    elif vert_source is not None:
     # elif nc is not None: # for if running off local grid/nc files
         nc = netCDF.Dataset(vert_source)
         sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
@@ -299,7 +303,7 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     imt = h.shape[0] # 671
     jmt = h.shape[1] # 191
     # km = sc_r.shape[0] # 31
-    if 's_w' in gridfile.variables:
+    if 'sc_r' in dir():
         km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
     # Index grid, for interpolation between real and grid space
@@ -341,7 +345,7 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()
-    if 's_w' in gridfile.variables:
+    if 'sc_r' in dir():
         mask2 = mask.copy()
         kmt = np.ones((imt,jmt),order='f')*km
         ind = (mask2==1)
@@ -373,7 +377,7 @@ def readgrid(grid_source, vert_source=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
     # Fill in grid structure
-    if 's_w' in gridfile.variables:
+    if 'sc_r' in dir():
         grid = {'imt':imt,'jmt':jmt,'km':km,#'angle':angle, 
             'dxv':dxv,'dyu':dyu,'dxdy':dxdy, 
             'mask':mask,'kmt':kmt,'dzt0':dzt0,
