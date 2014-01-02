@@ -16,7 +16,7 @@ class Tracpy(object):
     TracPy class.
     '''
 
-    def __init__(self, loc_source, grid_source=None):
+    def __init__(self, currents_filename, grid_filename=None):
         '''
         Initialize class.
 
@@ -24,8 +24,8 @@ class Tracpy(object):
         :param grid_source=None: NetCDF grid file name or OpenDAP url.
         '''
 
-        self.loc_source = loc_source
-        self.grid_source = grid_source
+        self.currents_filename = currents_filename
+        self.grid_filename = grid_filename
         self.grid = None
 
     def _readgrid(self):
@@ -38,10 +38,10 @@ class Tracpy(object):
 
         # if vertical grid information is not included in the grid file, or if all grid info
         # is not in output file, use two
-        if self.grid_source is not None:
-            self.grid = tracpy.inout.readgrid(self.grid_source, vert_source=self.loc_source)
+        if self.grid_filename is not None:
+            self.grid = tracpy.inout.readgrid(self.grid_filename, vert_filename=self.currents_filename)
         else:
-            self.grid = tracpy.inout.readgrid(self.loc_source)
+            self.grid = tracpy.inout.readgrid(self.currents_filename)
 
     def step():
         '''
