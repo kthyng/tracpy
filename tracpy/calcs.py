@@ -415,3 +415,38 @@ def path(lonp, latp, squared=True):
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
     # pdb.set_trace()
     return D2, nnans
+
+def moment1(xp):
+    '''
+    Calculate the 1st moment in a single direction of a set of tracks. in meters.
+
+    Inputs:
+        xp          x or y locations of the drifter tracks [ndrifter,ntime]
+
+    Outputs:
+        D2              Relative dispersion (squared or not) averaged over drifter 
+                        pairs [ntime].
+        nnans           Number of non-nan time steps in calculations for averaging properly.
+                        Otherwise drifters that have exited the domain could affect calculations.
+
+    To combine with other calculations of relative dispersion, first multiply by nnans, then
+    combine with other relative dispersion calculations, then divide by the total number
+    of nnans.
+
+    Example call:
+    tracpy.calcs.moment1(xp)
+    '''
+
+    # Find pairs of drifters based on initial position
+
+    tstart = time.time()
+    dists = (xp.T-xp[:,0]).T
+    nnans = np.sum(~np.isnan(dists), axis=0)
+    M = np.nansum(dists, axis=0)/nnans
+
+    print 'time for finding D: ', time.time()-tstart
+
+    # # Distances squared, separately; times; number of non-nans for this set
+    # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
+    # pdb.set_trace()
+    return M, nnans
