@@ -5,7 +5,8 @@ Some basic tests of tracpy, using the simple rectangle input
 """
 
 import tracpy
-
+import tracpy.calcs
+import tracpy.tracpy_class
 import os
 import time
 import datetime
@@ -20,18 +21,14 @@ num_layers = 3
 
 def test_run_2d():
     """
-    can we initialize tracpy
+    can we initialize and run tracpy (using rectangle example). Compare final location of drifters
+    with known analytic answer.
     """
 
     name = 'test_run_2d'
-
-    grid_nc = netCDF4.Dataset(currents_filename)
-    
-    loc = [currents_filename, grid_filename]
     
     start = time.time()
-    grd = tracpy.inout.readgrid(loc,
-                                nc=grid_nc)
+    grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
     print "building grid took:", time.time() - start
 
     # Start date in date time formatting
@@ -67,7 +64,7 @@ def test_run_2d():
     z0 = 's' #'z' #'salt' #'s' 
     zpar = num_layers-1 # top layer
 
-    lonp, latp, zp, t, grd = tracpy.run.run(loc,
+    lonp, latp, zp, t, grd = tracpy.run.run(currents_filename,
                                             nsteps,
                                             ndays,
                                             ff,
@@ -85,14 +82,17 @@ def test_run_2d():
                                             grid=grd,
                                             dostream=0,
                                             N=N)
-    print lonp
-    print latp
 
+    # distances traveled for 0th and 1st drifter
+    dist0 = tracpy.calcs.get_dist(lonp[0,0], lonp[0,-1], latp[0,0], latp[0,-1])
+    dist1 = tracpy.calcs.get_dist(lonp[1,0], lonp[1,-1], latp[1,0], latp[1,-1])
 
-    assert False
+    # It is difficult to calculate the position the drifters should arrive at since
+    # it is in lat/lon coords. So, just save the position from a current run and assume
+    # it is correct for now.
 
-
-
+    assert int(dist0*1000)==12973
+    assert int(dist1*1000)==12922
 
 
 
