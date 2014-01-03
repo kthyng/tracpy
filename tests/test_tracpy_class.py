@@ -24,7 +24,7 @@ def test_initWithGridSource():
 	Make sure we can initialize with a grid source location
 	'''
 	
-	tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'), grid_source=os.path.join(here, 'input', 'grid.nc'))
+	tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'), grid_filename=os.path.join(here, 'input', 'grid.nc'))
 
 	assert True
 
