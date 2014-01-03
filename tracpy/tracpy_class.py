@@ -16,17 +16,56 @@ class Tracpy(object):
     TracPy class.
     '''
 
-    def __init__(self, currents_filename, grid_filename=None):
+    def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
+                ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
+                time_units='seconds since 1970-01-01', zparuv=None, tseas_use=None):
         '''
         Initialize class.
 
         :param currents_filename: NetCDF file name (with extension) or OpenDAP url.
         :param grid_filename=None: NetCDF grid file name or OpenDAP url.
+        :param nsteps: number of linearly interpolated steps between model outputs.
+        :param ndays: number of run days
+        :param ff: 1 is forward in time, -1 is backward
+        :param tseas: number of seconds between model outputs
+        :param ah: horizontal diffusivity, in m^2/s
+        :param av: vertical diffusivity, in m^2/s
+        :param z0: string flag in 2D case or array of initial z locations in 3D case
+        :param zpar: isoslice value to in 2D case or string flag in 3D case
+        :param do3d: 1 for 3D or 0 for 2D
+        :param doturb: 0 for no added diffusion, 1 for diffusion vs velocity fluctuation, 2/3 for diffusion via random walk (3 for aligned with isobaths)
+        :param name: name for output
+        :param dostream: 1 to calculate transport for lagrangian stream functions, 0 to not
+        :param N: number of steps between model outputs for outputting drifter locations
+        :param time_units: Reference for time, for changing between numerical times and datetime format
+        :param zparuv=None: Defaults to zpar. Use this if the k index for the model output fields (e.g, u, v) is different from the k index in the grid
+        :param tseas_use=None: Defaults to tseas. Desired time between outputs in seconds, as opposed to the actual time between outputs (tseas)
         '''
 
         self.currents_filename = currents_filename
         self.grid_filename = grid_filename
         self.grid = None
+
+        # Initial parameters
+        self.nsteps = nsteps
+        self.ndays = ndays
+        self.ff = ff
+        self.tseas = tseas
+        self.ah = ah
+        self.av = av
+        self.z0 = z0
+        self.zpar = zpar
+        self.do3d = do3d
+        self.doturb = doturb
+        self.name = name
+        self.dostream = dostream
+        self.N = N
+        self.time_units = time_units
+
+        if zparuv is None:
+            self.zparuv = zpar
+        if tseas_use is None:
+            self.tseas_use = tseas
 
     def _readgrid(self):
         '''

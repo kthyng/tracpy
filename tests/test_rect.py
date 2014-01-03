@@ -29,11 +29,6 @@ def test_run_2d():
     
     start = time.time()
 
-    # Read in grid using Tracpy class
-    tp = Tracpy(currents_filename, grid_filename)
-    tp._readgrid()
-    grd = tp.grid
-
     # grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
 
     print "building grid took:", time.time() - start
@@ -70,6 +65,12 @@ def test_run_2d():
 
     z0 = 's' #'z' #'salt' #'s' 
     zpar = num_layers-1 # top layer
+
+    # Initialize Tracpy class
+    tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas, ndays=ndays, nsteps=nsteps,
+                N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units)
+    tp._readgrid()
+    grd = tp.grid
 
     lonp, latp, zp, t, grd = tracpy.run.run(currents_filename,
                                             nsteps,
