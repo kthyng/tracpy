@@ -20,8 +20,8 @@ class Tracpy(object):
         '''
         Initialize class.
 
-        :param loc_source: NetCDF file name (with extension) or OpenDAP url.
-        :param grid_source=None: NetCDF grid file name or OpenDAP url.
+        :param currents_filename: NetCDF file name (with extension) or OpenDAP url.
+        :param grid_filename=None: NetCDF grid file name or OpenDAP url.
         '''
 
         self.currents_filename = currents_filename

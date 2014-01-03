@@ -6,7 +6,7 @@ Some basic tests of tracpy, using the simple rectangle input
 
 import tracpy
 import tracpy.calcs
-import tracpy.tracpy_class
+from tracpy.tracpy_class import Tracpy
 import os
 import time
 import datetime
@@ -28,7 +28,14 @@ def test_run_2d():
     name = 'test_run_2d'
     
     start = time.time()
-    grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
+
+    # Read in grid using Tracpy class
+    tp = Tracpy(currents_filename, grid_filename)
+    tp._readgrid()
+    grd = tp.grid
+
+    # grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
+
     print "building grid took:", time.time() - start
 
     # Start date in date time formatting
@@ -55,7 +62,7 @@ def test_run_2d():
     # turbulence/diffusion flag
     doturb = 0
 
-    # two particles
+    # two particles (starting positions)
     lon0 = [-123., -123.]
     lat0 = [48.55, 48.75]
 
