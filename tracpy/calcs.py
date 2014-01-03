@@ -424,7 +424,7 @@ def moment1(xp):
         xp          x or y locations of the drifter tracks [ndrifter,ntime]
 
     Outputs:
-        D2              Relative dispersion (squared or not) averaged over drifter 
+        M               Relative dispersion (squared or not) averaged over drifter 
                         pairs [ntime].
         nnans           Number of non-nan time steps in calculations for averaging properly.
                         Otherwise drifters that have exited the domain could affect calculations.
@@ -444,9 +444,45 @@ def moment1(xp):
     nnans = np.sum(~np.isnan(dists), axis=0)
     M = np.nansum(dists, axis=0)/nnans
 
-    print 'time for finding D: ', time.time()-tstart
+    print 'time for finding M: ', time.time()-tstart
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
     # pdb.set_trace()
     return M, nnans
+
+def moment2(xp, M1):
+    '''
+    Calculate the 2nd moment in a single direction of a set of tracks. in meters.
+
+    Inputs:
+        xp          x or y locations of the drifter tracks [ndrifter,ntime]
+        M1          First moment of tracks in a single direction
+
+    Outputs:
+        M2              Relative dispersion (squared or not) averaged over drifter 
+                        pairs [ntime].
+        nnans           Number of non-nan time steps in calculations for averaging properly.
+                        Otherwise drifters that have exited the domain could affect calculations.
+
+    To combine with other calculations of relative dispersion, first multiply by nnans, then
+    combine with other relative dispersion calculations, then divide by the total number
+    of nnans.
+
+    Example call:
+    tracpy.calcs.moment2(xp, M1x)
+    '''
+
+    # Find pairs of drifters based on initial position
+
+    tstart = time.time()
+    dists = ((xp.T-xp[:,0]).T - M1)**2
+    nnans = np.sum(~np.isnan(dists), axis=0) - 1
+    M2 = np.nansum(dists, axis=0)/nnans
+
+    print 'time for finding M: ', time.time()-tstart
+
+    # # Distances squared, separately; times; number of non-nans for this set
+    # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
+    # pdb.set_trace()
+    return M2, nnans
