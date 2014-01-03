@@ -10,6 +10,7 @@ THIS CLASS
 '''
 
 import tracpy
+import numpy as np
 
 class Tracpy(object):
     '''
@@ -66,6 +67,20 @@ class Tracpy(object):
             self.zparuv = zpar
         if tseas_use is None:
             self.tseas_use = tseas
+
+        # Calculate parameters that derive from other parameters
+
+        # Number of model outputs to use (based on tseas, actual amount of model output)
+        # This should not be updated with tstride since it represents the full amount of
+        # indices in the original model output. tstride will be used separately to account
+        # for the difference.
+        # Adding one index so that all necessary indices are captured by this number.
+        # Then the run loop uses only the indices determined by tout instead of needing
+        # an extra one beyond
+        self.tout = np.int((self.ndays*(24*3600.))/self.tseas + 1)
+
+        # Calculate time outputs stride. Will be 1 if want to use all model output.
+        self.tstride = int(self.tseas_use/self.tseas) # will round down
 
     def _readgrid(self):
         '''
