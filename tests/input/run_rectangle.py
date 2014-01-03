@@ -9,8 +9,8 @@ import pdb
 units = 'seconds since 1970-01-01'
 
 # Location of example model output file and grid
-grid_source = 'grid.nc'
-loc_source = 'ocean_his_0001.nc'
+grid_filename = 'grid.nc'
+currents_filename = 'ocean_his_0001.nc'
 
 # Start date in date time formatting
 date = datetime.datetime(2013, 12, 19, 0)
@@ -37,7 +37,7 @@ av = 0. # m^2/s
 doturb = 0
 
 # nc = netCDF.Dataset()
-grd = tracpy.inout.readgrid(grid_source, vert_source=loc_source)
+grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
 # pdb.set_trace()
 
 lon0 = [-123.,-123.]
@@ -60,7 +60,7 @@ zpar = 2 #-10 #grid['km']-1 # 30 #grid['km']-1
 # simulation name, used for saving results into netcdf file
 name = 'rectangle'
 
-lonp, latp, zp, t, grd = tracpy.run.run(loc_source, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, 
+lonp, latp, zp, t, grd = tracpy.run.run(currents_filename, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, 
                                             z0, zpar, do3d, doturb, name, grid=grd, dostream=0, N=N)
 
 plt.figure(figsize=(14,10))
