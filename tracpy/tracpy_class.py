@@ -25,20 +25,20 @@ class Tracpy(object):
 
         :param currents_filename: NetCDF file name (with extension) or OpenDAP url.
         :param grid_filename=None: NetCDF grid file name or OpenDAP url.
-        :param nsteps: number of linearly interpolated steps between model outputs.
-        :param ndays: number of run days
-        :param ff: 1 is forward in time, -1 is backward
-        :param tseas: number of seconds between model outputs
-        :param ah: horizontal diffusivity, in m^2/s
-        :param av: vertical diffusivity, in m^2/s
-        :param z0: string flag in 2D case or array of initial z locations in 3D case
-        :param zpar: isoslice value to in 2D case or string flag in 3D case
-        :param do3d: 1 for 3D or 0 for 2D
-        :param doturb: 0 for no added diffusion, 1 for diffusion vs velocity fluctuation, 2/3 for diffusion via random walk (3 for aligned with isobaths)
-        :param name: name for output
-        :param dostream: 1 to calculate transport for lagrangian stream functions, 0 to not
-        :param N: number of steps between model outputs for outputting drifter locations
-        :param time_units: Reference for time, for changing between numerical times and datetime format
+        :param nsteps=1: number of linearly interpolated steps between model outputs.
+        :param ndays=1: number of run days
+        :param ff=1: 1 is forward in time, -1 is backward
+        :param tseas=3600.: number of seconds between model outputs
+        :param ah=0.: horizontal diffusivity, in m^2/s
+        :param av=0.: vertical diffusivity, in m^2/s
+        :param z0='s': string flag in 2D case or array of initial z locations in 3D case
+        :param zpar=1: isoslice value to in 2D case or string flag in 3D case
+        :param do3d=0: 1 for 3D or 0 for 2D
+        :param doturb=0: 0 for no added diffusion, 1 for diffusion vs velocity fluctuation, 2/3 for diffusion via random walk (3 for aligned with isobaths)
+        :param name='test': name for output
+        :param dostream=0: 1 to calculate transport for lagrangian stream functions, 0 to not
+        :param N=None: number of steps between model outputs for outputting drifter locations. Defaults to output at nsteps.
+        :param time_units='seconds since 1970-01-01': Reference for time, for changing between numerical times and datetime format
         :param zparuv=None: Defaults to zpar. Use this if the k index for the model output fields (e.g, u, v) is different from the k index in the grid
         :param tseas_use=None: Defaults to tseas. Desired time between outputs in seconds, as opposed to the actual time between outputs (tseas)
         '''
