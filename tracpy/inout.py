@@ -665,7 +665,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
 
     Inputs:
         xin,yin,zpin        Drifter track positions [drifter x time]
-        tpin                Time vector for drifters [time]
+        tpin                Time vector for drifters [drifter x time]
         name                Name of simulation, to use for saving file
         savell              Whether saving in latlon (True) or grid coords (False). Default True.
     """
@@ -756,7 +756,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     else:
         del(zpin)
 
-    tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
+    tp = rootgrp.createVariable('tp','f8',('ntrac','nt')) # 64-bit floating point
     tp.long_name = 'time at drifter locations'
     tp.units = 'seconds since 1970-01-01 00:00:00'
     tp[:] = tpin

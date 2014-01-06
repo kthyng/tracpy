@@ -102,5 +102,6 @@ def test_run_2d():
     assert int(dist0*1000)==12973
     assert int(dist1*1000)==12922
 
+    print 'hi'
 
 
