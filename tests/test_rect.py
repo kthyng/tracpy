@@ -10,7 +10,9 @@ from tracpy.tracpy_class import Tracpy
 import os
 import time
 import datetime
+import numpy as np
 import netCDF4
+import pyproj
 
 # some simple example data
 currents_filename = os.path.join('input', 'ocean_his_0001.nc')
@@ -91,15 +93,21 @@ def test_run_2d():
     #                                         dostream=0,
     #                                         N=N)
 
-    # distances traveled for 0th and 1st drifter
-    dist0 = tracpy.calcs.get_dist(lonp[0,0], lonp[0,-1], latp[0,0], latp[0,-1])
-    dist1 = tracpy.calcs.get_dist(lonp[1,0], lonp[1,-1], latp[1,0], latp[1,-1])
+    ## check the results:
+    print lonp.shape
+    print lonp
+    print latp
+    
 
-    # It is difficult to calculate the position the drifters should arrive at since
-    # it is in lat/lon coords. So, just save the position from a current run and assume
-    # it is correct for now.
+    #eastward current, latitude should not change:
+    assert np.allclose(lat0, latp.T)
 
-    assert int(dist0*1000)==12973
-    assert int(dist1*1000)==12922
+    # current velocity -- 0.1 m/s
+    # position 
+    distance = ndays * 24 * 3600 * 0.1
 
+    # better to use pyproj to compute the geodesic
+    geod = pyproj.Geod(ellps = 'WGS84')
+    end = geod.fwd(lon0, lat0, (90, 90), (distance,distance), radians=False)
 
+    assert np.allclose( lonp[:,-1], end[0] )
