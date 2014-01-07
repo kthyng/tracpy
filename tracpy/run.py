@@ -228,16 +228,67 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     # pdb.set_trace()
     xr3 = tp.grid['xr'].reshape((tp.grid['xr'].shape[0],tp.grid['xr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
     yr3 = tp.grid['yr'].reshape((tp.grid['yr'].shape[0],tp.grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
+
+    # # Calculate subloop steps using input parameter dtFromTracmass. 
+    # subloopsteps = 
+
     # Loop through model outputs. tinds is in proper order for moving forward
     # or backward in time, I think.
     for j,tind in enumerate(tinds[:-1]):
 
-        # tic_read[j] = time.time()
-
         print j
 
-        ind = (flag[:] == 0) # indices where the drifters are still inside the domain
+        # dtstep = 0.
+        # while dtstep <= dtFromTracmass:
 
+            # # interpolation constant. =1 if dtFromTracmass==tseas
+            # r = dtFromTracmass/tseas
+
+        #     ind = (flag[:] == 0) # indices where the drifters are still inside the domain
+        #     xstart = xend[:,j*tp.N+i]
+        #     ystart = yend[:,j*tp.N+i]
+        #     zstart = zend[:,j*tp.N+i]
+
+
+
+        #     dtstep = dtstep + dtFromTracmass
+
+
+
+        # # # Loop over substeps between model outputs. This is for use with GNOME. Substeps will not necessarily divide
+        # # # evenly into model output time, so there is a special statement for that. Also, if one doesn't need to 
+        # # # access steps individually, such as in regular TracPy use, then this loop should collapse.
+        # # for i in loopsteps:
+
+        # # tic_read[j] = time.time()
+
+        #     # mask out drifters that have exited the domain
+        #     xstart = np.ma.masked_where(flag[:]==1,xstart)
+        #     ystart = np.ma.masked_where(flag[:]==1,ystart)
+        #     zstart = np.ma.masked_where(flag[:]==1,zstart)
+
+        #     if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
+        #         break
+
+        #     # Do stepping in Tracpy class
+        #     if tp.dostream:
+        #         ufnew, vfnew, dztnew, zrtnew, zwtnew, xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             flag[ind],\
+        #             ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(tinds[j+1], nc, j, ttend[ind,j*tp.N], ufnew, vfnew, dztnew, zrtnew, zwtnew, 
+        #                 xstart, ystart, zstart, T0[ind], U, V)
+        #     else:
+        #         ufnew, vfnew, dztnew, zrtnew, zwtnew, xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+        #             flag[ind],\
+        #             ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(tinds[j+1], nc, j, ttend[ind,j*tp.N], ufnew, vfnew, dztnew, zrtnew, zwtnew, 
+        #                 xstart, ystart, zstart)
+
+        ind = (flag[:] == 0) # indices where the drifters are still inside the domain
         xstart = xend[:,j*tp.N]
         ystart = yend[:,j*tp.N]
         zstart = zend[:,j*tp.N]

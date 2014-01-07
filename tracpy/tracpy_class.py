@@ -22,7 +22,7 @@ class Tracpy(object):
 
     def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
-                time_units='seconds since 1970-01-01', zparuv=None, tseas_use=None):
+                time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None):
         '''
         Initialize class.
 
@@ -40,8 +40,12 @@ class Tracpy(object):
         :param doturb=0: 0 for no added diffusion, 1 for diffusion vs velocity fluctuation, 2/3 for diffusion via random walk (3 for aligned with isobaths)
         :param name='test': name for output
         :param dostream=0: 1 to calculate transport for lagrangian stream functions, 0 to not
-        :param N=None: number of steps between model outputs for outputting drifter locations. Defaults to output at nsteps.
+        :param N=None: number of steps between model outputs for outputting drifter locations. Defaults to output at nsteps. 
+            If dtFromTracmass is being used, N is set by that.
         :param time_units='seconds since 1970-01-01': Reference for time, for changing between numerical times and datetime format
+        :param dtFromTracmass=None: Time period for exiting from TRACMASS. If uninitialized, this is set to tseas 
+            so that it only exits TRACMASS when it has gone through a full model output. If initialized by the user, 
+            TRACMASS will run for 1 time step of length dtFromTracmass before exiting to the loop.
         :param zparuv=None: Defaults to zpar. Use this if the k index for the model output fields (e.g, u, v) is different from the k index in the grid
         :param tseas_use=None: Defaults to tseas. Desired time between outputs in seconds, as opposed to the actual time between outputs (tseas)
         '''
@@ -66,6 +70,23 @@ class Tracpy(object):
         self.N = N
         self.time_units = time_units
 
+        # if loopsteps is None and nsteps is not None:
+        #     # Use nsteps in TRACMASS and have inner loop collapse
+        #     self.loopsteps = 1
+        # elif loopsteps is not None and nsteps is None:
+        #     # This means to use the inner loop (with loopsteps) and nsteps=1 to just do 1 step per call to TRACMASS
+        #     self.nsteps = 1
+        # elif loopsteps is None and nsteps is None:
+        #     print 'need to input a value for nsteps or loopsteps.'
+        #     break
+
+        if dtFromTracmass is None:
+            self.dtFromTracmass = tseas
+        else:
+            # If using dtFromTracmass, N=1, for steps between tracmass exits
+            self.N = 1
+            # # If using dtFromTracmass, N is set according to that.
+            # self.N = (self.ndays*3600*24.)/self.tseas # this is the total number of steps
         if zparuv is None:
             self.zparuv = zpar
         if tseas_use is None:
@@ -104,7 +125,7 @@ class Tracpy(object):
                 xstart, ystart, zstart, T0=None, U=None, V=None):
         '''
         Take some number of steps between a start and end time.
-        FIGURE OUT HOW TO KEEP TRACK OF TIME
+        FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES
 
         :param tind: Time index to use for stepping
         FILL IN
