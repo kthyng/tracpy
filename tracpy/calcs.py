@@ -12,6 +12,7 @@ from matplotlib.mlab import find
 import netCDF4 as netCDF
 from scipy import ndimage
 import time
+import pyproj
 
 def Var(xp, yp, tp, varin, nc):
     '''
@@ -415,6 +416,23 @@ def path(lonp, latp, squared=True):
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
     # pdb.set_trace()
     return D2, nnans
+
+
+def traj_ss(lon1, lat1, lon2, lat2):
+    '''
+    Trajectory skill score, from Liu and Weisberg, 2011
+    '''
+
+    # distance between drifters in time
+    dist = get_dist(lon1, lon2, lat1, lat2) # in time
+
+    # distance along path for control case, which is taken as lon1, lat1
+    length = get_dist(lon1[:,:-1], lon1[:,1:], lat1[:,:-1], lat1[:,1:])
+
+    pdb.set_trace()
+
+    return ss
+
 
 def moment1(xp):
     '''
