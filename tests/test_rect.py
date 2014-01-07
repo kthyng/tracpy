@@ -104,7 +104,7 @@ def test_run_2d():
 
     # current velocity -- 0.1 m/s
     # position 
-    distance = ndays * 24 * 3600 * 0.1
+    distance = (ndays * 24 * 3600 * 0.1)*ff
 
     # better to use pyproj to compute the geodesic
     geod = pyproj.Geod(ellps = 'WGS84')
