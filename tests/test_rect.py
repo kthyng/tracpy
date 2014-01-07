@@ -49,7 +49,7 @@ def test_run_2d():
     N = 4
 
     # Use ff = 1 for forward in time and ff = -1 for backward in time.
-    ff = 1
+    ff = 1 # will work for ff=1 or ff=-1 since checks by distance traveled
 
     ah = 0. # m^2/s
     av = 0. # m^2/s
@@ -101,7 +101,5 @@ def test_run_2d():
 
     assert int(dist0*1000)==12973
     assert int(dist1*1000)==12922
-
-    print 'hi'
 
 

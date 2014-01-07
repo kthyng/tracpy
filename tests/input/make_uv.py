@@ -31,9 +31,9 @@ tcline = 0.
 
 # Time
 units = 'seconds since 1970-01-01'
-tl = 10 # three time outputs
+tl = 24 # three time outputs
 dt = 4*3600 # 4 hours between outputs
-startdate = netCDF.date2num(datetime.datetime(2013, 12, 19, 0), units)
+startdate = netCDF.date2num(datetime.datetime(2013, 12, 17, 0), units)
 t = np.arange(startdate, startdate + tl*dt, dt)
 
 
