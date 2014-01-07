@@ -16,7 +16,8 @@ import glob
 import numpy as np
 from datetime import datetime, timedelta
 import pdb
-from mpl_toolkits.basemap import Basemap
+# from mpl_toolkits.basemap import Basemap
+from pyproj import Proj
 from matplotlib import delaunay
 import octant
 import time
@@ -148,7 +149,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     return nc, tinds
 
 def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
-            urcrnrlon=-87.5, urcrnrlat=31.0, res='i'):
+            urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i'):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -205,20 +206,37 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     Note: all are in fortran ordering and tracmass ordering except for X, Y, tri, and tric
     To test: [array].flags['F_CONTIGUOUS'] will return true if it is fortran ordering
     '''
+    keeptime = 0 # do timing for readgrid
+    if keeptime: starttime = time.time()
 
     # Basemap parameters.
     llcrnrlon=llcrnrlon; llcrnrlat=llcrnrlat; 
     urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection='lcc'
-    lat_0=30; lon_0=-94; resolution=res; area_thresh=0.
-    basemap = Basemap(llcrnrlon=llcrnrlon,
-                 llcrnrlat=llcrnrlat,
-                 urcrnrlon=urcrnrlon,
-                 urcrnrlat=urcrnrlat,
-                 projection=projection,
-                 lat_0=lat_0,
-                 lon_0=lon_0,
-                 resolution=resolution,
-                 area_thresh=area_thresh)
+    lat_0=lat_0; lon_0=lon_0; resolution=res; area_thresh=0.
+    # pdb.set_trace()
+    # this gives somewhat different differences between projected coordinates as compared with previous basemap
+    # definition for the default values.
+    basemap = Proj(proj='lcc', lat_1=llcrnrlat, lat_2=urcrnrlat, lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,ellps='clrk66',datum='NAD27')
+    # basemap = (proj='lcc',lat_1=44.33333333333334,lat_2=46,lat_0=43.66666666666666, lon_0=-120.5,x_0=609601.2192024384, y_0=0,ellps='clrk66',datum='NAD27')
+    # basemap = Proj("+proj=lcc +lat_0=lat_0 +lon_0=lon_0")
+                    # +x_0=1700000 \
+                    # +y_0=300000 \
+                    # +no_defs \
+                    # +a=6378137 \
+                    # +rf=298.257222101 \
+                    # +to_meter=1")
+    # basemap = Basemap(llcrnrlon=llcrnrlon,
+    #              llcrnrlat=llcrnrlat,
+    #              urcrnrlon=urcrnrlon,
+    #              urcrnrlat=urcrnrlat,
+    #              projection=projection,
+    #              lat_0=lat_0,
+    #              lon_0=lon_0,
+    #              resolution=resolution,
+    #              area_thresh=area_thresh)
+    if keeptime: 
+        basemaptime = time.time()
+        print "basemap time ", basemaptime - starttime
 
     # Read in grid parameters and find x and y in domain on different grids
     # if len(loc) == 2:
@@ -248,6 +266,10 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     h = gridfile.variables['h'][:]
     # angle = gridfile.variables['angle'][:]
     # pdb.set_trace()
+    if keeptime: 
+        hgridtime = time.time()
+        print "horizontal grid time ", hgridtime - basemaptime
+
     # Vertical grid metrics
     if 's_w' in gridfile.variables: # then given grid file contains vertical grid info
         sc_r = gridfile.variables['s_w'][:] # sigma coords, 31 layers
@@ -269,10 +291,13 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         Vtransform = nc.variables['Vtransform'][:]
         Vstretching = nc.variables['Vstretching'][:]
 
+    if keeptime: 
+        vgridtime = time.time()
+        print "vertical grid time ", vgridtime - hgridtime
+
     # make arrays in same order as is expected in the fortran code
     # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
     # change these arrays to be fortran-directioned instead of python
-    # tic = time.time()
     # This is faster than copying arrays. To test: .flags['F_CONTIGUOUS']
     mask = np.asfortranarray(mask.T)
     xr = np.asfortranarray(xr.T)
@@ -295,8 +320,11 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     pm = np.asfortranarray(pm.T)
     pn = np.asfortranarray(pn.T)
     h = np.asfortranarray(h.T)
-    # print "fortran time ",time.time()-tic
     # pdb.set_trace()
+
+    if keeptime: 
+        fortranflippingtime = time.time()
+        print "fortran flipping time ", fortranflippingtime - vgridtime
 
     # Basing this on setupgrid.f95 for rutgersNWA example project from Bror
     # Grid sizes
@@ -305,6 +333,10 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # km = sc_r.shape[0] # 31
     if 'sc_r' in dir():
         km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
+
+    if keeptime: 
+        gridsizetime = time.time()
+        print "grid size time ", gridsizetime - fortranflippingtime
 
     # Index grid, for interpolation between real and grid space
     # this is for psi grid, so that middle of grid is min + .5 value
@@ -319,6 +351,10 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # pdb.set_trace()
     trir = delaunay.Triangulation(xr.flatten(),yr.flatten())
     trirllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
+
+    if keeptime: 
+        delaunaytime = time.time()
+        print "delaunay time ", delaunaytime - gridsizetime
 
     # tracmass ordering.
     # Not sure how to convert this to pm, pn with appropriate shift
@@ -342,6 +378,10 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # # These should be interpolated
     # dxv = dxv[:,:-1]
     # dyu = dyu[:-1,:]
+
+    if keeptime: 
+        gridmetricstime = time.time()
+        print "grid metrics time ", gridmetricstime - delaunaytime
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
     # pdb.set_trace()
@@ -376,6 +416,10 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         # is for the reference vertical level
         dzt0 = zwt0[:,:,1:] - zwt0[:,:,:-1]
 
+    if keeptime: 
+        calculatingdepthstime = time.time()
+        print "calculating depths time ", calculatingdepthstime - gridmetricstime
+
     # Fill in grid structure
     if 'sc_r' in dir():
         grid = {'imt':imt,'jmt':jmt,'km':km,#'angle':angle, 
@@ -403,6 +447,10 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
             'h':h, 
             'basemap':basemap}
  
+    if keeptime: 
+        griddicttime = time.time()
+        print "saving grid dict time ", griddicttime - calculatingdepthstime
+
     gridfile.close()
 
     return grid
