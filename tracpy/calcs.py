@@ -110,7 +110,7 @@ def get_dist(lon1, lons, lat1, lats):
     '''
     Function to compute great circle distance between point lat1 and lon1 
     and arrays of points given by lons, lats or both same length arrays.
-    Uses Haversine formula.
+    Uses Haversine formula. Distance is in km.
     '''
 
     lon1 = lon1*np.pi/180.
@@ -415,6 +415,31 @@ def path(lonp, latp, squared=True):
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
     # pdb.set_trace()
     return D2, nnans
+
+
+def traj_ss(lon1, lat1, lon2, lat2):
+    '''
+    Trajectory skill score, from Liu and Weisberg, 2011
+    '''
+
+    # distance between drifters in time
+    dist = get_dist(lon1, lon2, lat1, lat2) # in time
+
+    # distance along path for control case, which is taken as lon1, lat1
+    length = get_dist(lon1[:,:-1], lon1[:,1:], lat1[:,:-1], lat1[:,1:])
+
+    # calculate s using cumulative sums
+    # the first entry in time would be divided by zero, so this starts at the 2nd step
+    s = np.cumsum(dist[:,1:], axis=1)/np.cumsum(length, axis=1)    
+
+    # pdb.set_trace()
+    # calculate skill score based on n=1
+    ind = (s>1)
+    ss = 1-s
+    ss[ind] = 0.
+
+    return ss
+
 
 def moment1(xp):
     '''
