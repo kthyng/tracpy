@@ -9,7 +9,9 @@ import tracpy
 import os
 import time
 import datetime
+import numpy as np
 import netCDF4
+import pyproj
 
 # some simple example data
 currents_filename = os.path.join('input', 'ocean_his_0001.nc')
@@ -85,12 +87,25 @@ def test_run_2d():
                                             grid=grd,
                                             dostream=0,
                                             N=N)
+
+    ## check the results:
+    print lonp.shape
     print lonp
     print latp
+    
 
+    #eastward current, latitude should not change:
+    assert np.allclose(lat0, latp.T)
 
-    assert False
+    # current velocity -- 0.1 m/s
+    # position 
+    distance = ndays * 24 * 3600 * 0.1
 
+    # better to use pyproj to compute the geodesic
+    geod = pyproj.Geod(ellps = 'WGS84')
+    end = geod.fwd(lon0, lat0, (90, 90), (distance,distance), radians=False)
+
+    assert np.allclose( lonp[:,-1], end[0] )
 
 
 
