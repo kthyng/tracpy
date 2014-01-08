@@ -508,6 +508,42 @@ def moment2(xp, M1):
     # pdb.set_trace()
     return M2, nnans
 
+def moment3(xp, M1):
+    '''
+    Calculate the 4th moment in a single direction of a set of tracks. in meters.
+
+    Inputs:
+        xp          x or y locations of the drifter tracks [ndrifter,ntime]
+        M1          First moment of tracks in a single direction
+
+    Outputs:
+        M3              Relative dispersion (squared or not) averaged over drifter 
+                        pairs [ntime].
+        nnans           Number of non-nan time steps in calculations for averaging properly.
+                        Otherwise drifters that have exited the domain could affect calculations.
+
+    To combine with other calculations of relative dispersion, first multiply by nnans, then
+    combine with other relative dispersion calculations, then divide by the total number
+    of nnans.
+
+    Example call:
+    tracpy.calcs.moment3(xp, M1x)
+    '''
+
+    tstart = time.time()
+    dist = xp - M1
+    nnans = np.sum(~np.isnan(dist), axis=0)
+    num = np.nansum(dist**3, axis=0)/nnans
+    denom = (np.nansum(dist**2, axis=0)/nnans)**(3/2)
+    M3 = num/denom
+
+    print 'time for finding M: ', time.time()-tstart
+
+    # # Distances squared, separately; times; number of non-nans for this set
+    # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
+    # pdb.set_trace()
+    return M3, nnans
+
 def moment4(xp, M1):
     '''
     Calculate the 4th moment in a single direction of a set of tracks. in meters.
@@ -532,8 +568,11 @@ def moment4(xp, M1):
 
     tstart = time.time()
     dist = xp - M1
-    num = np.nansum(dist**4, axis=0)
-    denom = np.nansum(dist**2, axis=0)**2
+    nnans = np.sum(~np.isnan(dist), axis=0)
+    num = np.nansum(dist**4, axis=0)/nnans
+    denom = (np.nansum(dist**2, axis=0)/nnans)**2
+    # num = np.nansum(dist**4, axis=0)
+    # denom = np.nansum(dist**2, axis=0)**2
     M4 = num/denom
 
     print 'time for finding M: ', time.time()-tstart
