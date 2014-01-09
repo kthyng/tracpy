@@ -242,3 +242,15 @@ class Tracpy(object):
 
         # return the new positions or the delta lat/lon
         return ufnew, vfnew, dztnew, zrtnew, zwtnew, xend, yend, zend, zp, flag, ttend, U, V
+
+    # def initialize_simulation(self):
+
+    #     self.initialize_time()
+    #     self.setup_initial_velocities()
+
+    #     pass
+
+
+    # def initialize_time(self):
+
+

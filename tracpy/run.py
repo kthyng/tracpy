@@ -104,6 +104,12 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     U, V  (optional) Array aggregating volume transports as drifters move [imt-1,jmt], [imt,jmt-1]
     '''
 
+    # call tp.initalize()
+
+    # loop, call tp.step()
+
+    # finish, call tp.finish()
+
     tic_start = time.time()
     tic_initial = time.time()
 
@@ -237,6 +243,10 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     for j,tind in enumerate(tinds[:-1]):
 
         print j
+
+
+        # # Replace the time stepping loop
+        # tp.compute_time_step()
 
         # dtstep = 0.
         # while dtstep <= dtFromTracmass:
