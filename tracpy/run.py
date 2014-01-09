@@ -104,136 +104,17 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     U, V  (optional) Array aggregating volume transports as drifters move [imt-1,jmt], [imt,jmt-1]
     '''
 
-    # call tp.initalize()
+    tic_start = time.time()
+    tic_initial = time.time()
+
+    # Initialize everything for a simulation
+    tinds, nc, t0save, ufnew,vfnew,dztnew,zrtnew,zwtnew, \
+     xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
 
     # loop, call tp.step()
 
     # finish, call tp.finish()
 
-    tic_start = time.time()
-    tic_initial = time.time()
-
-    # pdb.set_trace()
-    # Convert date to number
-    date = netCDF.date2num(date, tp.time_units)
-
-    # Figure out what files will be used for this tracking
-    nc, tinds = inout.setupROMSfiles(tp.currents_filename, date, tp.ff, tp.tout, tstride=tp.tstride)
-    print tinds
-
-    # Read in grid parameters into dictionary, grid, if haven't already
-    if tp.grid is None:
-        tp._readgrid()
-
-    # Interpolate to get starting positions in grid space
-    xstart0, ystart0, _ = tools.interpolate2d(lon0, lat0, tp.grid, 'd_ll2ij')
-    # Do z a little lower down
-
-    # Initialize seed locations 
-    ia = np.ceil(xstart0) #[253]#,525]
-    ja = np.ceil(ystart0) #[57]#,40]
-
-    # don't use nan's
-    # pdb.set_trace()
-    ind2 = ~np.isnan(ia) * ~np.isnan(ja)
-    ia = ia[ind2]
-    ja = ja[ind2]
-    xstart0 = xstart0[ind2]
-    ystart0 = ystart0[ind2]
-
-    dates = nc.variables['ocean_time'][:]   
-    t0save = dates[tinds[0]] # time at start of drifter test from file in seconds since 1970-01-01, add this on at the end since it is big
-
-    # Initialize drifter grid positions and indices
-    xend = np.ones((ia.size,(len(tinds)-1)*tp.N+1))*np.nan
-    yend = np.ones((ia.size,(len(tinds)-1)*tp.N+1))*np.nan
-    zend = np.ones((ia.size,(len(tinds)-1)*tp.N+1))*np.nan
-    zp = np.ones((ia.size,(len(tinds)-1)*tp.N+1))*np.nan
-    # iend = np.ones((ia.size,(len(tinds)-1)*tp.N))*np.nan
-    # jend = np.ones((ia.size,(len(tinds)-1)*tp.N))*np.nan
-    # kend = np.ones((ia.size,(len(tinds)-1)*tp.N))*np.nan
-    ttend = np.zeros((ia.size,(len(tinds)-1)*tp.N+1))
-    t = np.zeros(((len(tinds)-1)*tp.N+1))
-    flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
-
-    # Initialize vertical stuff and fluxes
-    # Read initial field in - to 'new' variable since will be moved
-    # at the beginning of the time loop ahead
-    if is_string_like(tp.z0): # isoslice case
-        ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[0],tp.grid,nc,tp.z0,tp.zpar,zparuv=tp.zparuv)
-    else: # 3d case
-        ufnew,vfnew,dztnew,zrtnew,zwtnew = inout.readfields(tinds[0],tp.grid,nc)
-    # pdb.set_trace()
-    ## Find zstart0 and ka
-    # The k indices and z grid ratios should be on a wflux vertical grid,
-    # which goes from 0 to km since the vertical velocities are defined
-    # at the vertical cell edges. A drifter's grid cell is vertically bounded
-    # above by the kth level and below by the (k-1)th level
-    if is_string_like(tp.z0): # then doing a 2d isoslice
-        # there is only one vertical grid cell, but with two vertically-
-        # bounding edges, 0 and 1, so the initial ka value is 1 for all
-        # isoslice drifters.
-        ka = np.ones(ia.size) 
-
-        # for s level isoslice, place drifters vertically at the center 
-        # of the grid cell since that is where the u/v flux info is from.
-        # For a rho/temp/density isoslice, we treat it the same way, such
-        # that the u/v flux info taken at a specific rho/temp/density value
-        # is treated as being at the center of the grid cells vertically.
-        zstart0 = np.ones(ia.size)*0.5
-
-    else:   # 3d case
-        # Convert initial real space vertical locations to grid space
-        # first find indices of grid cells vertically
-        ka = np.ones(ia.size)*np.nan
-        zstart0 = np.ones(ia.size)*np.nan
-
-        if tp.zpar == 'fromMSL':
-            for i in xrange(ia.size):
-                # pdb.set_trace()
-                ind = (tp.grid['zwt0'][ia[i],ja[i],:]<=tp.z0[i])
-                # check to make sure there is at least one true value, so the z0 is shallower than the seabed
-                if np.sum(ind): 
-                    ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-                # if the drifter starting vertical location is too deep for the x,y location, complain about it
-                else:  # Maybe make this nan or something later
-                    print 'drifter vertical starting location is too deep for its x,y location. Try again.'
-                if (tp.z0[i] != tp.grid['zwt0'][ia[i],ja[i],ka[i]]) and (ka[i] != tp.grid['km']): # check this
-                    ka[i] = ka[i]+1
-                # Then find the vertical relative position in the grid cell by adding on the bit of grid cell
-                zstart0[i] = ka[i] - abs(tp.z0[i]-tp.grid['zwt0'][ia[i],ja[i],ka[i]]) \
-                                    /abs(tp.grid['zwt0'][ia[i],ja[i],ka[i]-1]-tp.grid['zwt0'][ia[i],ja[i],ka[i]])
-        # elif zpar == 'fromZeta':
-        #   for i in xrange(ia.size):
-        #       pdb.set_trace()
-        #       ind = (zwtnew[ia[i],ja[i],:]<=z0[i])
-        #       ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-        #       if (z0[i] != zwtnew[ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']): # check this
-        #           ka[i] = ka[i]+1
-        #       # Then find the vertical relative position in the grid cell by adding on the bit of grid cell
-        #       zstart0[i] = ka[i] - abs(z0[i]-zwtnew[ia[i],ja[i],ka[i]]) \
-        #                           /abs(zwtnew[ia[i],ja[i],ka[i]-1]-zwtnew[ia[i],ja[i],ka[i]])
-
-    # Find initial cell depths to concatenate to beginning of drifter tracks later
-    zsave = tools.interpolate3d(xstart0, ystart0, zstart0, zwtnew)
-
-    # Initialize x,y,z with initial seeded positions
-    xend[:,0] = xstart0
-    yend[:,0] = ystart0
-    zend[:,0] = zstart0
-
-    toc_initial = time.time()
-
-    # j = 0 # index for number of saved steps for drifters
-    tic_read = np.zeros(len(tinds))
-    toc_read = np.zeros(len(tinds))
-    tic_zinterp = np.zeros(len(tinds))
-    toc_zinterp = np.zeros(len(tinds))
-    tic_tracmass = np.zeros(len(tinds))
-    toc_tracmass = np.zeros(len(tinds))
-    # pdb.set_trace()
-    xr3 = tp.grid['xr'].reshape((tp.grid['xr'].shape[0],tp.grid['xr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
-    yr3 = tp.grid['yr'].reshape((tp.grid['yr'].shape[0],tp.grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
 
     # # Calculate subloop steps using input parameter dtFromTracmass. 
     # subloopsteps = 
@@ -353,18 +234,18 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     print "---------------------------------------------"
     print "Time spent on:"
 
-    initialtime = toc_initial-tic_initial
-    print "\tInitial stuff: \t\t%4.2f (%4.2f%%)" % (initialtime, (initialtime/runtime)*100)
+    # initialtime = toc_initial-tic_initial
+    # print "\tInitial stuff: \t\t%4.2f (%4.2f%%)" % (initialtime, (initialtime/runtime)*100)
 
-    readtime = np.sum(toc_read-tic_read)
-    print "\tReading in fields: \t%4.2f (%4.2f%%)" % (readtime, (readtime/runtime)*100)
+    # readtime = np.sum(toc_read-tic_read)
+    # print "\tReading in fields: \t%4.2f (%4.2f%%)" % (readtime, (readtime/runtime)*100)
 
-    zinterptime = np.sum(toc_zinterp-tic_zinterp)
-    print "\tZ interpolation: \t%4.2f (%4.2f%%)" % (zinterptime, (zinterptime/runtime)*100)
+    # zinterptime = np.sum(toc_zinterp-tic_zinterp)
+    # print "\tZ interpolation: \t%4.2f (%4.2f%%)" % (zinterptime, (zinterptime/runtime)*100)
 
-    tractime = np.sum(toc_tracmass-tic_tracmass)
-    print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
-    print "============================================="
+    # tractime = np.sum(toc_tracmass-tic_tracmass)
+    # print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
+    # print "============================================="
 
     # Save results to netcdf file
     if tp.dostream:
