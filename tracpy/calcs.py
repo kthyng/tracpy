@@ -426,19 +426,22 @@ def traj_ss(lon1, lat1, lon2, lat2):
     dist = get_dist(lon1, lon2, lat1, lat2) # in time
 
     # distance along path for control case, which is taken as lon1, lat1
-    length = get_dist(lon1[:,:-1], lon1[:,1:], lat1[:,:-1], lat1[:,1:])
+    # first cumsum is to make length distance traveled up to that index
+    length = np.cumsum(get_dist(lon1[:,:-1], lon1[:,1:], lat1[:,:-1], lat1[:,1:]), axis=1)
 
     # calculate s using cumulative sums
     # the first entry in time would be divided by zero, so this starts at the 2nd step
+    # second cumsum is to sum up distances traveled
     s = np.cumsum(dist[:,1:], axis=1)/np.cumsum(length, axis=1)    
 
-    # pdb.set_trace()
-    # calculate skill score based on n=1
-    ind = (s>1)
-    ss = 1-s
-    ss[ind] = 0.
+    # # pdb.set_trace()
+    # # calculate skill score based on n=1
+    # ind = (s>1)
+    # ss = 1-s
+    # ss[ind] = 0.
 
-    return ss
+    # Return s instead of skill score so n parameter can be different
+    return s
 
 
 def moment1(xp):
