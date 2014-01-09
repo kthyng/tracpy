@@ -108,6 +108,24 @@ class Tracpy(object):
         # Calculate time outputs stride. Will be 1 if want to use all model output.
         self.tstride = int(self.tseas_use/self.tseas) # will round down
 
+        # For later use
+        # fluxes
+        self.uf = None
+        self.vf = None
+        self.dzt = None
+        self.zrt = None
+        self.zwt = None
+        # self.ufold = None
+        # self.vfold = None
+        # self.dztold = None
+        # self.zrtold = None
+        # self.zwtold = None
+        # self.ufnew = None
+        # self.vfnew = None
+        # self.dztnew = None
+        # self.zrtnew = None
+        # self.zwtnew = None
+
     def _readgrid(self):
         '''
         Read in horizontal and vertical grid.
@@ -144,7 +162,6 @@ class Tracpy(object):
         if self.grid is None:
             self._readgrid()
 
-
         # Interpolate to get starting positions in grid space
         xstart0, ystart0, _ = tracpy.tools.interpolate2d(lon0, lat0, self.grid, 'd_ll2ij')
         # Do z a little lower down
@@ -180,9 +197,44 @@ class Tracpy(object):
         # Read initial field in - to 'new' variable since will be moved
         # at the beginning of the time loop ahead
         if is_string_like(self.z0): # isoslice case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = tracpy.inout.readfields(tinds[0],self.grid,nc,self.z0,self.zpar,zparuv=self.zparuv)
+            # Now that we have the grid, initialize the info for the two bounding model 
+            # steps using the grid size
+            self.uf = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
+                                                self.grid['xu'].shape[1], 1, 2)))*np.nan
+            self.vf = np.asfortranarray(np.ones((self.grid['xv'].shape[0], 
+                                                self.grid['xv'].shape[1], 1, 2)))*np.nan
+            self.dzt = np.asfortranarray(np.ones((self.grid['xr'].shape[0], 
+                                                self.grid['xr'].shape[1], 1, 2)))*np.nan
+            self.zrt = np.asfortranarray(np.ones((self.grid['xr'].shape[0], 
+                                                self.grid['xr'].shape[1], 1, 2)))*np.nan
+            self.zwt = np.asfortranarray(np.ones((self.grid['xr'].shape[0], 
+                                                self.grid['xr'].shape[1], self.grid['sc_r'].size, 2)))*np.nan
+            self.uf[:,:,:,1], self.vf[:,:,:,1], self.dzt[:,:,:,1], self.zrt[:,:,:,1], self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0],self.grid,nc,self.z0,self.zpar,zparuv=self.zparuv)
+            # self.ufnew,self.vfnew,self.dztnew,self.zrtnew,self.zwtnew = tracpy.inout.readfields(tinds[0],self.grid,nc,self.z0,self.zpar,zparuv=self.zparuv)
         else: # 3d case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = tracpy.inout.readfields(tinds[0],self.grid,nc)
+            # Now that we have the grid, initialize the info for the two bounding model 
+            # steps using the grid size
+            self.uf = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
+                                                self.grid['xu'].shape[1],
+                                                self.grid['sc_r'].size,
+                                                2)))*np.nan
+            self.vf = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
+                                                self.grid['xu'].shape[1],
+                                                self.grid['sc_r'].size,
+                                                2)))*np.nan
+            self.dzt = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
+                                                self.grid['xu'].shape[1],
+                                                self.grid['sc_r'].size,
+                                                2)))*np.nan
+            self.zrt = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
+                                                self.grid['xu'].shape[1],
+                                                self.grid['sc_r'].size,
+                                                2)))*np.nan
+            self.zwt = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
+                                                self.grid['xu'].shape[1],
+                                                self.grid['sc_r'].size,
+                                                2)))*np.nan
+            self.uf[:,:,:,1], self.vf[:,:,:,1], self.dzt[:,:,:,1], self.zrt[:,:,:,1], self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0],self.grid,nc)
         # pdb.set_trace()
         ## Find zstart0 and ka
         # The k indices and z grid ratios should be on a wflux vertical grid,
@@ -235,7 +287,7 @@ class Tracpy(object):
             #                           /abs(zwtnew[ia[i],ja[i],ka[i]-1]-zwtnew[ia[i],ja[i],ka[i]])
 
         # Find initial cell depths to concatenate to beginning of drifter tracks later
-        zsave = tracpy.tools.interpolate3d(xstart0, ystart0, zstart0, zwtnew)
+        zsave = tracpy.tools.interpolate3d(xstart0, ystart0, zstart0, self.zwt[:,:,:,1])
 
         # Initialize x,y,z with initial seeded positions
         xend[:,0] = xstart0
@@ -257,129 +309,9 @@ class Tracpy(object):
 
         # def initialize_time(self):
 
-        return tinds, nc, t0save, ufnew,vfnew,dztnew,zrtnew,zwtnew, \
-                xend, yend, zend, zp, ttend, t, flag
+        return tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag
 
-    def step(self, tind, nc, j, tstart, ufnew, vfnew, dztnew, zrtnew, zwtnew, 
-                xstart, ystart, zstart, T0=None, U=None, V=None):
-        '''
-        Take some number of steps between a start and end time.
-        FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES
-
-        :param tind: Time index to use for stepping
-        FILL IN
-        '''
-
-        # Figure out where in time we are 
-
-        ## Load fields if not already loaded
-
-        # Move previous new time step to old time step info
-        ufold = ufnew.copy()
-        vfold = vfnew.copy()
-        dztold = dztnew.copy()
-        zrtold = zrtnew.copy()
-        zwtold = zwtnew.copy()
-
-        # Read stuff in for next time loop
-        if is_string_like(self.z0): # isoslice case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = tracpy.inout.readfields(tind, self.grid, nc, self.z0, self.zpar, zparuv=self.zparuv)
-        else: # 3d case
-            ufnew,vfnew,dztnew,zrtnew,zwtnew = tracpy.inout.readfields(tind, self.grid, nc)
-
-        #  flux fields at starting time for this step
-        # ind = (flag[:] == 0) # indices where the drifters are still inside the domain
-
-        # Combine times for arrays for input to tracmass
-        # from [ixjxk] to [ixjxkxt]
-        # Change ordering for these three arrays here instead of in readfields since
-        # concatenate does not seem to preserve ordering
-        uflux = np.asfortranarray(np.concatenate((ufold.reshape(np.append(ufold.shape,1)), \
-                                ufnew.reshape(np.append(ufnew.shape,1))), \
-                                axis=ufold.ndim))
-        vflux = np.asfortranarray(np.concatenate((vfold.reshape(np.append(vfold.shape,1)), \
-                                vfnew.reshape(np.append(vfnew.shape,1))), \
-                                axis=vfold.ndim))
-        dzt = np.asfortranarray(np.concatenate((dztold.reshape(np.append(dztold.shape,1)), \
-                                dztnew.reshape(np.append(dztnew.shape,1))), \
-                                axis=dztold.ndim))
-
-        # Change the horizontal indices from python to fortran indexing 
-        # (vertical are zero-based in tracmass)
-        xstart, ystart = tracpy.tools.convert_indices('py2f',xstart,ystart)
-
-        # km that is sent to tracmass is determined from uflux (see tracmass?)
-        # so it will be the correct value for whether we are doing the 3D
-        # or isoslice case.
-        # vec = np.arange(j*N,j*N+N) # indices for storing new track locations
-        # tic_tracmass[j] = time.time()
-        # pdb.set_trace()
-        if self.dostream: # calculate Lagrangian stream functions
-            xend,\
-                yend,\
-                zend,\
-                flag,\
-                ttend, U, V = \
-                    tracmass.step(np.ma.compressed(xstart),
-                                    np.ma.compressed(ystart),
-                                    np.ma.compressed(zstart),
-                                    self.tseas_use, uflux, vflux, self.ff, 
-                                    self.grid['kmt'].astype(int), 
-                                    dzt, self.grid['dxdy'], self.grid['dxv'], 
-                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
-                                    self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N, 
-                                    t0=T0,
-                                    ut=U, vt=V)
-        else: # don't calculate Lagrangian stream functions
-            xend,\
-                yend,\
-                zend,\
-                flag,\
-                ttend, _, _ = \
-                    tracmass.step(np.ma.compressed(xstart),
-                                    np.ma.compressed(ystart),
-                                    np.ma.compressed(zstart),
-                                    self.tseas_use, uflux, vflux, self.ff, 
-                                    self.grid['kmt'].astype(int), 
-                                    dzt, self.grid['dxdy'], self.grid['dxv'], 
-                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
-                                    self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N)
-        # toc_tracmass[j] = time.time()
-        # pdb.set_trace()
-
-        # Add initial step time to ttend
-        ttend = (ttend.T + tstart).T
-
-        # Change the horizontal indices from python to fortran indexing
-        xend, \
-            yend \
-                            = tracpy.tools.convert_indices('f2py', \
-                                xend, \
-                                yend)
-
-        
-        # Skip calculating real z position if we are doing surface-only drifters anyway
-        if self.z0 != 's' and self.zpar != self.grid['km']-1:
-            # tic_zinterp[j] = time.time()
-            # Calculate real z position
-            r = np.linspace(1./self.N,1,self.N) # linear time interpolation constant that is used in tracmass
-
-            for n in xrange(self.N): # loop through time steps
-                # interpolate to a specific output time
-                # pdb.set_trace()
-                zwt = (1.-r[n])*zwtold + r[n]*zwtnew
-                zp, dt = tools.interpolate3d(xend, \
-                                                        yend, \
-                                                        zend, \
-                                                        zwt)
-            # toc_zinterp[j] = time.time()
-        else:
-            zp = zend
-
-        # return the new positions or the delta lat/lon
-        return ufnew, vfnew, dztnew, zrtnew, zwtnew, xend, yend, zend, zp, flag, ttend, U, V
-
-    def prepare_for_model_step(self, flag, xend, yend, zend, j):
+    def prepare_for_model_step(self, tind, nc, flag, xend, yend, zend, j):
         '''
         Already in a step, get ready to actually do step
         '''
@@ -393,7 +325,95 @@ class Tracpy(object):
         ystart = np.ma.masked_where(flag[:]==1,ystart)
         zstart = np.ma.masked_where(flag[:]==1,zstart)
 
+        # Move previous new time step to old time step info
+        self.uf[:,:,:,0] = self.uf[:,:,:,1].copy()
+        self.vf[:,:,:,0] = self.vf[:,:,:,1].copy()
+        self.dzt[:,:,:,0] = self.dzt[:,:,:,1].copy()
+        self.zrt[:,:,:,0] = self.zrt[:,:,:,1].copy()
+        self.zwt[:,:,:,0] = self.zwt[:,:,:,1].copy()
+
+        # Read stuff in for next time loop
+        if is_string_like(self.z0): # isoslice case
+            self.uf[:,:,:,1],self.vf[:,:,:,1],self.dzt[:,:,:,1],self.zrt[:,:,:,1],self.zwt[:,:,:,1] = tracpy.inout.readfields(tind, self.grid, nc, self.z0, self.zpar, zparuv=self.zparuv)
+        else: # 3d case
+            self.uf[:,:,:,1],self.vf[:,:,:,1],self.dzt[:,:,:,1],self.zrt[:,:,:,1],self.zwt[:,:,:,1] = tracpy.inout.readfields(tind, self.grid, nc)
+
+        # Change the horizontal indices from python to fortran indexing 
+        # (vertical are zero-based in tracmass)
+        xstart, ystart = tracpy.tools.convert_indices('py2f',xstart,ystart)
+
         return xstart, ystart, zstart
+
+    def step(self, j, tstart, xstart, ystart, zstart, T0=None, U=None, V=None):
+        '''
+        Take some number of steps between a start and end time.
+        FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES
+
+        :param tind: Time index to use for stepping
+        FILL IN
+        '''
+
+        # Figure out where in time we are 
+
+        # tic_tracmass[j] = time.time()
+        if self.dostream: # calculate Lagrangian stream functions
+            xend, yend, zend, flag,\
+                ttend, U, V = \
+                    tracmass.step(np.ma.compressed(xstart),
+                                    np.ma.compressed(ystart),
+                                    np.ma.compressed(zstart),
+                                    self.tseas_use, self.uf, self.vf, self.ff, 
+                                    self.grid['kmt'].astype(int), 
+                                    self.dzt, self.grid['dxdy'], self.grid['dxv'], 
+                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
+                                    self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N, 
+                                    t0=T0,
+                                    ut=U, vt=V)
+        else: # don't calculate Lagrangian stream functions
+            xend, yend, zend, flag,\
+                ttend, _, _ = \
+                    tracmass.step(np.ma.compressed(xstart),
+                                    np.ma.compressed(ystart),
+                                    np.ma.compressed(zstart),
+                                    self.tseas_use, self.uf, self.vf, self.ff, 
+                                    self.grid['kmt'].astype(int), 
+                                    self.dzt, self.grid['dxdy'], self.grid['dxv'], 
+                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
+                                    self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N)
+        # toc_tracmass[j] = time.time()
+        # pdb.set_trace()
+
+        # return the new positions or the delta lat/lon
+        return xend, yend, zend, flag, ttend, U, V
+
+    def model_step_is_done(self, xend, yend, zend, ttend, tstart):
+        '''
+        Stuff to do after a call to TRACMASS
+        '''
+
+        # Add initial step time to ttend
+        ttend = (ttend.T + tstart).T
+
+        # Change the horizontal indices from python to fortran indexing
+        xend, yend = tracpy.tools.convert_indices('f2py', xend, yend)
+
+        # Skip calculating real z position if we are doing surface-only drifters anyway
+        if self.z0 != 's' and self.zpar != self.grid['km']-1:
+            # tic_zinterp[j] = time.time()
+            # Calculate real z position
+            r = np.linspace(1./self.N,1,self.N) # linear time interpolation constant that is used in tracmass
+
+            for n in xrange(self.N): # loop through time steps
+                # interpolate to a specific output time
+                # pdb.set_trace()
+                zwt = (1.-r[n])*self.zwt[:,:,:,0] + r[n]*self.zwt[:,:,:,1]
+                zp, dt = tools.interpolate3d(xend, yend, zend, zwt)
+            # toc_zinterp[j] = time.time()
+        else:
+            zp = zend
+
+        # return the new positions or the delta lat/lon
+        return xend, yend, zend, zp, ttend
 
     def finishSimulation(self, ttend, t0save, xend, yend, zp):
         '''

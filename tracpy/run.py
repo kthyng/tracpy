@@ -108,8 +108,7 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     tic_initial = time.time()
 
     # Initialize everything for a simulation
-    tinds, nc, t0save, ufnew, vfnew, dztnew, zrtnew, zwtnew, \
-     xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
+    tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
 
     # Loop through model outputs. tinds is in proper order for moving forward
     # or backward in time, I think.
@@ -117,7 +116,7 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
 
         print j
 
-        xstart, ystart, zstart = tp.prepare_for_model_step(flag, xend, yend, zend, j)
+        xstart, ystart, zstart = tp.prepare_for_model_step(tinds[j+1], nc, flag, xend, yend, zend, j)
         ind = (flag[:] == 0) # indices where the drifters are still inside the domain
 
         if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
@@ -125,21 +124,35 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
 
         # Do stepping in Tracpy class
         if tp.dostream:
-            ufnew, vfnew, dztnew, zrtnew, zwtnew, xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-                yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-                zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-                zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            xend_temp,\
+                yend_temp,\
+                zend_temp,\
                 flag[ind],\
-                ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(tinds[j+1], nc, j, ttend[ind,j*tp.N], ufnew, vfnew, dztnew, zrtnew, zwtnew, 
-                    xstart, ystart, zstart, T0[ind], U, V)
+                ttend_temp, U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart, T0[ind], U, V)
+            # xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     flag[ind],\
+            #     ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart, T0[ind], U, V)
         else:
-            ufnew, vfnew, dztnew, zrtnew, zwtnew, xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-                yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-                zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-                zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            xend_temp,\
+                yend_temp,\
+                zend_temp,\
                 flag[ind],\
-                ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(tinds[j+1], nc, j, ttend[ind,j*tp.N], ufnew, vfnew, dztnew, zrtnew, zwtnew, 
-                    xstart, ystart, zstart)
+                ttend_temp, U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart)
+            # xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
+            #     flag[ind],\
+            #     ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart)
+
+        xend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+            yend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+            zend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+            zp[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+            ttend[ind,j*tp.N+1:j*tp.N+tp.N+1] = tp.model_step_is_done(xend_temp, yend_temp, zend_temp, ttend_temp, ttend[ind,j*tp.N])
 
     nc.close()
 

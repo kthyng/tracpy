@@ -7,6 +7,7 @@ import tracpy
 from tracpy.tracpy_class import Tracpy
 import os
 import datetime
+import numpy as np
 
 # For niceties with file locations and such
 here = os.path.dirname(__file__)
@@ -66,10 +67,13 @@ def test_prepareForSimulation():
     lat0 = [48.55, 48.75]
     tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'), grid_filename=os.path.join(here, 'input', 'grid.nc'))
 
-    tinds, nc, t0save, ufnew,vfnew,dztnew,zrtnew,zwtnew, \
-                xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
+    tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
 
     assert True
+
+    assert tp.uf is not None
+
+    assert np.sum(np.isnan(tp.uf[:,:,:,0])) == tp.uf[:,:,:,0].size
 
 def test_timestep():
     '''
