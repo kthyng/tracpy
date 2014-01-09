@@ -378,3 +378,59 @@ class Tracpy(object):
 
         return tinds, nc, t0save, ufnew,vfnew,dztnew,zrtnew,zwtnew, \
                 xend, yend, zend, zp, ttend, t, flag
+
+
+    def finishSimulation(self, ttend, t0save, xend, yend, zp):
+        '''
+        Wrap up simulation.
+        FILL IN
+        NOT DOING TRANSPORT YET
+        '''
+        print 'in finishSimulation'
+
+        ttend = ttend + t0save # add back in base time in seconds
+
+        ## map coordinates interpolation
+        # xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
+        # tic = time.time()
+        lonp, latp, dt = tracpy.tools.interpolate2d(xend,yend,self.grid,'m_ij2ll',mode='constant',cval=np.nan)
+        # print '2d interp time=', time.time()-tic
+        print 'after interpolate2'
+        # pdb.set_trace()
+
+        # runtime = time.time()-tic_start
+
+
+        # print "============================================="
+        # print ""
+        # print "Simulation name: ", self.name
+        # print ""
+        # print "============================================="
+        # print "run time:\t\t\t", runtime
+        # print "---------------------------------------------"
+        # print "Time spent on:"
+
+        # initialtime = toc_initial-tic_initial
+        # print "\tInitial stuff: \t\t%4.2f (%4.2f%%)" % (initialtime, (initialtime/runtime)*100)
+
+        # readtime = np.sum(toc_read-tic_read)
+        # print "\tReading in fields: \t%4.2f (%4.2f%%)" % (readtime, (readtime/runtime)*100)
+
+        # zinterptime = np.sum(toc_zinterp-tic_zinterp)
+        # print "\tZ interpolation: \t%4.2f (%4.2f%%)" % (zinterptime, (zinterptime/runtime)*100)
+
+        # tractime = np.sum(toc_tracmass-tic_tracmass)
+        # print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
+        # print "============================================="
+
+        # Save results to netcdf file
+        if self.dostream:
+            tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, self.tseas_use, self.ah, self.av, \
+                                self.do3d, self.doturb, self.currents_filename, self.T0, self.U, self.V)
+            return lonp, latp, zp, ttend, self.grid, T0, U, V
+        else:
+            tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, self.tseas_use, self.ah, self.av, \
+                                self.do3d, self.doturb, self.currents_filename)
+            print 'aftersave'
+            return lonp, latp, zp, ttend, self.grid
+

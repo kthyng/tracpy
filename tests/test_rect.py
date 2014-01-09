@@ -71,27 +71,9 @@ def test_run_2d():
     # Initialize Tracpy class
     tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas, ndays=ndays, nsteps=nsteps,
                 N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units)
-    tp._readgrid()
+    # tp._readgrid()
 
     lonp, latp, zp, t, grd = tracpy.run.run(tp, date, lon0, lat0)
-    # lonp, latp, zp, t, grd = tracpy.run.run(currents_filename,
-    #                                         nsteps,
-    #                                         ndays,
-    #                                         ff,
-    #                                         date,
-    #                                         tseas,
-    #                                         ah,
-    #                                         av,
-    #                                         lon0,
-    #                                         lat0, 
-    #                                         z0,
-    #                                         zpar,
-    #                                         do3d,
-    #                                         doturb,
-    #                                         name,
-    #                                         grid=grd,
-    #                                         dostream=0,
-    #                                         N=N)
 
     ## check the results:
     print lonp.shape

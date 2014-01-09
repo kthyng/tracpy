@@ -125,60 +125,6 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
 
         print j
 
-
-        # # Replace the time stepping loop
-        # tp.compute_time_step()
-
-        # dtstep = 0.
-        # while dtstep <= dtFromTracmass:
-
-            # # interpolation constant. =1 if dtFromTracmass==tseas
-            # r = dtFromTracmass/tseas
-
-        #     ind = (flag[:] == 0) # indices where the drifters are still inside the domain
-        #     xstart = xend[:,j*tp.N+i]
-        #     ystart = yend[:,j*tp.N+i]
-        #     zstart = zend[:,j*tp.N+i]
-
-
-
-        #     dtstep = dtstep + dtFromTracmass
-
-
-
-        # # # Loop over substeps between model outputs. This is for use with GNOME. Substeps will not necessarily divide
-        # # # evenly into model output time, so there is a special statement for that. Also, if one doesn't need to 
-        # # # access steps individually, such as in regular TracPy use, then this loop should collapse.
-        # # for i in loopsteps:
-
-        # # tic_read[j] = time.time()
-
-        #     # mask out drifters that have exited the domain
-        #     xstart = np.ma.masked_where(flag[:]==1,xstart)
-        #     ystart = np.ma.masked_where(flag[:]==1,ystart)
-        #     zstart = np.ma.masked_where(flag[:]==1,zstart)
-
-        #     if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
-        #         break
-
-        #     # Do stepping in Tracpy class
-        #     if tp.dostream:
-        #         ufnew, vfnew, dztnew, zrtnew, zwtnew, xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             flag[ind],\
-        #             ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(tinds[j+1], nc, j, ttend[ind,j*tp.N], ufnew, vfnew, dztnew, zrtnew, zwtnew, 
-        #                 xstart, ystart, zstart, T0[ind], U, V)
-        #     else:
-        #         ufnew, vfnew, dztnew, zrtnew, zwtnew, xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-        #             flag[ind],\
-        #             ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(tinds[j+1], nc, j, ttend[ind,j*tp.N], ufnew, vfnew, dztnew, zrtnew, zwtnew, 
-        #                 xstart, ystart, zstart)
-
         ind = (flag[:] == 0) # indices where the drifters are still inside the domain
         xstart = xend[:,j*tp.N]
         ystart = yend[:,j*tp.N]
@@ -211,51 +157,16 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
                     xstart, ystart, zstart)
 
     nc.close()
-    # pdb.set_trace()
-    ttend = ttend + t0save # add back in base time in seconds
 
-    ## map coordinates interpolation
-    # xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
-    # tic = time.time()
-    lonp, latp, dt = tools.interpolate2d(xend,yend,tp.grid,'m_ij2ll',mode='constant',cval=np.nan)
-    # print '2d interp time=', time.time()-tic
+    print 'pre-finishSimulation'
 
-    # pdb.set_trace()
-
-    runtime = time.time()-tic_start
-
-
-    print "============================================="
-    print ""
-    print "Simulation name: ", tp.name
-    print ""
-    print "============================================="
-    print "run time:\t\t\t", runtime
-    print "---------------------------------------------"
-    print "Time spent on:"
-
-    # initialtime = toc_initial-tic_initial
-    # print "\tInitial stuff: \t\t%4.2f (%4.2f%%)" % (initialtime, (initialtime/runtime)*100)
-
-    # readtime = np.sum(toc_read-tic_read)
-    # print "\tReading in fields: \t%4.2f (%4.2f%%)" % (readtime, (readtime/runtime)*100)
-
-    # zinterptime = np.sum(toc_zinterp-tic_zinterp)
-    # print "\tZ interpolation: \t%4.2f (%4.2f%%)" % (zinterptime, (zinterptime/runtime)*100)
-
-    # tractime = np.sum(toc_tracmass-tic_tracmass)
-    # print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
-    # print "============================================="
-
-    # Save results to netcdf file
     if tp.dostream:
-        inout.savetracks(lonp, latp, zp, ttend, tp.name, tp.nsteps, tp.N, tp.ff, tp.tseas_use, tp.ah, tp.av, \
-                            tp.do3d, tp.doturb, tp.currents_filename, tp.T0, tp.U, tp.V)
-        return lonp, latp, zp, ttend, tp.grid, T0, U, V
+        lonp, latp, zp, ttend, grid, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
+        return lonp, latp, zp, ttend, grid, T0, U, V
     else:
-        inout.savetracks(lonp, latp, zp, ttend, tp.name, tp.nsteps, tp.N, tp.ff, tp.tseas_use, tp.ah, tp.av, \
-                            tp.do3d, tp.doturb, tp.currents_filename)
-        return lonp, latp, zp, ttend, tp.grid
+        lonp, latp, zp, ttend, grid = tp.finishSimulation(ttend, t0save, xend, yend, zp)
+        return lonp, latp, zp, ttend, grid
+
 
 # def start_run():
 #     '''

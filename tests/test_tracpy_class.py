@@ -59,7 +59,6 @@ def test_readgridWithVertical():
 def test_prepareForSimulation():
     '''
     Test initial steps to get ready for a simulation.
-    FILL IN
     '''
 
     date = datetime.datetime(2013, 12, 19, 0)
@@ -67,7 +66,8 @@ def test_prepareForSimulation():
     lat0 = [48.55, 48.75]
     tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'), grid_filename=os.path.join(here, 'input', 'grid.nc'))
 
-    xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
+    tinds, nc, t0save, ufnew,vfnew,dztnew,zrtnew,zwtnew, \
+                xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
 
     assert True
 
