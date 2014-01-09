@@ -108,16 +108,8 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     tic_initial = time.time()
 
     # Initialize everything for a simulation
-    tinds, nc, t0save, ufnew,vfnew,dztnew,zrtnew,zwtnew, \
+    tinds, nc, t0save, ufnew, vfnew, dztnew, zrtnew, zwtnew, \
      xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
-
-    # loop, call tp.step()
-
-    # finish, call tp.finish()
-
-
-    # # Calculate subloop steps using input parameter dtFromTracmass. 
-    # subloopsteps = 
 
     # Loop through model outputs. tinds is in proper order for moving forward
     # or backward in time, I think.
@@ -125,15 +117,8 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
 
         print j
 
+        xstart, ystart, zstart = tp.prepare_for_model_step(flag, xend, yend, zend, j)
         ind = (flag[:] == 0) # indices where the drifters are still inside the domain
-        xstart = xend[:,j*tp.N]
-        ystart = yend[:,j*tp.N]
-        zstart = zend[:,j*tp.N]
-
-        # mask out drifters that have exited the domain
-        xstart = np.ma.masked_where(flag[:]==1,xstart)
-        ystart = np.ma.masked_where(flag[:]==1,ystart)
-        zstart = np.ma.masked_where(flag[:]==1,zstart)
 
         if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
             break
@@ -157,8 +142,6 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
                     xstart, ystart, zstart)
 
     nc.close()
-
-    print 'pre-finishSimulation'
 
     if tp.dostream:
         lonp, latp, zp, ttend, grid, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
