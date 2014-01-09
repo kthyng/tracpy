@@ -17,7 +17,7 @@ import plotting
 import tools
 from scipy import ndimage
 
-def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
+def run(tp, date, lon0, lat0):
 # def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, 
 #         zpar, do3d, doturb, name, grid=None, dostream=0, N=1, 
 #         T0=None, U=None, V=None, zparuv=None, tseas_use=None):
@@ -123,30 +123,11 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
             break
 
         # Do stepping in Tracpy class
-        if tp.dostream:
-            xend_temp,\
-                yend_temp,\
-                zend_temp,\
-                flag[ind],\
-                ttend_temp, U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart, T0[ind], U, V)
-            # xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     flag[ind],\
-            #     ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart, T0[ind], U, V)
-        else:
-            xend_temp,\
-                yend_temp,\
-                zend_temp,\
-                flag[ind],\
-                ttend_temp, U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart)
-            # xend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     yend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     zend[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     zp[ind,j*tp.N+1:j*tp.N+tp.N+1],\
-            #     flag[ind],\
-            #     ttend[ind,j*tp.N+1:j*tp.N+tp.N+1], U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart)
+        xend_temp,\
+            yend_temp,\
+            zend_temp,\
+            flag[ind],\
+            ttend_temp, U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart)
 
         xend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
             yend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
@@ -156,12 +137,8 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
 
     nc.close()
 
-    if tp.dostream:
-        lonp, latp, zp, ttend, grid, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
-        return lonp, latp, zp, ttend, grid, T0, U, V
-    else:
-        lonp, latp, zp, ttend, grid = tp.finishSimulation(ttend, t0save, xend, yend, zp)
-        return lonp, latp, zp, ttend, grid
+    lonp, latp, zp, ttend, grid, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
+    return lonp, latp, zp, ttend, grid, T0, U, V
 
 
 # def start_run():

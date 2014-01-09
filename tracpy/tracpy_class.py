@@ -24,7 +24,8 @@ class Tracpy(object):
 
     def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
-                time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None):
+                time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
+                T0=None, U=None, V=None):
         '''
         Initialize class.
 
@@ -50,6 +51,9 @@ class Tracpy(object):
             TRACMASS will run for 1 time step of length dtFromTracmass before exiting to the loop.
         :param zparuv=None: Defaults to zpar. Use this if the k index for the model output fields (e.g, u, v) is different from the k index in the grid
         :param tseas_use=None: Defaults to tseas. Desired time between outputs in seconds, as opposed to the actual time between outputs (tseas)
+        :param T0=None: Volume transport represented by each drifter. for use with dostream=1.
+        :param U=None: east-west transport, is updated by TRACMASS. Only used if dostream=1.
+        :param V=None: north-south transport, is updated by TRACMASS. Only used if dostream=1.
         '''
 
         self.currents_filename = currents_filename
@@ -71,6 +75,9 @@ class Tracpy(object):
         self.dostream = dostream
         self.N = N
         self.time_units = time_units
+        self.T0 = T0
+        self.U = U
+        self.V = V
 
         # if loopsteps is None and nsteps is not None:
         #     # Use nsteps in TRACMASS and have inner loop collapse
@@ -108,6 +115,10 @@ class Tracpy(object):
         # Calculate time outputs stride. Will be 1 if want to use all model output.
         self.tstride = int(self.tseas_use/self.tseas) # will round down
 
+        # U,V currently initialized elsewhere if not input explicitly.
+        if dostream:
+            assert self.T0 is not None
+
         # For later use
         # fluxes
         self.uf = None
@@ -115,16 +126,6 @@ class Tracpy(object):
         self.dzt = None
         self.zrt = None
         self.zwt = None
-        # self.ufold = None
-        # self.vfold = None
-        # self.dztold = None
-        # self.zrtold = None
-        # self.zwtold = None
-        # self.ufnew = None
-        # self.vfnew = None
-        # self.dztnew = None
-        # self.zrtnew = None
-        # self.zwtnew = None
 
     def _readgrid(self):
         '''
@@ -162,13 +163,18 @@ class Tracpy(object):
         if self.grid is None:
             self._readgrid()
 
+        # If dostream==1, do transport calculations and initialize to an empty array
+        if self.U is None and self.dostream:
+            self.U = np.ma.zeros(grid['xu'].shape, order='F')
+            self.V = np.ma.zeros(grid['xv'].shape, order='F')
+
         # Interpolate to get starting positions in grid space
         xstart0, ystart0, _ = tracpy.tools.interpolate2d(lon0, lat0, self.grid, 'd_ll2ij')
         # Do z a little lower down
 
         # Initialize seed locations 
-        ia = np.ceil(xstart0) #[253]#,525]
-        ja = np.ceil(ystart0) #[57]#,40]
+        ia = np.ceil(xstart0)
+        ja = np.ceil(ystart0)
 
         # don't use nan's
         # pdb.set_trace()
@@ -344,7 +350,7 @@ class Tracpy(object):
 
         return xstart, ystart, zstart
 
-    def step(self, j, tstart, xstart, ystart, zstart, T0=None, U=None, V=None):
+    def step(self, j, tstart, xstart, ystart, zstart):
         '''
         Take some number of steps between a start and end time.
         FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES
@@ -356,30 +362,18 @@ class Tracpy(object):
         # Figure out where in time we are 
 
         # tic_tracmass[j] = time.time()
-        if self.dostream: # calculate Lagrangian stream functions
-            xend, yend, zend, flag,\
-                ttend, U, V = \
-                    tracmass.step(np.ma.compressed(xstart),
-                                    np.ma.compressed(ystart),
-                                    np.ma.compressed(zstart),
-                                    self.tseas_use, self.uf, self.vf, self.ff, 
-                                    self.grid['kmt'].astype(int), 
-                                    self.dzt, self.grid['dxdy'], self.grid['dxv'], 
-                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
-                                    self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N, 
-                                    t0=T0,
-                                    ut=U, vt=V)
-        else: # don't calculate Lagrangian stream functions
-            xend, yend, zend, flag,\
-                ttend, _, _ = \
-                    tracmass.step(np.ma.compressed(xstart),
-                                    np.ma.compressed(ystart),
-                                    np.ma.compressed(zstart),
-                                    self.tseas_use, self.uf, self.vf, self.ff, 
-                                    self.grid['kmt'].astype(int), 
-                                    self.dzt, self.grid['dxdy'], self.grid['dxv'], 
-                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
-                                    self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N)
+        xend, yend, zend, flag,\
+            ttend, U, V = \
+                tracmass.step(np.ma.compressed(xstart),
+                                np.ma.compressed(ystart),
+                                np.ma.compressed(zstart),
+                                self.tseas_use, self.uf, self.vf, self.ff, 
+                                self.grid['kmt'].astype(int), 
+                                self.dzt, self.grid['dxdy'], self.grid['dxv'], 
+                                self.grid['dyu'], self.grid['h'], self.nsteps, 
+                                self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N, 
+                                t0=self.T0,
+                                ut=self.U, vt=self.V)
         # toc_tracmass[j] = time.time()
         # pdb.set_trace()
 
@@ -457,12 +451,7 @@ class Tracpy(object):
         # print "============================================="
 
         # Save results to netcdf file
-        if self.dostream:
-            tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, self.tseas_use, self.ah, self.av, \
-                                self.do3d, self.doturb, self.currents_filename, self.T0, self.U, self.V)
-            return lonp, latp, zp, ttend, self.grid, T0, U, V
-        else:
-            tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, self.tseas_use, self.ah, self.av, \
-                                self.do3d, self.doturb, self.currents_filename)
-            return lonp, latp, zp, ttend, self.grid
+        tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, self.tseas_use, self.ah, self.av, \
+                            self.do3d, self.doturb, self.currents_filename, self.T0, self.U, self.V)
+        return lonp, latp, zp, ttend, self.grid, self.T0, self.U, self.V
 

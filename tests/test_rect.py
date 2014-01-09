@@ -20,6 +20,9 @@ grid_filename = os.path.join('input', 'grid.nc')
 time_units = 'seconds since 1970-01-01'
 num_layers = 3
 
+def test_2dtransport():
+
+    pass
 
 def test_run_2d():
     """
@@ -73,7 +76,7 @@ def test_run_2d():
                 N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units)
     # tp._readgrid()
 
-    lonp, latp, zp, t, grd = tracpy.run.run(tp, date, lon0, lat0)
+    lonp, latp, zp, t, grd, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
 
     ## check the results:
     print lonp.shape
