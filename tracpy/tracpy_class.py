@@ -142,7 +142,7 @@ class Tracpy(object):
         else:
             self.grid = tracpy.inout.readgrid(self.currents_filename)
 
-    def prepareForSimulation(self, date, lon0, lat0):
+    def prepare_for_model_run(self, date, lon0, lat0):
         '''
         Get everything ready so that we can get to the simulation.
 

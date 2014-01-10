@@ -12,10 +12,10 @@ from datetime import datetime, timedelta
 import time
 from matplotlib.mlab import *
 import inout
-#import init
 import plotting
 import tools
 from scipy import ndimage
+from tracpy.time_class import Time
 
 def run(tp, date, lon0, lat0):
 # def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, 
@@ -104,11 +104,12 @@ def run(tp, date, lon0, lat0):
     U, V  (optional) Array aggregating volume transports as drifters move [imt-1,jmt], [imt,jmt-1]
     '''
 
-    tic_start = time.time()
-    tic_initial = time.time()
+    timer = Time() # start timer for simulation
 
     # Initialize everything for a simulation
-    tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
+    tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag = tp.prepare_for_model_run(date, lon0, lat0)
+
+    timer.addtime('1: Preparing for simulation   ')
 
     # Loop through model outputs. tinds is in proper order for moving forward
     # or backward in time, I think.
@@ -118,6 +119,8 @@ def run(tp, date, lon0, lat0):
 
         xstart, ystart, zstart = tp.prepare_for_model_step(tinds[j+1], nc, flag, xend, yend, zend, j)
         ind = (flag[:] == 0) # indices where the drifters are still inside the domain
+
+        timer.addtime('2: Preparing for model step   ')
 
         if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
             break
@@ -129,15 +132,30 @@ def run(tp, date, lon0, lat0):
             flag[ind],\
             ttend_temp, U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart)
 
+        timer.addtime('3: Stepping, using TRACMASS   ')
+
         xend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
             yend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
             zend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
             zp[ind,j*tp.N+1:j*tp.N+tp.N+1], \
             ttend[ind,j*tp.N+1:j*tp.N+tp.N+1] = tp.model_step_is_done(xend_temp, yend_temp, zend_temp, ttend_temp, ttend[ind,j*tp.N])
 
+        timer.addtime('4: Processing after model step')
+
     nc.close()
 
     lonp, latp, zp, ttend, grid, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
+
+    timer.addtime('5: Processing after simulation')
+
+    print "============================================="
+    print ""
+    print "Simulation name: ", tp.name
+    print ""
+    print "============================================="
+
+    timer.write()
+
     return lonp, latp, zp, ttend, grid, T0, U, V
 
 
