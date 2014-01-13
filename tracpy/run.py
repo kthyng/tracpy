@@ -141,8 +141,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
     # Do z a little lower down
 
     # Initialize seed locations 
-    ia = np.ceil(xstart0) #[253]#,525]
-    ja = np.ceil(ystart0) #[57]#,40]
+    ia = np.ceil(xstart0)
+    ja = np.ceil(ystart0)
 
     # don't use nan's
     # pdb.set_trace()
@@ -160,9 +160,6 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
     yend = np.ones((ia.size,(len(tinds)-1)*N))*np.nan
     zend = np.ones((ia.size,(len(tinds)-1)*N))*np.nan
     zp = np.ones((ia.size,(len(tinds)-1)*N))*np.nan
-    iend = np.ones((ia.size,(len(tinds)-1)*N))*np.nan
-    jend = np.ones((ia.size,(len(tinds)-1)*N))*np.nan
-    kend = np.ones((ia.size,(len(tinds)-1)*N))*np.nan
     ttend = np.ones((ia.size,(len(tinds)-1)*N))*np.nan
     t = np.zeros(((len(tinds)-1)*N+1))
     flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
@@ -224,6 +221,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
         #       # Then find the vertical relative position in the grid cell by adding on the bit of grid cell
         #       zstart0[i] = ka[i] - abs(z0[i]-zwtnew[ia[i],ja[i],ka[i]]) \
         #                           /abs(zwtnew[ia[i],ja[i],ka[i]-1]-zwtnew[ia[i],ja[i],ka[i]])
+
+    del(ia,ja,ka)
 
     # Find initial cell depths to concatenate to beginning of drifter tracks later
     zsave = tools.interpolate3d(xstart0, ystart0, zstart0, zwtnew)
@@ -312,9 +311,6 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                 xend[ind,j*N:j*N+N],\
                     yend[ind,j*N:j*N+N],\
                     zend[ind,j*N:j*N+N],\
-                    iend[ind,j*N:j*N+N],\
-                    jend[ind,j*N:j*N+N],\
-                    kend[ind,j*N:j*N+N],\
                     flag[ind],\
                     ttend[ind,j*N:j*N+N], U, V = \
                         tracmass.step(np.ma.compressed(xstart),
@@ -331,9 +327,6 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                 xend[ind,j*N:j*N+N],\
                     yend[ind,j*N:j*N+N],\
                     zend[ind,j*N:j*N+N], \
-                    iend[ind,j*N:j*N+N],\
-                    jend[ind,j*N:j*N+N],\
-                    kend[ind,j*N:j*N+N],\
                     flag[ind],\
                     ttend[ind,j*N:j*N+N], _, _ = \
                         tracmass.step(np.ma.compressed(xstart),
