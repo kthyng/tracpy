@@ -916,6 +916,7 @@ def save_ll2grid(name, grid, loc=None):
 
     # Convert to grid coords
     x, y, dt = tracpy.tools.interpolate2d(lonp, latp, grid, 'd_ll2ij')
+    del(lonp, latp, grid)
     print dt
 
     if 'loc' in d.variables:
