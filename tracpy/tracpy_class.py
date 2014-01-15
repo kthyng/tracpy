@@ -196,7 +196,6 @@ class Tracpy(object):
         # jend = np.ones((ia.size,(len(tinds)-1)*self.N))*np.nan
         # kend = np.ones((ia.size,(len(tinds)-1)*self.N))*np.nan
         ttend = np.zeros((ia.size,(len(tinds)-1)*self.N+1))
-        t = np.zeros(((len(tinds)-1)*self.N+1))
         flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
         # Initialize vertical stuff and fluxes
@@ -315,7 +314,7 @@ class Tracpy(object):
 
         # def initialize_time(self):
 
-        return tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag
+        return tinds, nc, t0save, xend, yend, zend, zp, ttend, flag
 
     def prepare_for_model_step(self, tind, nc, flag, xend, yend, zend, j):
         '''
@@ -350,7 +349,7 @@ class Tracpy(object):
 
         return xstart, ystart, zstart
 
-    def step(self, j, tstart, xstart, ystart, zstart):
+    def step(self, xstart, ystart, zstart):
         '''
         Take some number of steps between a start and end time.
         FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES

@@ -107,7 +107,7 @@ def run(tp, date, lon0, lat0):
     timer = Time() # start timer for simulation
 
     # Initialize everything for a simulation
-    tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag = tp.prepare_for_model_run(date, lon0, lat0)
+    tinds, nc, t0save, xend, yend, zend, zp, ttend, flag = tp.prepare_for_model_run(date, lon0, lat0)
 
     timer.addtime('1: Preparing for simulation   ')
 
@@ -130,7 +130,7 @@ def run(tp, date, lon0, lat0):
             yend_temp,\
             zend_temp,\
             flag[ind],\
-            ttend_temp, U, V = tp.step(j, ttend[ind,j*tp.N], xstart, ystart, zstart)
+            ttend_temp, U, V = tp.step(xstart, ystart, zstart)
 
         timer.addtime('3: Stepping, using TRACMASS   ')
 
