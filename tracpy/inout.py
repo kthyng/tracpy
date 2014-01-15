@@ -894,7 +894,7 @@ def loadtransport(name,fmod=None):
 
     return U, V, lon0, lat0, T0
 
-def save_ll2grid(name, grid):
+def save_ll2grid(name, grid, loc=None):
     '''
     Input drifter tracks from saved file in grid coordinates and save a new file with
     drifter tracks in lat/lon instead.
@@ -902,7 +902,11 @@ def save_ll2grid(name, grid):
     Example usage:
      loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc' # TXLA model/grid output location
      grid = tracpy.inout.readgrid(loc)
-     tracpy.inout.save_ll2grid([trackfile], grid)
+     tracpy.inout.save_ll2grid([trackfile], grid, loc=loc)
+
+     Note that [trackfile] should be the name of the drifter tracks files, including .nc extension,
+     and any location prefix after 'tracks/'
+     Note: input a loc value if the drifter files do not have it saved (those run on hafen, for example)
     '''
 
     # load in tracks
@@ -914,25 +918,33 @@ def save_ll2grid(name, grid):
     x, y, dt = tracpy.tools.interpolate2d(lonp, latp, grid, 'd_ll2ij')
     print dt
 
+    if 'loc' in d.variables:
+        loc = d.variables['loc'][:]
+    else:
+        print 'will use input loc value for saving to file'
+
+
     # save new file
     # transport calculation included
     if 'Uin' in d.variables:
         if d.variables['do3d'][:]:
             savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name.split('/')[1][:-3] + 'gc', d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
-                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], 
+                        d.variables['do3d'][:], d.variables['doturb'][:], loc, 
                         d.variables['T0'][:], d.variables['Uin'][:], d.variables['Vin'][:], savell=False)
         else: # have to input something for z but it won't be saved
             savetracks(x, y, y, d.variables['tp'][:], name.split('/')[1][:-3] + 'gc', d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
-                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], 
+                        d.variables['do3d'][:], d.variables['doturb'][:], loc, 
                         d.variables['T0'][:], d.variables['Uin'][:], d.variables['Vin'][:], savell=False)
     else:
         if d.variables['do3d'][:]:
             savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name.split('/')[1][:-3] + 'gc', d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
-                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], savell=False)
+                        d.variables['do3d'][:], d.variables['doturb'][:], loc, savell=False)
         else: # have to input something for z but it won't be saved
             savetracks(x, y, y, d.variables['tp'][:], name.split('/')[1][:-3] + 'gc', d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
-                        d.variables['do3d'][:], d.variables['doturb'][:], d.variables['loc'][:], savell=False)
+                        d.variables['do3d'][:], d.variables['doturb'][:], loc, savell=False)
+
+    d.close()
