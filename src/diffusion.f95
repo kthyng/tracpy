@@ -57,8 +57,8 @@ tryAgain = .FALSE.
 if(ib>1 .AND. ib<imt .AND. jb>1 .AND. jb<jmt .AND. km>=kb .AND. kb>=1 ) then
     tryAgain = .TRUE.
 else
-    print *,'outside model domain in diffusion',ib,jb,km,kb
-!     print *,'outside model domain in diffusion',ib,jb,km+1-kmt(ib,jb),kb
+!     print *,'outside model domain in diffusion',ib,jb,km,kb
+! !     print *,'outside model domain in diffusion',ib,jb,km+1-kmt(ib,jb),kb
 end if
   
 itno=0

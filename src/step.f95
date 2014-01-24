@@ -529,7 +529,7 @@ ntracLoop: do ntrac=1,ntractot
         ! Do we want to keep the drifters at the edges if they have exited? Or change to nan's?
         if(x1<=1.d0 .or. x1>=imt-1 .or. y1<=1.d0 .or. y1>=jmt-1) then
 !         if(x1<=2.d0 .or. x1>=imt-2.d0 .or. y1<=2.d0 .or. y1>=jmt-2.d0) then
-            print *, 'Stopping trajectory due to domain'
+!             print *, 'Stopping trajectory due to domain'
 !             print *, 'x1=',x1,' y1=',y1
             if(x1<=1.d0) x1=1.d0
             if(x1>=imt-1) x1=dble(imt-1)
