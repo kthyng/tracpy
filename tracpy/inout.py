@@ -689,12 +689,20 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     # Can't save variables over 2GB without special format:
     # http://www.ncl.ucar.edu/Support/talk_archives/2011/0599.html
     # rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_CLASSIC')
-    # Hoping that this format will both allow large variables and aggregation
-    rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_64BIT')
+    # # Hoping that this format will both allow large variables and aggregation
+    # rootgrp = netCDF.Dataset('tracks/' + name + '.nc','w',format='NETCDF3_64BIT')
+    # Really useful netCDF4 resource: 
+    # http://www.unidata.ucar.edu/software/netcdf/workshops/2012/netcdf_python/netcdf4python.pdf
+    # Looks like I might still be able to use MFDataset (with netCDF4_CLASSIC files)
+    # Apply compression at the createVariable stage with zlib
+    # Info about classic: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf/NetCDF_002d4-Classic-Model-Format.html
+    # Looks like I might be able to use this, still use MFDataset, have large variables, and compress too
+    # 4-Classic can still only have 1 unlimited dimension
+    rootgrp = netCDF.Dataset('tracks/' + name + '.nc', 'w', format='NETCDF4_CLASSIC')
 
     # Define dimensions
-    rootgrp.createDimension('ntrac',ntrac)
-    rootgrp.createDimension('nt',nt)
+    rootgrp.createDimension('ntrac', ntrac)
+    rootgrp.createDimension('nt', nt)
     # pdb.set_trace()
     if Uin is not None:
         xul = Uin.shape[0]
@@ -709,7 +717,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     # Do the rest of this by variable so they can be deleted as I go for memory.
     if savell: # if saving in latlon
         # Create variable
-        lonp = rootgrp.createVariable('lonp','f8',('ntrac','nt')) # 64-bit floating point
+        lonp = rootgrp.createVariable('lonp','f8',('ntrac','nt'), zlib=True) # 64-bit floating point, with lossless compression
         # Set some attributes
         lonp.long_name = 'longitudinal position of drifter'
         lonp.units = 'degrees'
@@ -719,7 +727,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
         # Delete to save space
         del(xin)
 
-        latp = rootgrp.createVariable('latp','f8',('ntrac','nt')) # 64-bit floating point
+        latp = rootgrp.createVariable('latp','f8',('ntrac','nt'), zlib=True) # 64-bit floating point, with lossless compression
         latp.long_name = 'latitudinal position of drifter'
         latp.units = 'degrees'
         latp.time = 'tp'
@@ -727,7 +735,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
         del(yin)
     else: # then saving in grid coordinates
         # Create variable
-        xg = rootgrp.createVariable('xg','f8',('ntrac','nt')) # 64-bit floating point
+        xg = rootgrp.createVariable('xg','f8',('ntrac','nt'), zlib=True) # 64-bit floating point, with lossless compression
         # Set some attributes
         xg.long_name = 'x grid position of drifter'
         xg.units = 'grid units'
@@ -737,7 +745,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
         # Delete to save space
         del(xin)
 
-        yg = rootgrp.createVariable('yg','f8',('ntrac','nt')) # 64-bit floating point
+        yg = rootgrp.createVariable('yg','f8',('ntrac','nt'), zlib=True) # 64-bit floating point, with lossless compression
         yg.long_name = 'y grid position of drifter'
         yg.units = 'grid units'
         yg.time = 'tp'
@@ -746,7 +754,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
 
 
     if do3din:
-        zp = rootgrp.createVariable('zp','f8',('ntrac','nt')) # 64-bit floating point
+        zp = rootgrp.createVariable('zp','f8',('ntrac','nt'), zlib=True) # 64-bit floating point, with lossless compression
         zp.long_name = 'vertical position of drifter (negative is downward from surface)'
         zp.units = 'meter'
         zp.time = 'tp'
@@ -755,16 +763,16 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     else:
         del(zpin)
 
-    tp = rootgrp.createVariable('tp','f8',('nt')) # 64-bit floating point
+    tp = rootgrp.createVariable('tp','f8',('nt'), zlib=True) # 64-bit floating point, with lossless compression
     tp.long_name = 'time at drifter locations'
     tp.units = 'seconds since 1970-01-01 00:00:00'
     tp[:] = tpin
     del(tpin)
 
     if Uin is not None:
-        T0 = rootgrp.createVariable('T0','f8',('ntrac')) # 64-bit floating point
-        U = rootgrp.createVariable('U','f8',('xul','yul')) # 64-bit floating point
-        V = rootgrp.createVariable('V','f8',('xvl','yvl')) # 64-bit floating point
+        T0 = rootgrp.createVariable('T0','f8',('ntrac'), zlib=True) # 64-bit floating point, with lossless compression
+        U = rootgrp.createVariable('U','f8',('xul','yul'), zlib=True) # 64-bit floating point, with lossless compression
+        V = rootgrp.createVariable('V','f8',('xvl','yvl'), zlib=True) # 64-bit floating point, with lossless compression
         T0.long_name = 'Initial volume transport associated with each drifter'
         U.long_name = 'Aggregation of x volume transports of drifters'
         V.long_name = 'Aggregation of y volume transports of drifters'
