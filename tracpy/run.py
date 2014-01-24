@@ -423,16 +423,23 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
     if dostream:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, N, ff, tseas_use, ah, av, \
                             do3d, doturb, loc, T0, U, V)
+
+        toc_save = time.time()
+
+        savetime = toc_save-tic_save
+        print "\tSave time: \t\t%4.2f" % (savetime)
+
         return lonp, latp, zp, t, grid, T0, U, V
     else:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, N, ff, tseas_use, ah, av, \
                             do3d, doturb, loc)
+
+        toc_save = time.time()
+
+        savetime = toc_save-tic_save
+        print "\tSave time: \t\t%4.2f" % (savetime)
+
         return lonp, latp, zp, t, grid
-
-    toc_save = time.time()
-
-    savetime = toc_save-tic_save
-    print "\tSave time: \t\t%4.2f" % (savetime)
 
 # def start_run():
 #     '''
