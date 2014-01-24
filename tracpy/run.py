@@ -417,6 +417,8 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
     print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
     print "============================================="
 
+    tic_save = time.time()
+
     # Save results to netcdf file
     if dostream:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, N, ff, tseas_use, ah, av, \
@@ -426,6 +428,11 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
         inout.savetracks(lonp, latp, zp, t, name, nsteps, N, ff, tseas_use, ah, av, \
                             do3d, doturb, loc)
         return lonp, latp, zp, t, grid
+
+    toc_save = time.time()
+
+    savetime = toc_save-tic_save
+    print "\tSave time: \t\t%4.2f" % (savetime)
 
 # def start_run():
 #     '''
