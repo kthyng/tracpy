@@ -20,7 +20,7 @@ from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, 
         zpar, do3d, doturb, name, grid=None, dostream=0, N=1, 
-        T0=None, U=None, V=None, zparuv=None, tseas_use=None):
+        T0=None, U=None, V=None, zparuv=None, tseas_use=None, savell=True):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -87,6 +87,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                  (tseas). Should be >= tseas since this is just an ability to use model output at less 
                  frequency than is available, probably just for testing purposes or matching other models.
                  Should to be a multiple of tseas (or will be rounded later).
+    savell      (True) True to save drifter tracks in lon/lat and False to save them in grid coords
     xp          x-locations in x,y coordinates for drifters
     yp          y-locations in x,y coordinates for drifters
     zp          z-locations (depths from mean sea level) for drifters
@@ -380,17 +381,12 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
     # Concatenate zp with initial real space positions
     zp=np.concatenate((zsave[0].reshape(zstart0.size,1),zp),axis=1)
 
-    # Delaunay interpolation
-    # xp, yp, dt = tools.interpolate(xg,yg,grid,'d_ij2xy')
-    # lonp, latp, dt = tools.interpolation(xg,yg,grid,'d_ij2ll')
-
-    ## map coordinates interpolation
-    # xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
-    # tic = time.time()
-    lonp, latp, dt = tools.interpolate2d(xg,yg,grid,'m_ij2ll',mode='constant',cval=np.nan)
-    # print '2d interp time=', time.time()-tic
-
-    # pdb.set_trace()
+    ## map coordinates interpolation if saving tracks as lon/lat
+    if savell:
+        lonp, latp, dt = tools.interpolate2d(xg, yg, grid, 'm_ij2ll', mode='constant', cval=np.nan)
+    else:
+        # rename grid index locations as lon/lat to fit in with save syntax below
+        lonp = xg; latp = yg;
 
     runtime = time.time()-tic_start
 
@@ -422,7 +418,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
     # Save results to netcdf file
     if dostream:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, N, ff, tseas_use, ah, av, \
-                            do3d, doturb, loc, T0, U, V)
+                            do3d, doturb, loc, T0, U, V, savell=savell)
 
         toc_save = time.time()
 
@@ -432,7 +428,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
         return lonp, latp, zp, t, grid, T0, U, V
     else:
         inout.savetracks(lonp, latp, zp, t, name, nsteps, N, ff, tseas_use, ah, av, \
-                            do3d, doturb, loc)
+                            do3d, doturb, loc, savell=savell)
 
         toc_save = time.time()
 
@@ -440,23 +436,3 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
         print "\tSave time: \t\t%4.2f" % (savetime)
 
         return lonp, latp, zp, t, grid
-
-# def start_run():
-#     '''
-#     Choose what initialization from above and then run.
-#     '''
-
-#     # Choose which initialization to use
-#     loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name = init.test1()
-
-#     # Run tracmass!
-#     lonp,latp,zp,t,grid = run(loc,nsteps,ndays,ff,date,tseas,ah,av,lon0,lat0,z0,zpar,do3d,doturb,name)
-
-#     # pdb.set_trace()
-
-#     # Plot tracks
-#     plotting.tracks(lonp,latp,name,grid=grid)
-
-#     # Plot final location (by time index) histogram
-#     plotting.hist(lonp,latp,name,grid=grid,which='contour')
-#     plotting.hist(lonp,latp,name,grid=grid,which='pcolor')  
