@@ -698,7 +698,8 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     # Info about classic: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf/NetCDF_002d4-Classic-Model-Format.html
     # Looks like I might be able to use this, still use MFDataset, have large variables, and compress too
     # 4-Classic can still only have 1 unlimited dimension
-    rootgrp = netCDF.Dataset('tracks/' + name + '.nc', 'w', format='NETCDF4_CLASSIC')
+    rootgrp = netCDF.Dataset('tracks/' + name + '.nc', 'w', format='NETCDF4')
+    # rootgrp = netCDF.Dataset('tracks/' + name + '.nc', 'w', format='NETCDF4_CLASSIC')
 
     # Define dimensions
     rootgrp.createDimension('ntrac', ntrac)
