@@ -64,7 +64,7 @@ class Tracpy(object):
         self.nsteps = nsteps
         self.ndays = ndays
         self.ff = ff
-        self.tseas = tseas
+        self.tseas = float(tseas)
         self.ah = ah
         self.av = av
         self.z0 = z0
@@ -95,7 +95,13 @@ class Tracpy(object):
             # If using dtFromTracmass, N=1, for steps between tracmass exits
             self.N = 1
             # # If using dtFromTracmass, N is set according to that.
-            # self.N = (self.ndays*3600*24.)/self.tseas # this is the total number of steps
+            # self.N = (self.ndays*3600*24.)/self.tseas # this is the total number of model_step_is_done
+            self.dtFromTracmass = dtFromTracmass
+
+        # Find number of interior loop steps in case dtFromTracmass is not equal to tseas
+        # NEEDS TO BE EVEN NUMBER FOR NOW: NEED TO GENERALIZE THIS LATER
+        self.nsubsteps = int(self.tseas/self.dtFromTracmass)
+
         if zparuv is None:
             self.zparuv = zpar
         if tseas_use is None:
@@ -316,7 +322,7 @@ class Tracpy(object):
 
         return tinds, nc, t0save, xend, yend, zend, zp, ttend, flag
 
-    def prepare_for_model_step(self, tind, nc, flag, xend, yend, zend, j):
+    def prepare_for_model_step(self, tind, nc, flag, xend, yend, zend, j, nsubstep):
         '''
         Already in a step, get ready to actually do step
         '''
@@ -343,13 +349,29 @@ class Tracpy(object):
         else: # 3d case
             self.uf[:,:,:,1],self.vf[:,:,:,1],self.dzt[:,:,:,1],self.zrt[:,:,:,1],self.zwt[:,:,:,1] = tracpy.inout.readfields(tind, self.grid, nc)
 
+        # Find the fluxes of the immediately bounding range for the desired time step, which can be less than 1 model output
+        # SHOULD THIS BE PART OF SELF TOO? Leave uf and vf as is, though, because they may be used for interpolating the
+        # input fluxes for substeps.
+        ufsub = np.ones(self.uf.shape)*np.nan
+        vfsub = np.ones(self.vf.shape)*np.nan
+        # for earlier bounding flux info
+        rp = nsubstep/self.nsubsteps # weighting for later time step
+        rm = 1 - rp # timing for earlier time step
+        ufsub[:,:,:,0] = rm*self.uf[:,:,:,0] + rp*self.uf[:,:,:,1]
+        vfsub[:,:,:,0] = rm*self.vf[:,:,:,0] + rp*self.vf[:,:,:,1]
+        # for later bounding flux info
+        rp = (nsubstep+1)/self.nsubsteps # weighting for later time step
+        rm = 1 - rp # timing for earlier time step
+        ufsub[:,:,:,1] = rm*self.uf[:,:,:,0] + rp*self.uf[:,:,:,1]
+        vfsub[:,:,:,1] = rm*self.vf[:,:,:,0] + rp*self.vf[:,:,:,1]
+
         # Change the horizontal indices from python to fortran indexing 
         # (vertical are zero-based in tracmass)
         xstart, ystart = tracpy.tools.convert_indices('py2f',xstart,ystart)
 
-        return xstart, ystart, zstart
+        return xstart, ystart, zstart, ufsub, vfsub
 
-    def step(self, xstart, ystart, zstart):
+    def step(self, xstart, ystart, zstart, ufsub, vfsub):
         '''
         Take some number of steps between a start and end time.
         FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES
@@ -366,7 +388,7 @@ class Tracpy(object):
                 tracmass.step(np.ma.compressed(xstart),
                                 np.ma.compressed(ystart),
                                 np.ma.compressed(zstart),
-                                self.tseas_use, self.uf, self.vf, self.ff, 
+                                self.tseas_use, ufsub, vfsub, self.ff, 
                                 self.grid['kmt'].astype(int), 
                                 self.dzt, self.grid['dxdy'], self.grid['dxv'], 
                                 self.grid['dyu'], self.grid['h'], self.nsteps, 

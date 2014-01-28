@@ -117,30 +117,33 @@ def run(tp, date, lon0, lat0):
 
         print j
 
-        xstart, ystart, zstart = tp.prepare_for_model_step(tinds[j+1], nc, flag, xend, yend, zend, j)
-        ind = (flag[:] == 0) # indices where the drifters are still inside the domain
+        # Loop through substeps in call to TRACMASS in case we want to add on windage, etc, for each step
+        for nsubstep in xrange(tp.nsubsteps):
 
-        timer.addtime('2: Preparing for model step   ')
+            xstart, ystart, zstart, ufsub, vfsub = tp.prepare_for_model_step(tinds[j+1], nc, flag, xend, yend, zend, j, nsubstep)
+            ind = (flag[:] == 0) # indices where the drifters are still inside the domain
 
-        if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
-            break
+            timer.addtime('2: Preparing for model step   ')
 
-        # Do stepping in Tracpy class
-        xend_temp,\
-            yend_temp,\
-            zend_temp,\
-            flag[ind],\
-            ttend_temp, U, V = tp.step(xstart, ystart, zstart)
+            if not np.ma.compressed(xstart).any(): # exit if all of the drifters have exited the domain
+                break
 
-        timer.addtime('3: Stepping, using TRACMASS   ')
+            # Do stepping in Tracpy class
+            xend_temp,\
+                yend_temp,\
+                zend_temp,\
+                flag[ind],\
+                ttend_temp, U, V = tp.step(xstart, ystart, zstart, ufsub, vfsub)
 
-        xend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
-            yend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
-            zend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
-            zp[ind,j*tp.N+1:j*tp.N+tp.N+1], \
-            ttend[ind,j*tp.N+1:j*tp.N+tp.N+1] = tp.model_step_is_done(xend_temp, yend_temp, zend_temp, ttend_temp, ttend[ind,j*tp.N])
+            timer.addtime('3: Stepping, using TRACMASS   ')
 
-        timer.addtime('4: Processing after model step')
+            xend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+                yend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+                zend[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+                zp[ind,j*tp.N+1:j*tp.N+tp.N+1], \
+                ttend[ind,j*tp.N+1:j*tp.N+tp.N+1] = tp.model_step_is_done(xend_temp, yend_temp, zend_temp, ttend_temp, ttend[ind,j*tp.N])
+
+            timer.addtime('4: Processing after model step')
 
     nc.close()
 

@@ -53,6 +53,9 @@ def test_run_2d():
     # Controls the sampling frequency of the drifter tracks.
     N = 4
 
+    # This allows the user to call to TRACMASS for a different period of time than between 2 model outputs
+    dtFromTracmass = tseas/2. # Just testing to try new loop, should have same behavior as before
+
     # Use ff = 1 for forward in time and ff = -1 for backward in time.
     ff = 1 # will work for ff=1 or ff=-1 since checks by distance traveled
 
@@ -73,7 +76,8 @@ def test_run_2d():
 
     # Initialize Tracpy class
     tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas, ndays=ndays, nsteps=nsteps,
-                N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units)
+                N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units,
+                dtFromTracmass=dtFromTracmass)
     # tp._readgrid()
 
     lonp, latp, zp, t, grd, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
