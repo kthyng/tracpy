@@ -22,7 +22,8 @@ import netCDF4 as netCDF
 import tools
 
 def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, -80), 
-                hlevs=np.hstack(([10,20],np.arange(50,500,50))), col='lightgrey', fig=None):
+                hlevs=np.hstack(([10,20],np.arange(50,500,50))), 
+                col='lightgrey', fig=None, outline=True):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
@@ -55,11 +56,12 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
     ax.contour(grid['xr'], grid['yr'], grid['h'], hlevs, 
                             colors=col, linewidths=0.5)
 
-    # Outline numerical domain
-    ax.plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
-    ax.plot(grid['xr'][-1,:], grid['yr'][-1,:], 'k:')
-    ax.plot(grid['xr'][:,0], grid['yr'][:,0], 'k:')
-    ax.plot(grid['xr'][:,-1], grid['yr'][:,-1], 'k:')
+    if outline:
+        # Outline numerical domain
+        ax.plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
+        ax.plot(grid['xr'][-1,:], grid['yr'][-1,:], 'k:')
+        ax.plot(grid['xr'][:,0], grid['yr'][:,0], 'k:')
+        ax.plot(grid['xr'][:,-1], grid['yr'][:,-1], 'k:')
 
 
 def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, ax=None, \
