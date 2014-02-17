@@ -23,7 +23,8 @@ import tools
 
 def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, -80), 
                 hlevs=np.hstack(([10,20],np.arange(50,500,50))), 
-                col='lightgrey', fig=None, outline=True):
+                col='lightgrey', fig=None, outline=True, merslabels=[0, 0, 0, 1],
+                parslabels=[1, 0, 0, 0]):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
@@ -49,9 +50,9 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
     grid['basemap'].drawcoastlines(ax=ax)
     grid['basemap'].fillcontinents('0.8',ax=ax)
     grid['basemap'].drawparallels(pars, dashes=(1, 1), 
-                            linewidth=0.15, labels=[1, 0, 0, 0], ax=ax)
+                            linewidth=0.15, labels=parslabels, ax=ax)
     grid['basemap'].drawmeridians(mers, dashes=(1, 1), 
-                            linewidth=0.15, labels=[0, 0, 0, 1], ax=ax)
+                            linewidth=0.15, labels=merslabels, ax=ax)
     # hold('on')
     ax.contour(grid['xr'], grid['yr'], grid['h'], hlevs, 
                             colors=col, linewidths=0.5)
@@ -66,7 +67,7 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
 
 def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, ax=None, \
             bins=(40,40), N=10, grid=None, xlims=None, ylims=None, C=None, Title=None,
-            weights=None, Label='Final drifter location (%)'):
+            weights=None, Label='Final drifter location (%)', isll=True):
     """
     Plot histogram of given track data at time index tind.
 
@@ -86,6 +87,8 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, 
         grid        (optional) grid as read in by inout.readgrid()
         xlims       (optional) value limits on the x axis
         ylims       (optional) value limits on the y axis
+        isll        Default True. Inputs are in lon/lat. If False, assume they 
+                    are in projected coords.
 
     Note: Currently assuming we are plotting the final location 
     of each drifter regardless of tind.
@@ -95,12 +98,16 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, 
         loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
         grid = inout.readgrid(loc)
 
-    # Change positions from lon/lat to x/y
-    xp, yp = grid['basemap'](lonp, latp)
-    # Need to retain nan's since basemap changes them to values
-    ind = np.isnan(lonp)
-    xp[ind] = np.nan
-    yp[ind] = np.nan
+    if isll: # if inputs are in lon/lat, change to projected x/y
+        # Change positions from lon/lat to x/y
+        xp, yp = grid['basemap'](lonp, latp)
+        # Need to retain nan's since basemap changes them to values
+        ind = np.isnan(lonp)
+        xp[ind] = np.nan
+        yp[ind] = np.nan
+    else:
+        xp = lonp
+        yp = latp
 
     if fig is None:
         fig = figure(figsize=(11,10))
@@ -214,8 +221,8 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, 
         else:
             C = C*np.ones(len(xpc))*100
         hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0], 
-                extent=(grid['xr'].min(), grid['xr'].max(), 
-                grid['yr'].min(), grid['yr'].max()), 
+                extent=(grid['xpsi'].min(), grid['xpsi'].max(), 
+                grid['ypsi'].min(), grid['ypsi'].max()), 
                 reduce_C_function=sum, vmax=vmax, axes=ax)
 
         # Set x and y limits

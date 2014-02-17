@@ -941,22 +941,22 @@ def save_ll2grid(name, grid, loc=None):
     # transport calculation included
     if 'U' in d.variables:
         if d.variables['do3d'][:]:
-            savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name.split('/')[1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
+            savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name.split('/')[-1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
                         d.variables['do3d'][:], d.variables['doturb'][:], loc, 
                         d.variables['T0'][:], d.variables['U'][:], d.variables['V'][:], savell=False)
         else: # have to input something for z but it won't be saved
-            savetracks(x, y, y, d.variables['tp'][:], name.split('/')[1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
+            savetracks(x, y, y, d.variables['tp'][:], name.split('/')[-1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
                         d.variables['do3d'][:], d.variables['doturb'][:], loc, 
                         d.variables['T0'][:], d.variables['U'][:], d.variables['V'][:], savell=False)
     else:
         if d.variables['do3d'][:]:
-            savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name.split('/')[1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
+            savetracks(x, y, d.variables['zp'][:], d.variables['tp'][:], name.split('/')[-1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
                         d.variables['do3d'][:], d.variables['doturb'][:], loc, savell=False)
         else: # have to input something for z but it won't be saved
-            savetracks(x, y, y, d.variables['tp'][:], name.split('/')[1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
+            savetracks(x, y, y, d.variables['tp'][:], name.split('/')[-1][:-3], d.variables['nsteps'][:], d.variables['N'][:],
                         d.variables['ff'][:], d.variables['tseas'][:], d.variables['ah'][:], d.variables['av'][:], 
                         d.variables['do3d'][:], d.variables['doturb'][:], loc, savell=False)
 
