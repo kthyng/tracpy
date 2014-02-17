@@ -67,7 +67,7 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
 
 def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, ax=None, \
             bins=(40,40), N=10, grid=None, xlims=None, ylims=None, C=None, Title=None,
-            weights=None, Label='Final drifter location (%)', isll=True):
+            weights=None, Label='Final drifter location (%)', isll=True, scale='linear'):
     """
     Plot histogram of given track data at time index tind.
 
@@ -223,7 +223,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, 
         hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0], 
                 extent=(grid['xpsi'].min(), grid['xpsi'].max(), 
                 grid['ypsi'].min(), grid['ypsi'].max()), 
-                reduce_C_function=sum, vmax=vmax, axes=ax)
+                reduce_C_function=sum, vmax=vmax, axes=ax, scale=scale)
 
         # Set x and y limits
         # pdb.set_trace()
