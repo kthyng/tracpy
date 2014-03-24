@@ -101,7 +101,7 @@ def Var(xp, yp, tp, varin, nc):
                                     xp.flatten()]), \
                                     order=1, \
                                     mode='nearest').reshape(xp.shape)
-    print 'time for finding ' + var + ': ', time.time()-tstart
+    # print 'time for finding ' + var + ': ', time.time()-tstart
 
     return varp
 
