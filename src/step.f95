@@ -513,7 +513,50 @@ ntracLoop: do ntrac=1,ntractot
         endif
         !         nout=nout+1 ! number of trajectories that have exited the space and time domain
 
+        ! === Optional periodic boundary conditions ===
+        ! If activated, a drifter is moved from the appropriate domain edge and 
+        ! wrapped around to the other side of the domain.
         ! === end trajectory if outside chosen domain ===
+        ! Note that these are combined with checking for drifters having exited the
+        ! domain since if using doperiodic in a direction, it cannot exit.
+        ! KMT: Need to have one value in the positive direction from drifter cell
+        ! for calculations, hence the -1's
+        if(x1<=1.d0) then ! at west end of domain
+            if(doperiodic=='x') then ! using periodic boundary conditions
+                x1 = dble(imt-1) ! place drifter at the east end of the domain
+            else ! not using periodic boundary conditions
+                x1 = 1.d0
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        else if(x1>=imt-1) then ! at east end of domain
+            if(doperiodic=='x') then ! using periodic boundary conditions
+                x1 = 1.d0 ! place drifter at the west end of the domain
+            else ! not using periodic boundary conditions
+                x1 = dble(imt-1)
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        else if(y1<=1.d0) then ! at south end of domain
+            if(doperiodic=='y') then ! using periodic boundary conditions
+                y1 = dble(imt-1) ! place drifter at the north end of the domain
+            else ! not using periodic boundary conditions
+                y1 = 1.d0
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        else if(y1>=jmt-1) then ! at north end of domain
+            if(doperiodic=='y') then ! using periodic boundary conditions
+                y1 = 1.d0 ! place drifter at the south end of the domain
+            else ! not using periodic boundary conditions
+                y1 = dble(jmt-1)
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        endif
+
+
+
 
 !  print *,'ja=',ja,' jb=',jb,x1,y1
 
@@ -522,22 +565,6 @@ ntracLoop: do ntrac=1,ntractot
 !                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
 !             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
 !                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
-
-        ! Need to add other conditions to this. Checking to see if drifter has exited domain.
-        ! KMT: Need to have one value in the positive direction from drifter cell
-        ! for calculations, hence the -1's
-        ! Do we want to keep the drifters at the edges if they have exited? Or change to nan's?
-        if(x1<=1.d0 .or. x1>=imt-1 .or. y1<=1.d0 .or. y1>=jmt-1) then
-!         if(x1<=2.d0 .or. x1>=imt-2.d0 .or. y1<=2.d0 .or. y1>=jmt-2.d0) then
-!             print *, 'Stopping trajectory due to domain'
-!             print *, 'x1=',x1,' y1=',y1
-            if(x1<=1.d0) x1=1.d0
-            if(x1>=imt-1) x1=dble(imt-1)
-            if(y1<=1.d0) y1=1.d0
-            if(y1>=jmt-1) y1=dble(jmt-1)
-            flag(ntrac) = 1
-            exit niterLoop
-        endif
 
         ! If drifter is on a grid cell wall, add/subtract its initial volume
         ! transport to the appropriate grid cells
