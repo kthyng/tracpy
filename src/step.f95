@@ -1,7 +1,7 @@
 SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,flag,ttend, &
-                & iter,ah,av,do3d,doturb, dostream, N, T0, &
+                & iter,ah,av,do3d,doturb, doperiodic, dostream, N, T0, &
                 & ut, vt)
 
 !============================================================================
@@ -46,6 +46,10 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                   : doturb=1 means adding parameterized turbulence
 !                   : doturb=2 means adding diffusion on a circle
 !                   : doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+!    doperiodic     : Whether to use periodic boundary conditions for drifters and, if so, on which walls.
+!                   : 0: do not use periodic boundary conditions
+!                   : 1: use a periodic boundary condition in the east-west/x/i direction
+!                   : 2: use a periodic boundary condition in the north-south/y/j direction
 !    dostream       : Either calculate (dostream=1) or don't (dostream=0) the
 !                     Lagrangian stream function variables.
 !    N              : The number of samplings of the drifter tracks will be N+1 total.
@@ -120,7 +124,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 implicit none
 
 integer,    intent(in)                                  :: ff, imt, jmt, km, ntractot, iter
-integer,    intent(in)                                  :: do3d, doturb, dostream, N
+integer,    intent(in)                                  :: do3d, doturb, doperiodic, dostream, N
 integer,    intent(in),     dimension(imt,jmt)          :: kmt
 real*8,     intent(in),     dimension(imt-1,jmt)        :: dyu
 real*8,     intent(in),     dimension(imt,jmt-1)        :: dxv
@@ -132,7 +136,7 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
-real*8,     intent(out),    dimension(ntractot,N)    :: xend, yend, zend, ttend
+real*8,     intent(out),    dimension(ntractot,N)       :: xend, yend, zend, ttend
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
@@ -522,7 +526,7 @@ ntracLoop: do ntrac=1,ntractot
         ! KMT: Need to have one value in the positive direction from drifter cell
         ! for calculations, hence the -1's
         if(x1<=1.d0) then ! at west end of domain
-            if(doperiodic=='x') then ! using periodic boundary conditions
+            if(doperiodic==1) then ! using periodic boundary conditions
                 x1 = dble(imt-1) ! place drifter at the east end of the domain
             else ! not using periodic boundary conditions
                 x1 = 1.d0
@@ -530,7 +534,7 @@ ntracLoop: do ntrac=1,ntractot
                 exit niterLoop
             endif
         else if(x1>=imt-1) then ! at east end of domain
-            if(doperiodic=='x') then ! using periodic boundary conditions
+            if(doperiodic==1) then ! using periodic boundary conditions
                 x1 = 1.d0 ! place drifter at the west end of the domain
             else ! not using periodic boundary conditions
                 x1 = dble(imt-1)
@@ -538,7 +542,7 @@ ntracLoop: do ntrac=1,ntractot
                 exit niterLoop
             endif
         else if(y1<=1.d0) then ! at south end of domain
-            if(doperiodic=='y') then ! using periodic boundary conditions
+            if(doperiodic==2) then ! using periodic boundary conditions
                 y1 = dble(imt-1) ! place drifter at the north end of the domain
             else ! not using periodic boundary conditions
                 y1 = 1.d0
@@ -546,7 +550,7 @@ ntracLoop: do ntrac=1,ntractot
                 exit niterLoop
             endif
         else if(y1>=jmt-1) then ! at north end of domain
-            if(doperiodic=='y') then ! using periodic boundary conditions
+            if(doperiodic==2) then ! using periodic boundary conditions
                 y1 = 1.d0 ! place drifter at the south end of the domain
             else ! not using periodic boundary conditions
                 y1 = dble(jmt-1)
