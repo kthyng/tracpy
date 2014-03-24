@@ -523,11 +523,11 @@ ntracLoop: do ntrac=1,ntractot
         ! === end trajectory if outside chosen domain ===
         ! Note that these are combined with checking for drifters having exited the
         ! domain since if using doperiodic in a direction, it cannot exit.
-        ! KMT: Need to have one value in the positive direction from drifter cell
-        ! for calculations, hence the -1's
+        ! Also note that I don't think drifters can actually have values outside the box [1,imt-1,1,jmt-1]
         if(x1<=1.d0) then ! at west end of domain
             if(doperiodic==1) then ! using periodic boundary conditions
                 x1 = dble(imt-1) ! place drifter at the east end of the domain
+                ib = idint(x1)+1 ! need to update grid index too
             else ! not using periodic boundary conditions
                 x1 = 1.d0
                 flag(ntrac) = 1
@@ -536,6 +536,7 @@ ntracLoop: do ntrac=1,ntractot
         else if(x1>=imt-1) then ! at east end of domain
             if(doperiodic==1) then ! using periodic boundary conditions
                 x1 = 1.d0 ! place drifter at the west end of the domain
+                ib = idint(x1)+1 ! need to update grid index too
             else ! not using periodic boundary conditions
                 x1 = dble(imt-1)
                 flag(ntrac) = 1
@@ -544,6 +545,7 @@ ntracLoop: do ntrac=1,ntractot
         else if(y1<=1.d0) then ! at south end of domain
             if(doperiodic==2) then ! using periodic boundary conditions
                 y1 = dble(imt-1) ! place drifter at the north end of the domain
+                jb = idint(y1)+1 ! need to update grid index too
             else ! not using periodic boundary conditions
                 y1 = 1.d0
                 flag(ntrac) = 1
@@ -552,6 +554,7 @@ ntracLoop: do ntrac=1,ntractot
         else if(y1>=jmt-1) then ! at north end of domain
             if(doperiodic==2) then ! using periodic boundary conditions
                 y1 = 1.d0 ! place drifter at the south end of the domain
+                jb = idint(y1)+1 ! need to update grid index too
             else ! not using periodic boundary conditions
                 y1 = dble(jmt-1)
                 flag(ntrac) = 1
