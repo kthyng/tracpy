@@ -20,7 +20,8 @@ from scipy import ndimage
 
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, 
         zpar, do3d, doturb, name, grid=None, dostream=0, N=1, 
-        T0=None, U=None, V=None, zparuv=None, tseas_use=None, savell=True):
+        T0=None, U=None, V=None, zparuv=None, tseas_use=None, savell=True,
+        doperiodic=0):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -88,6 +89,11 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                  frequency than is available, probably just for testing purposes or matching other models.
                  Should to be a multiple of tseas (or will be rounded later).
     savell      (True) True to save drifter tracks in lon/lat and False to save them in grid coords
+    doperiodic  (0) Whether to use periodic boundary conditions for drifters and, if so, on which walls.
+                0: do not use periodic boundary conditions
+                1: use a periodic boundary condition in the east-west/x/i direction
+                2: use a periodic boundary condition in the north-south/y/j direction
+
     xp          x-locations in x,y coordinates for drifters
     yp          y-locations in x,y coordinates for drifters
     zp          z-locations (depths from mean sea level) for drifters
@@ -321,7 +327,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                                         grid['kmt'].astype(int), 
                                         dzt, grid['dxdy'], grid['dxv'], 
                                         grid['dyu'], grid['h'], nsteps, 
-                                        ah, av, do3d, doturb, dostream, N, 
+                                        ah, av, do3d, doturb, doperiodic, dostream, N, 
                                         t0=T0[ind],
                                         ut=U, vt=V)
             else: # don't calculate Lagrangian stream functions
@@ -337,7 +343,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                                         grid['kmt'].astype(int), 
                                         dzt, grid['dxdy'], grid['dxv'], 
                                         grid['dyu'], grid['h'], nsteps, 
-                                        ah, av, do3d, doturb, dostream, N)
+                                        ah, av, do3d, doturb, doperiodic, dostream, N)
             toc_tracmass[j] = time.time()
             # pdb.set_trace()
 

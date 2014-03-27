@@ -1,7 +1,7 @@
 SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
                 & ntractot,xend,yend,zend,flag,ttend, &
-                & iter,ah,av,do3d,doturb, dostream, N, T0, &
+                & iter,ah,av,do3d,doturb, doperiodic, dostream, N, T0, &
                 & ut, vt)
 
 !============================================================================
@@ -46,6 +46,10 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                   : doturb=1 means adding parameterized turbulence
 !                   : doturb=2 means adding diffusion on a circle
 !                   : doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+!    doperiodic     : Whether to use periodic boundary conditions for drifters and, if so, on which walls.
+!                   : 0: do not use periodic boundary conditions
+!                   : 1: use a periodic boundary condition in the east-west/x/i direction
+!                   : 2: use a periodic boundary condition in the north-south/y/j direction
 !    dostream       : Either calculate (dostream=1) or don't (dostream=0) the
 !                     Lagrangian stream function variables.
 !    N              : The number of samplings of the drifter tracks will be N+1 total.
@@ -120,7 +124,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 implicit none
 
 integer,    intent(in)                                  :: ff, imt, jmt, km, ntractot, iter
-integer,    intent(in)                                  :: do3d, doturb, dostream, N
+integer,    intent(in)                                  :: do3d, doturb, doperiodic, dostream, N
 integer,    intent(in),     dimension(imt,jmt)          :: kmt
 real*8,     intent(in),     dimension(imt-1,jmt)        :: dyu
 real*8,     intent(in),     dimension(imt,jmt-1)        :: dxv
@@ -132,7 +136,7 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
-real*8,     intent(out),    dimension(ntractot,N)    :: xend, yend, zend, ttend
+real*8,     intent(out),    dimension(ntractot,N)       :: xend, yend, zend, ttend
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
@@ -513,7 +517,53 @@ ntracLoop: do ntrac=1,ntractot
         endif
         !         nout=nout+1 ! number of trajectories that have exited the space and time domain
 
+        ! === Optional periodic boundary conditions ===
+        ! If activated, a drifter is moved from the appropriate domain edge and 
+        ! wrapped around to the other side of the domain.
         ! === end trajectory if outside chosen domain ===
+        ! Note that these are combined with checking for drifters having exited the
+        ! domain since if using doperiodic in a direction, it cannot exit.
+        ! Also note that I don't think drifters can actually have values outside the box [1,imt-1,1,jmt-1]
+        if(x1<=1.d0) then ! at west end of domain
+            if(doperiodic==1) then ! using periodic boundary conditions
+                x1 = dble(imt-1) ! place drifter at the east end of the domain
+                ib = idint(x1)+1 ! need to update grid index too
+            else ! not using periodic boundary conditions
+                x1 = 1.d0
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        else if(x1>=imt-1) then ! at east end of domain
+            if(doperiodic==1) then ! using periodic boundary conditions
+                x1 = 1.d0 ! place drifter at the west end of the domain
+                ib = idint(x1)+1 ! need to update grid index too
+            else ! not using periodic boundary conditions
+                x1 = dble(imt-1)
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        else if(y1<=1.d0) then ! at south end of domain
+            if(doperiodic==2) then ! using periodic boundary conditions
+                y1 = dble(imt-1) ! place drifter at the north end of the domain
+                jb = idint(y1)+1 ! need to update grid index too
+            else ! not using periodic boundary conditions
+                y1 = 1.d0
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        else if(y1>=jmt-1) then ! at north end of domain
+            if(doperiodic==2) then ! using periodic boundary conditions
+                y1 = 1.d0 ! place drifter at the south end of the domain
+                jb = idint(y1)+1 ! need to update grid index too
+            else ! not using periodic boundary conditions
+                y1 = dble(jmt-1)
+                flag(ntrac) = 1
+                exit niterLoop
+            endif
+        endif
+
+
+
 
 !  print *,'ja=',ja,' jb=',jb,x1,y1
 
@@ -522,22 +572,6 @@ ntracLoop: do ntrac=1,ntractot
 !                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
 !             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
 !                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
-
-        ! Need to add other conditions to this. Checking to see if drifter has exited domain.
-        ! KMT: Need to have one value in the positive direction from drifter cell
-        ! for calculations, hence the -1's
-        ! Do we want to keep the drifters at the edges if they have exited? Or change to nan's?
-        if(x1<=1.d0 .or. x1>=imt-1 .or. y1<=1.d0 .or. y1>=jmt-1) then
-!         if(x1<=2.d0 .or. x1>=imt-2.d0 .or. y1<=2.d0 .or. y1>=jmt-2.d0) then
-!             print *, 'Stopping trajectory due to domain'
-!             print *, 'x1=',x1,' y1=',y1
-            if(x1<=1.d0) x1=1.d0
-            if(x1>=imt-1) x1=dble(imt-1)
-            if(y1<=1.d0) y1=1.d0
-            if(y1>=jmt-1) y1=dble(jmt-1)
-            flag(ntrac) = 1
-            exit niterLoop
-        endif
 
         ! If drifter is on a grid cell wall, add/subtract its initial volume
         ! transport to the appropriate grid cells
