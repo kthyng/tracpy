@@ -584,3 +584,141 @@ def moment4(xp, M1):
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
     # pdb.set_trace()
     return M4, nnans
+
+
+def calc_fsle(lonpc, latpc, lonp, latp, tp, alpha=np.sqrt(2)):
+    '''
+    Calculate the FSLE of tracks lonp, latp as directly compared with
+    the tracks described by lonpc, latpc. The two sets of tracks are already assumed to 
+    be a pair. 
+
+    Inputs:
+        lonpc, latpc    Longitude/latitude of the control drifter tracks [ndrifter,ntime]
+        lonp, latp      Longitude/latitude of the drifter tracks [ndrifter,ntime]
+        tp              Times associated with the location info of both drifters
+        alpha           Multiplicative factor in FSLE calculation. Default alpha=sqrt(2).
+
+    Outputs:
+        dSave           Distances between drifters when the time is saved
+        tSave           Times between drifters right after subsequent separation distances
+                        are surpassed. Times are not averaged here.
+
+    To combine with other calculations of FSLE, combine the times from many pairs, then
+    divide by the number of non-nan entries to average.
+    '''
+ 
+    dist = get_dist(lonpc, lonp, latpc, latp) # in km
+    dist = dist[np.newaxis,:]
+
+    # distances increasing with factor alpha
+    Rs = np.asarray([np.array([0.7])*alpha**i for i in np.arange(20)]) # in km
+
+    # times at the relevant distances
+    #tSave = tp[idist] # in datetime representation
+    from datetime import datetime
+    units = 'seconds since 1970-01-01'
+    t0 = netCDF.date2num(datetime(2009,10,1,0,0), units)
+    tshift = (tp-t0)
+
+    # # The distances right after passing Rs values
+    # dist[0,(dist>=Rs).argmax(axis=1)]
+    # Indices of where in dist the first entries are that are
+    # just bigger than the Rs
+    idist = (dist>=Rs).argmax(axis=1)
+    # Indices of entries that don't count
+    ind = find(idist==0)
+    indtemp = ind!=0
+    ind = ind[indtemp] # don't want to skip first zero if it is there
+    # distances at the relevant distances (including ones we don't want at the end)
+    dSave = dist[0][idist]
+    tSave = tshift[idist] # in seconds
+    # Eliminate bad entries, but skip first since that 0 value should be there
+    dSave[ind] = np.nan
+    tSave[ind] = np.nan
+    tSave[1:] = np.diff(tSave)
+    tSave[0] = 0
+    return dSave, tSave/(3600.*24) # tSave in days
+
+def run_fsle(Files):
+    '''
+    Run FSLE calculation
+    '''
+
+    loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
+    grid = tracpy.inout.readgrid(loc)
+
+    # Files = glob('tracks/doturb0_ah0/*.nc')
+    # Files = glob('tracks/doturb1_ah20/*.nc')
+    # Files = glob('tracks/doturb2_ah5/*.nc')
+
+    for File in Files:
+
+        fname = File[:-3] + 'fsle.npz'
+
+        # if os.path.exists(fname): # don't redo if already done
+        #     continue
+
+        if 'gc' in File: # output is in grid coords
+            d = netCDF.Dataset(File)
+            xg = d.variables['xg'][:]
+            yg = d.variables['yg'][:]
+            tp = d.variables['tp'][:]
+            d.close()
+
+        else: # output in lat/lon
+            d = netCDF.Dataset(File)
+            lonp = d.variables['lonp'][:]
+            latp = d.variables['latp'][:]
+            tp = d.variables['tp'][:]
+            d.close()
+
+        lonp, latp, _ = tracpy.tools.interpolate2d(xg, yg, grid, 'm_ij2ll')
+
+        # let the index in axis 0 be the drifter id
+        ID = np.arange(lonp.shape[0])
+
+        # save pairs to save time since they are always the same
+        if not os.path.exists('tracks/pairs.npz'):
+
+            dist = np.zeros((lonp.shape[0],lonp.shape[0]))
+            for idrifter in xrange(lonp.shape[0]):
+                # dist contains all of the distances from other drifters for each drifter
+                dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
+            pairs = []
+            for idrifter in xrange(lonp.shape[0]):
+                ind = find(dist[idrifter,:]<=1)
+                for i in ind:
+                    if ID[idrifter] != ID[i]:
+                        pairs.append([min(ID[idrifter], ID[i]), 
+                                        max(ID[idrifter], ID[i])])
+
+            pairs_set = set(map(tuple,pairs))
+            pairs = map(list,pairs_set)# now pairs has only unique pairs of drifters
+            pairs.sort() #unnecessary but handy for checking work
+            np.savez('tracks/pairs.npz', pairs=pairs)
+        else:
+            pairs = np.load('tracks/pairs.npz')['pairs']
+
+        # pdb.set_trace()
+
+
+        # Loop over pairs of drifters from this area/time period and sum the FSLE, 
+        # then average at the end
+
+        dSave = np.zeros(20)
+        tSave = np.zeros(20)
+        nnans = np.zeros(20) # to collect number of non-nans over all drifters for a time
+        for ipair in xrange(len(pairs)):
+
+            dSavetemp, tSavetemp = calc_fsle(lonp[pairs[ipair][0],:], latp[pairs[ipair][0],:], 
+                                        lonp[pairs[ipair][1],:], latp[pairs[ipair][1],:], tp)
+            ind = ~np.isnan(tSavetemp)
+            dSave[ind] += dSavetemp[ind]
+            tSave[ind] += tSavetemp[ind]
+            nnans[ind] += 1
+            # fsle += fsletemp
+            # nnans += nnanstemp
+
+        # Save fsle for each file/area combination, NOT averaged
+        np.savez(fname, dSave=dSave, tSave=tSave, nnans=nnans)
+        print 'saved file', fname
