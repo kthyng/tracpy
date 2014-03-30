@@ -21,7 +21,7 @@ from scipy import ndimage
 def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0, 
         zpar, do3d, doturb, name, grid=None, dostream=0, N=1, 
         T0=None, U=None, V=None, zparuv=None, tseas_use=None, savell=True,
-        doperiodic=0):
+        doperiodic=0, units='seconds since 1970-01-01'):
     '''
 
     To re-compile tracmass fortran code, type "make clean" and "make f2py", which will give 
@@ -93,6 +93,7 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
                 0: do not use periodic boundary conditions
                 1: use a periodic boundary condition in the east-west/x/i direction
                 2: use a periodic boundary condition in the north-south/y/j direction
+    units       ('seconds since 1970-01-01') Units for time conversion with netCDF.num2date and .date2num
 
     xp          x-locations in x,y coordinates for drifters
     yp          y-locations in x,y coordinates for drifters
@@ -111,9 +112,6 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
 
     tic_start = time.time()
     tic_initial = time.time()
-
-    # Units for time conversion with netCDF.num2date and .date2num
-    units = 'seconds since 1970-01-01'
 
     # If tseas_use isn't set, use all available model output
     if tseas_use is None:
