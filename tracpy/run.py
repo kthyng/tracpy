@@ -124,11 +124,11 @@ def run(loc, nsteps, ndays, ff, date, tseas, ah, av, lon0, lat0, z0,
     # Adding one index so that all necessary indices are captured by this number.
     # Then the run loop uses only the indices determined by tout instead of needing
     # an extra one beyond
-    tout = np.int((ndays*(24*3600))/tseas + 1)
+    tout = np.int(np.ceil((ndays*(24*3600))/tseas + 1))
 
     # Calculate time outputs stride. Will be 1 if want to use all model output.
     tstride = int(tseas_use/tseas) # will round down
-    # pdb.set_trace()
+
     # Convert date to number
     date = netCDF.date2num(date, units)
 
