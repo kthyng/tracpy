@@ -67,7 +67,7 @@ def test_prepareForSimulation():
     lat0 = [48.55, 48.75]
     tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'), grid_filename=os.path.join(here, 'input', 'grid.nc'))
 
-    tinds, nc, t0save, xend, yend, zend, zp, ttend, t, flag = tp.prepareForSimulation(date, lon0, lat0)
+    tinds, nc, t0save, xend, yend, zend, zp, ttend, flag = tp.prepare_for_model_run(date, lon0, lat0)
 
     assert True
 
