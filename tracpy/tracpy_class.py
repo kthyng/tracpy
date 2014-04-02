@@ -25,7 +25,7 @@ class Tracpy(object):
     def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
                 time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
-                T0=None, U=None, V=None):
+                T0=None, U=None, V=None, usebasemap=False):
         '''
         Initialize class.
 
@@ -54,6 +54,7 @@ class Tracpy(object):
         :param T0=None: Volume transport represented by each drifter. for use with dostream=1.
         :param U=None: east-west transport, is updated by TRACMASS. Only used if dostream=1.
         :param V=None: north-south transport, is updated by TRACMASS. Only used if dostream=1.
+        :param usebasemap=False: whether to use basemap for projections in readgrid or not. Not is faster, but using basemap allows for plotting.
         '''
 
         self.currents_filename = currents_filename
@@ -78,6 +79,7 @@ class Tracpy(object):
         self.T0 = T0
         self.U = U
         self.V = V
+        self.usebasemap = usebasemap
 
         # if loopsteps is None and nsteps is not None:
         #     # Use nsteps in TRACMASS and have inner loop collapse
@@ -139,14 +141,13 @@ class Tracpy(object):
         '''
 
         # BREAK UP READGRID INTO SMALLER FUNCTIONS LATER
-        # LOOK AT TIMING AGAIN (why is grid so slow) LATER
 
         # if vertical grid information is not included in the grid file, or if all grid info
         # is not in output file, use two
         if self.grid_filename is not None:
-            self.grid = tracpy.inout.readgrid(self.grid_filename, vert_filename=self.currents_filename)
+            self.grid = tracpy.inout.readgrid(self.grid_filename, vert_filename=self.currents_filename, usebasemap=self.usebasemap)
         else:
-            self.grid = tracpy.inout.readgrid(self.currents_filename)
+            self.grid = tracpy.inout.readgrid(self.currents_filename, usebasemap=self.usebasemap)
 
     def prepare_for_model_run(self, date, lon0, lat0):
         '''

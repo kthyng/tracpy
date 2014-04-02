@@ -17,7 +17,6 @@ import numpy as np
 from datetime import datetime, timedelta
 import pdb
 # from mpl_toolkits.basemap import Basemap
-from pyproj import Proj
 from matplotlib import delaunay
 import octant
 import time
@@ -149,7 +148,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     return nc, tinds
 
 def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
-            urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i'):
+            urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i', usebasemap=False):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -167,6 +166,8 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
                     is stored, if not in grid_loc. Can also skip this if don't need 
                     vertical grid info.
      also optional basemap box parameters. Default is for full shelf model.
+     usebasemap          (False) Whether to use load basemap into grid (True) or pyproj (False).
+                    Basemap is slower but can be used for plotting, and pyproj is the opposite.
 
 
     Output:
@@ -214,26 +215,30 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection='lcc'
     lat_0=lat_0; lon_0=lon_0; resolution=res; area_thresh=0.
     # pdb.set_trace()
-    # this gives somewhat different differences between projected coordinates as compared with previous basemap
-    # definition for the default values.
-    basemap = Proj(proj='lcc', lat_1=llcrnrlat, lat_2=urcrnrlat, lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,ellps='clrk66',datum='NAD27')
-    # basemap = (proj='lcc',lat_1=44.33333333333334,lat_2=46,lat_0=43.66666666666666, lon_0=-120.5,x_0=609601.2192024384, y_0=0,ellps='clrk66',datum='NAD27')
-    # basemap = Proj("+proj=lcc +lat_0=lat_0 +lon_0=lon_0")
-                    # +x_0=1700000 \
-                    # +y_0=300000 \
-                    # +no_defs \
-                    # +a=6378137 \
-                    # +rf=298.257222101 \
-                    # +to_meter=1")
-    # basemap = Basemap(llcrnrlon=llcrnrlon,
-    #              llcrnrlat=llcrnrlat,
-    #              urcrnrlon=urcrnrlon,
-    #              urcrnrlat=urcrnrlat,
-    #              projection=projection,
-    #              lat_0=lat_0,
-    #              lon_0=lon_0,
-    #              resolution=resolution,
-    #              area_thresh=area_thresh)
+    if usebasemap:
+        from mpl_toolkits.basemap import Basemap
+        basemap = Basemap(llcrnrlon=llcrnrlon,
+                     llcrnrlat=llcrnrlat,
+                     urcrnrlon=urcrnrlon,
+                     urcrnrlat=urcrnrlat,
+                     projection=projection,
+                     lat_0=lat_0,
+                     lon_0=lon_0,
+                     resolution=resolution,
+                     area_thresh=area_thresh)
+    else:
+        from pyproj import Proj
+        # this gives somewhat different differences between projected coordinates as compared with previous basemap
+        # definition for the default values.
+        basemap = Proj(proj='lcc', lat_1=llcrnrlat, lat_2=urcrnrlat, lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,ellps='clrk66',datum='NAD27')
+        # basemap = (proj='lcc',lat_1=44.33333333333334,lat_2=46,lat_0=43.66666666666666, lon_0=-120.5,x_0=609601.2192024384, y_0=0,ellps='clrk66',datum='NAD27')
+        # basemap = Proj("+proj=lcc +lat_0=lat_0 +lon_0=lon_0")
+                        # +x_0=1700000 \
+                        # +y_0=300000 \
+                        # +no_defs \
+                        # +a=6378137 \
+                        # +rf=298.257222101 \
+                        # +to_meter=1")
     if keeptime: 
         basemaptime = time.time()
         print "basemap time ", basemaptime - starttime
