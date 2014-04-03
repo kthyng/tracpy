@@ -85,9 +85,8 @@ class Tracpy(object):
         self.U = U
         self.V = V
         self.usebasemap = usebasemap
-        self.savell = savelee
+        self.savell = savell
         self.doperiodic = doperiodic
-        self.units = units
 
         # if loopsteps is None and nsteps is not None:
         #     # Use nsteps in TRACMASS and have inner loop collapse

@@ -138,12 +138,8 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
-<<<<<<< HEAD
 real*8,     intent(out),    dimension(ntractot,N)       :: xend, yend, zend, ttend
-=======
-real*8,     intent(out),    dimension(ntractot,N)    :: xend, yend, zend, ttend
 ! integer,    intent(out),    dimension(ntractot,N)    :: iend, jend, kend
->>>>>>> tracpy_class
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
