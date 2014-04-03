@@ -27,7 +27,7 @@ or
 
 ## To test the code
 
-1. After making changes to the code, you can do some basic functionality testing with `py.test` or `nosetests` in the main TracPy directory.
+1. After making changes to the code, you can do some basic functionality testing with `py.test` or `nosetests` in the `tests` subdirectory.
 
 
 ## To learn more about the module TracPy
