@@ -2,11 +2,6 @@
 
 '''
 TracPy class
-HAVE THINGS THAT ARE THE SAME FOR EACH STEP IN GNOME BE STORED IN 
-THIS CLASS
-* flush this out
-* (keep adding tests)
-* see where to put this into tracpy_mover.py
 '''
 
 import tracpy
@@ -29,37 +24,79 @@ class Tracpy(object):
         '''
         Initialize class.
 
-        :param currents_filename: NetCDF file name (with extension) or OpenDAP url.
-        :param grid_filename=None: NetCDF grid file name or OpenDAP url.
-        :param nsteps=1: number of linearly interpolated steps between model outputs.
-        :param ndays=1: number of run days
+        Note: GCM==General Circulation Model, meaning the predicted u/v velocity fields that are input 
+        into TracPy to run the drifters.
+
+        :param currents_filename: NetCDF file name (with extension) or OpenDAP url to GCM output.
+        :param grid_filename=None: NetCDF grid file name or OpenDAP url to GCM grid.
+        :param nsteps=1: sets the max time step between GCM model outputs between drifter steps.
+               (iter in TRACMASS) Does not control the output sampling anymore.
+               The velocity fields are assumed frozen while a drifter is stepped through a given 
+               grid cell. nsteps can force the reinterpolation of the fields by setting the max 
+               time before reinterpolation.
+        :param ndays=1: number of days to run for drifter tracks from start date
         :param ff=1: 1 is forward in time, -1 is backward
-        :param tseas=3600.: number of seconds between model outputs
-        :param ah=0.: horizontal diffusivity, in m^2/s
-        :param av=0.: vertical diffusivity, in m^2/s
+        :param tseas=3600.: number of seconds between GCM model outputs
+        :param ah=0.: horizontal diffusivity, in m^2/s. Only used if doturb !=0.
+        :param av=0.: vertical diffusivity, in m^2/s. Only used if doturb !=0 and do3d==1.
         :param z0='s': string flag in 2D case or array of initial z locations in 3D case
         :param zpar=1: isoslice value to in 2D case or string flag in 3D case
+               For 3D drifter movement, use do3d=1, and z0 should be an array of initial drifter depths. 
+               The array should be the same size as lon0 and be negative
+               for under water. Currently drifter depths need to be above 
+               the seabed for every x,y particle location for the script to run.
+               To do 3D but start at surface, use z0=zeros(ia.shape) and have
+                either zpar='fromMSL'
+               choose fromMSL to have z0 starting depths be for that depth below the base 
+               time-independent sea level (or mean sea level).
+               choose 'fromZeta' to have z0 starting depths be for that depth below the
+               time-dependent sea surface. Haven't quite finished the 'fromZeta' case.
+               For 2D drifter movement, turn on twodim flag in makefile.
+               Then: 
+               set z0 to 's' for 2D along a terrain-following slice
+                and zpar to be the index of s level you want to use (0 to km-1)
+               set z0 to 'rho' for 2D along a density surface
+                and zpar to be the density value you want to use
+                Can do the same thing with salinity ('salt') or temperature ('temp')
+                The model output doesn't currently have density though.
+               set z0 to 'z' for 2D along a depth slice
+                and zpar to be the constant (negative) depth value you want to use
+               To simulate drifters at the surface, set z0 to 's' 
+                and zpar = grid['km']-1 to put them in the upper s level
         :param do3d=0: 1 for 3D or 0 for 2D
-        :param doturb=0: 0 for no added diffusion, 1 for diffusion vs velocity fluctuation, 2/3 for diffusion via random walk (3 for aligned with isobaths)
+        :param doturb=0: 0 for no added diffusion, 1 for diffusion via velocity fluctuation, 
+               2/3 for diffusion via random walk (3 for aligned with isobaths)
         :param name='test': name for output
         :param dostream=0: 1 to calculate transport for lagrangian stream functions, 0 to not
-        :param N=None: number of steps between model outputs for outputting drifter locations. Defaults to output at nsteps. 
-            If dtFromTracmass is being used, N is set by that.
-        :param time_units='seconds since 1970-01-01': Reference for time, for changing between numerical times and datetime format
-        :param dtFromTracmass=None: Time period for exiting from TRACMASS. If uninitialized, this is set to tseas 
-            so that it only exits TRACMASS when it has gone through a full model output. If initialized by the user, 
-            TRACMASS will run for 1 time step of length dtFromTracmass before exiting to the loop.
-        :param zparuv=None: Defaults to zpar. Use this if the k index for the model output fields (e.g, u, v) is different from the k index in the grid
-        :param tseas_use=None: Defaults to tseas. Desired time between outputs in seconds, as opposed to the actual time between outputs (tseas)
+        :param N=None: number of steps between GCM model outputs for outputting drifter locations. 
+               Defaults to output at nsteps. 
+               If dtFromTracmass is being used, N is set by that.
+        :param time_units='seconds since 1970-01-01': Reference for time, for changing between 
+               numerical times and datetime format
+        :param dtFromTracmass=None: Time period for exiting from TRACMASS. If uninitialized, 
+               this is set to tseas so that it only exits TRACMASS when it has gone through a 
+               full model output. If initialized by the user, TRACMASS will run for 1 time 
+               step of length dtFromTracmass before exiting to the loop.
+        :param zparuv=None: Defaults to zpar. Use this if the k index for the model output fields 
+               (e.g, u, v) is different from the k index in the grid This might happen if, for 
+               example, only the surface current were saved, but the model run originally did 
+               have many layers. This parameter represents the k index for the u and v output, 
+               not for the grid.
+        :param tseas_use=None: Defaults to tseas. Desired time between outputs in seconds, 
+               as opposed to the actual time between outputs (tseas). Should be >= tseas since 
+               this is just an ability to use model output at less frequency than is available, 
+               probably just for testing purposes or matching other models. Should be a multiple 
+               of tseas (or will be rounded later).
         :param T0=None: Volume transport represented by each drifter. for use with dostream=1.
         :param U=None: east-west transport, is updated by TRACMASS. Only used if dostream=1.
         :param V=None: north-south transport, is updated by TRACMASS. Only used if dostream=1.
-        :param usebasemap=False: whether to use basemap for projections in readgrid or not. Not is faster, but using basemap allows for plotting.
+        :param usebasemap=False: whether to use basemap for projections in readgrid or not. 
+               Not is faster, but using basemap allows for plotting.
         :param savell=True: True to save drifter tracks in lon/lat and False to save them in grid coords
         :param doperiodic=0: Whether to use periodic boundary conditions for drifters and, if so, on which walls.
-                0: do not use periodic boundary conditions
-                1: use a periodic boundary condition in the east-west/x/i direction
-                2: use a periodic boundary condition in the north-south/y/j direction
+               0: do not use periodic boundary conditions
+               1: use a periodic boundary condition in the east-west/x/i direction
+               2: use a periodic boundary condition in the north-south/y/j direction
         '''
 
         self.currents_filename = currents_filename
@@ -147,8 +184,6 @@ class Tracpy(object):
         '''
         Read in horizontal and vertical grid.
         '''
-
-        # BREAK UP READGRID INTO SMALLER FUNCTIONS LATER
 
         # if vertical grid information is not included in the grid file, or if all grid info
         # is not in output file, use two
@@ -314,21 +349,6 @@ class Tracpy(object):
         yend[:,0] = ystart0
         zend[:,0] = zstart0
 
-        # toc_initial = time.time()
-
-        # # j = 0 # index for number of saved steps for drifters
-        # tic_read = np.zeros(len(tinds))
-        # toc_read = np.zeros(len(tinds))
-        # tic_zinterp = np.zeros(len(tinds))
-        # toc_zinterp = np.zeros(len(tinds))
-        # tic_tracmass = np.zeros(len(tinds))
-        # toc_tracmass = np.zeros(len(tinds))
-        # pdb.set_trace()
-        # xr3 = self.grid['xr'].reshape((self.grid['xr'].shape[0],self.grid['xr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
-        # yr3 = self.grid['yr'].reshape((self.grid['yr'].shape[0],self.grid['yr'].shape[1],1)).repeat(zwtnew.shape[2],axis=2)
-
-        # def initialize_time(self):
-
         return tinds, nc, t0save, xend, yend, zend, zp, ttend, flag
 
     def prepare_for_model_step(self, tind, nc, flag, xend, yend, zend, j, nsubstep):
@@ -391,7 +411,6 @@ class Tracpy(object):
 
         # Figure out where in time we are 
 
-        # tic_tracmass[j] = time.time()
         xend, yend, zend, flag,\
             ttend, U, V = \
                 tracmass.step(np.ma.compressed(xstart),
@@ -405,8 +424,6 @@ class Tracpy(object):
                                 self.doperiodic, self.dostream, self.N, 
                                 t0=self.T0,
                                 ut=self.U, vt=self.V)
-        # toc_tracmass[j] = time.time()
-        # pdb.set_trace()
 
         # return the new positions or the delta lat/lon
         return xend, yend, zend, flag, ttend, U, V
@@ -424,7 +441,7 @@ class Tracpy(object):
 
         # Skip calculating real z position if we are doing surface-only drifters anyway
         if self.z0 != 's' and self.zpar != self.grid['km']-1:
-            # tic_zinterp[j] = time.time()
+
             # Calculate real z position
             r = np.linspace(1./self.N,1,self.N) # linear time interpolation constant that is used in tracmass
 
@@ -433,7 +450,6 @@ class Tracpy(object):
                 # pdb.set_trace()
                 zwt = (1.-r[n])*self.zwt[:,:,:,0] + r[n]*self.zwt[:,:,:,1]
                 zp, dt = tools.interpolate3d(xend, yend, zend, zwt)
-            # toc_zinterp[j] = time.time()
         else:
             zp = zend
 
@@ -443,15 +459,10 @@ class Tracpy(object):
     def finishSimulation(self, ttend, t0save, xend, yend, zp):
         '''
         Wrap up simulation.
-        FILL IN
         NOT DOING TRANSPORT YET
         '''
 
         ttend = ttend + t0save # add back in base time in seconds
-
-        ## map coordinates interpolation
-        # xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
-        # tic = time.time()
 
         ## map coordinates interpolation if saving tracks as lon/lat
         if self.savell:
@@ -460,39 +471,11 @@ class Tracpy(object):
             # rename grid index locations as lon/lat to fit in with save syntax below
             lonp = xg; latp = yg;
 
-        # print '2d interp time=', time.time()-tic
-        # pdb.set_trace()
-
-        # runtime = time.time()-tic_start
-
-
-        # print "============================================="
-        # print ""
-        # print "Simulation name: ", self.name
-        # print ""
-        # print "============================================="
-        # print "run time:\t\t\t", runtime
-        # print "---------------------------------------------"
-        # print "Time spent on:"
-
-        # initialtime = toc_initial-tic_initial
-        # print "\tInitial stuff: \t\t%4.2f (%4.2f%%)" % (initialtime, (initialtime/runtime)*100)
-
-        # readtime = np.sum(toc_read-tic_read)
-        # print "\tReading in fields: \t%4.2f (%4.2f%%)" % (readtime, (readtime/runtime)*100)
-
-        # zinterptime = np.sum(toc_zinterp-tic_zinterp)
-        # print "\tZ interpolation: \t%4.2f (%4.2f%%)" % (zinterptime, (zinterptime/runtime)*100)
-
-        # tractime = np.sum(toc_tracmass-tic_tracmass)
-        # print "\tTracmass: \t\t%4.2f (%4.2f%%)" % (tractime, (tractime/runtime)*100)
-        # print "============================================="
-
         # Save results to netcdf file
         tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, 
                             self.tseas_use, self.ah, self.av,
                             self.do3d, self.doturb, self.currents_filename, 
                             self.doperiodic, self.time_units, self.T0, self.U, 
                             self.V, savell=self.savell)
-        return lonp, latp, zp, ttend, self.grid, self.T0, self.U, self.V
 
+        return lonp, latp, zp, ttend, self.grid, self.T0, self.U, self.V
