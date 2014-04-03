@@ -5,7 +5,8 @@ Some basic tests of tracpy, using the simple rectangle input
 """
 
 import tracpy
-
+import tracpy.calcs
+from tracpy.tracpy_class import Tracpy
 import os
 import time
 import datetime
@@ -19,21 +20,22 @@ grid_filename = os.path.join('input', 'grid.nc')
 time_units = 'seconds since 1970-01-01'
 num_layers = 3
 
+def test_2dtransport():
+
+    pass
 
 def test_run_2d():
     """
-    can we initialize tracpy
+    can we initialize and run tracpy (using rectangle example). Compare final location of drifters
+    with known analytic answer.
     """
 
     name = 'test_run_2d'
-
-    grid_nc = netCDF4.Dataset(currents_filename)
-    
-    loc = [currents_filename, grid_filename]
     
     start = time.time()
-    grd = tracpy.inout.readgrid(loc,
-                                nc=grid_nc)
+
+    # grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
+
     print "building grid took:", time.time() - start
 
     # Start date in date time formatting
@@ -51,8 +53,11 @@ def test_run_2d():
     # Controls the sampling frequency of the drifter tracks.
     N = 4
 
+    # This allows the user to call to TRACMASS for a different period of time than between 2 model outputs
+    dtFromTracmass = tseas/2. # Just testing to try new loop, should have same behavior as before
+
     # Use ff = 1 for forward in time and ff = -1 for backward in time.
-    ff = 1
+    ff = 1 # will work for ff=1 or ff=-1 since checks by distance traveled
 
     ah = 0. # m^2/s
     av = 0. # m^2/s
@@ -60,7 +65,7 @@ def test_run_2d():
     # turbulence/diffusion flag
     doturb = 0
 
-    # two particles
+    # two particles (starting positions)
     lon0 = [-123., -123.]
     lat0 = [48.55, 48.75]
 
@@ -69,24 +74,13 @@ def test_run_2d():
     z0 = 's' #'z' #'salt' #'s' 
     zpar = num_layers-1 # top layer
 
-    lonp, latp, zp, t, grd = tracpy.run.run(loc,
-                                            nsteps,
-                                            ndays,
-                                            ff,
-                                            date,
-                                            tseas,
-                                            ah,
-                                            av,
-                                            lon0,
-                                            lat0, 
-                                            z0,
-                                            zpar,
-                                            do3d,
-                                            doturb,
-                                            name,
-                                            grid=grd,
-                                            dostream=0,
-                                            N=N)
+    # Initialize Tracpy class
+    tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas, ndays=ndays, nsteps=nsteps,
+                N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units,
+                dtFromTracmass=dtFromTracmass)
+    # tp._readgrid()
+
+    lonp, latp, zp, t, grd, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
 
     ## check the results:
     print lonp.shape
@@ -99,15 +93,10 @@ def test_run_2d():
 
     # current velocity -- 0.1 m/s
     # position 
-    distance = ndays * 24 * 3600 * 0.1
+    distance = (ndays * 24 * 3600 * 0.1)*ff
 
     # better to use pyproj to compute the geodesic
     geod = pyproj.Geod(ellps = 'WGS84')
     end = geod.fwd(lon0, lat0, (90, 90), (distance,distance), radians=False)
 
     assert np.allclose( lonp[:,-1], end[0] )
-
-
-
-
-

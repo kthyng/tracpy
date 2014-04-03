@@ -3,6 +3,11 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & ntractot,xend,yend,zend,flag,ttend, &
                 & iter,ah,av,do3d,doturb, doperiodic, dostream, N, T0, &
                 & ut, vt)
+! SUBROUTINE step(xstart,ystart,zstart,tseas, &
+!                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
+!                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
+!                 & iter,ah,av,do3d,doturb, dostream, N, T0, &
+!                 & ut, vt)
 
 !============================================================================
 ! Loop to step a numerical drifter forward for the time tseas between two 
@@ -64,9 +69,6 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !    xend           : the new grid fraction position of drifters in x/y/z [ntractot,iter]
 !    yend       
 !    zend       
-!    iend           : the new grid index position of drifters in x/y/z [ntractot,iter]
-!    jend       
-!    kend       
 !    ttend          : time in seconds relative to the code start for when particles are
 !                     output. [ntractot,iter]
 !
@@ -136,7 +138,12 @@ real*8,     intent(in),     dimension(imt,jmt)          :: dxdy, h
 real*8,     intent(in)                                  :: tseas, ah, av
 
 integer,    intent(out),    dimension(ntractot)         :: flag
+<<<<<<< HEAD
 real*8,     intent(out),    dimension(ntractot,N)       :: xend, yend, zend, ttend
+=======
+real*8,     intent(out),    dimension(ntractot,N)    :: xend, yend, zend, ttend
+! integer,    intent(out),    dimension(ntractot,N)    :: iend, jend, kend
+>>>>>>> tracpy_class
 integer,                    dimension(ntractot)         :: istart, jstart, kstart
 
 real*8,                     dimension(0:km,2)           :: wflux
@@ -641,8 +648,10 @@ ntracLoop: do ntrac=1,ntractot
             xend(ntrac,Ni) = rwn*x0 + rwp*x1 
             yend(ntrac,Ni) = rwn*y0 + rwp*y1
             zend(ntrac,Ni) = rwn*z0 + rwp*z1
-            ttend(ntrac,Ni) = rwn*(tt-dt) + rwp*tt
-
+!             iend(ntrac,Ni) = rwn*ia + rwp*ib
+!             jend(ntrac,Ni) = rwn*ja + rwp*jb
+!             kend(ntrac,Ni) = rwn*ka + rwp*kb
+            ttend(ntrac,Ni) = (rwn*(tt-dt) + rwp*tt)*ff
             Ni = Ni + 1 ! counter for writing
         endif
 

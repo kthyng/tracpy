@@ -12,6 +12,7 @@ from matplotlib.mlab import find
 import netCDF4 as netCDF
 from scipy import ndimage
 import time
+import pyproj
 
 def Var(xp, yp, tp, varin, nc):
     '''
