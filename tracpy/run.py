@@ -1,20 +1,7 @@
 import numpy as np
-import sys
-import os
 import op
 import netCDF4 as netCDF
-from mpl_toolkits.basemap import Basemap
 import pdb
-from matplotlib import delaunay
-from matplotlib.pyplot import *
-import glob
-from datetime import datetime, timedelta
-import time
-from matplotlib.mlab import *
-import inout
-import plotting
-import tools
-from scipy import ndimage
 from tracpy.time_class import Time
 
 def run(tp, date, lon0, lat0):
