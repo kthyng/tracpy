@@ -24,6 +24,7 @@ from matplotlib.pyplot import *
 import op
 import os
 import tracpy
+from matplotlib.mlab import find
 
 def setupROMSfiles(loc,date,ff,tout, tstride=1):
     '''
@@ -80,16 +81,34 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
         # files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
 
         # Find the list of files that cover the desired time period
-        for i,name in enumerate(files): # Loop through files
-            nctemp = netCDF.Dataset(name)
+        # First, check to see if there is one or more than one time index in each file because
+        # if there is only one, we need to compare two files to see where we are in time
+        # So, open the first file to check.
+        nctemp = netCDF.Dataset(files[0])
+        ttemp = nctemp.variables['ocean_time'][:]
+        nctemp.close()
+        if ttemp.size==1: # one output/time step per file. 
+            noutputs = 1
+            # Assume it is safe to open them all to search for starting place. Rest of indices
+            # are checked below.
+            nctemp = netCDF.MFDataset(files)
             ttemp = nctemp.variables['ocean_time'][:]
-            # pdb.set_trace()
             nctemp.close()
-            # If datenum_in is larger than the first time in the file but smaller
-            # than the last time, then this is the correct file to use to start
-            if date >= ttemp[0] and date <= ttemp[-1]:
-                ifile = i # this is the starting file identifier then
-                break
+            # find which time steps date is between and take earlier one as the starting file
+            ifile = find(ttemp<=date)[0]
+
+        else: # more than one output per file  
+            noutputs = 0          
+            for i,name in enumerate(files): # Loop through files
+                nctemp = netCDF.Dataset(name)
+                ttemp = nctemp.variables['ocean_time'][:]
+                # pdb.set_trace()
+                nctemp.close()
+                # If datenum_in is larger than the first time in the file but smaller
+                # than the last time, then this is the correct file to use to start
+                if date >= ttemp[0] and date <= ttemp[-1]:
+                    ifile = i # this is the starting file identifier then
+                    break
 
         # Since the number of indices per file can change, make the process
         # of finding the necessary files a little more general
@@ -117,19 +136,27 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
         # If we need more indices than available in these files, add another
 
         if ff==1:
-            # if the final index we want is beyond the length of these files,
-            # keep adding files on
-            while tinds[-1] > len(dates): 
-                # if tdir: #forward - add 2nd file on end
-                fname.append(files[ifile+i])
+            # If there is one output per file, just grab the number of necessary files
+            if noutputs:
+                fname = files[ifile:ifile+tout]
                 nc = netCDF.MFDataset(fname) # files in fname are in chronological order
-                dates = nc.variables['ocean_time'][:]   
-                ilow = date >= dates
-                # time index with time value just below datenum_in (relative to file ifile)
-                istart = dates[ilow].size - 1
-                tinds = range(istart,istart+tout, tstride)
-                nc.close()
-                i = i + 1
+
+            else: # multiple snapshots per file
+
+                # if the final index we want is beyond the length of these files,
+                # keep adding files on
+                while tinds[-1] > len(dates): 
+                    # if tdir: #forward - add 2nd file on end
+                    fname.append(files[ifile+i])
+                    nc = netCDF.MFDataset(fname) # files in fname are in chronological order
+                    dates = nc.variables['ocean_time'][:]   
+                    ilow = date >= dates
+                    # time index with time value just below datenum_in (relative to file ifile)
+                    istart = dates[ilow].size - 1
+                    tinds = range(istart,istart+tout, tstride)
+                    nc.close()
+                    i = i + 1
+
         else: #backwards in time
             while tinds[-1] < 0:
                 fname.insert(0,files[ifile-i])
