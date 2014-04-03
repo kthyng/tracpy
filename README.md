@@ -25,6 +25,11 @@ or
 `pip install --force-reinstall -e .`
 
 
+## To test the code
+
+1. After making changes to the code, you can do some basic functionality testing with `py.test` or `nosetests` in the main TracPy directory.
+
+
 ## To learn more about the module TracPy
 
 Learn more by running a small test case. Internet required.
