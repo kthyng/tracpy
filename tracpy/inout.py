@@ -738,8 +738,9 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
     return uflux1, vflux1, dzt, zrt, zwt
 
 def savetracks(xin, yin ,zpin, tpin, name, nstepsin, Nin, ffin, tseasin,
-                ahin, avin, do3din, doturbin, locin, T0in=None, Uin=None, Vin=None,
-                doperiodicin, time_unitsin, savell=True):
+                ahin, avin, do3din, doturbin, locin, 
+                doperiodicin, time_unitsin, T0in=None, Uin=None, Vin=None,
+                savell=True):
     """
     Save tracks that have been calculated by tracmass into a netcdf file.
 
@@ -914,7 +915,7 @@ def savetracks(xin, yin ,zpin, tpin, name, nstepsin, Nin, ffin, tseasin,
     av[:] = avin
     do3d[:] = do3din
     doturb[:] = doturbin
-    doperiodic[:] = doperiodic
+    doperiodic[:] = doperiodicin
     #loc[:] = ''
     #git_hash[:] = ''
 
