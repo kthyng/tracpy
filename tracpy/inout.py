@@ -737,9 +737,9 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
 
     return uflux1, vflux1, dzt, zrt, zwt
 
-def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
-                ahin,avin,do3din,doturbin,locin, T0in=None, Uin=None, Vin=None,
-                savell=True):
+def savetracks(xin, yin ,zpin, tpin, name, nstepsin, Nin, ffin, tseasin,
+                ahin, avin, do3din, doturbin, locin, T0in=None, Uin=None, Vin=None,
+                doperiodicin, time_unitsin, savell=True):
     """
     Save tracks that have been calculated by tracmass into a netcdf file.
 
@@ -850,7 +850,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
 
     tp = rootgrp.createVariable('tp','f8',('ntrac','nt'), zlib=True) # 64-bit floating point, with lossless compression
     tp.long_name = 'time at drifter locations'
-    tp.units = 'seconds since 1970-01-01 00:00:00'
+    tp.units = time_unitsin
     tp[:] = tpin
     del(tpin)
 
@@ -880,6 +880,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     av = rootgrp.createVariable('av','f8')
     do3d = rootgrp.createVariable('do3d','i4')
     doturb = rootgrp.createVariable('doturb','i4')
+    doperiodic = rootgrp.createVariable('doperiodic','i4')
     # pdb.set_trace()
     # loc = rootgrp.createVariable('loc','i4')
     # git_hash = rootgrp.createVariable('git_hash','i4')
@@ -893,6 +894,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     av.long_name = 'vertical diffusion'
     do3d.long_name = 'flag for running in 3d (1) or 2d (0)'
     doturb.long_name = 'flag for using no subgrid parameterization (0), added turbulent velocities (1), displacement to particle position on a circle (2), displacement to particle position on an ellipse (3)'
+    doperiodic.long_name = 'flag for using periodic boundary conditions: none (0), in x-direction (1), in y-direction (2)'
     # if len(locin) == 2:
     #     loc.long_name = 'location of model output information used for drifter experiment\n' + locin[0]
     # else:
@@ -912,6 +914,7 @@ def savetracks(xin,yin,zpin,tpin,name,nstepsin,Nin,ffin,tseasin,
     av[:] = avin
     do3d[:] = do3din
     doturb[:] = doturbin
+    doperiodic[:] = doperiodic
     #loc[:] = ''
     #git_hash[:] = ''
 

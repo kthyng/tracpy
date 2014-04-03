@@ -489,7 +489,9 @@ class Tracpy(object):
         # print "============================================="
 
         # Save results to netcdf file
-        tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, self.tseas_use, self.ah, self.av, \
-                            self.do3d, self.doturb, self.currents_filename, self.T0, self.U, self.V, savell=self.savell)
+        tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, 
+                            self.tseas_use, self.ah, self.av,
+                            self.do3d, self.doturb, self.currents_filename, self.T0, self.U, 
+                            self.V, self.doperiodic, self.time_units, savell=self.savell)
         return lonp, latp, zp, ttend, self.grid, self.T0, self.U, self.V
 
