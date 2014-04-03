@@ -25,7 +25,7 @@ class Tracpy(object):
     def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
                 time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
-                T0=None, U=None, V=None, usebasemap=False):
+                T0=None, U=None, V=None, usebasemap=False, savell=True, doperiodic=0):
         '''
         Initialize class.
 
@@ -55,6 +55,11 @@ class Tracpy(object):
         :param U=None: east-west transport, is updated by TRACMASS. Only used if dostream=1.
         :param V=None: north-south transport, is updated by TRACMASS. Only used if dostream=1.
         :param usebasemap=False: whether to use basemap for projections in readgrid or not. Not is faster, but using basemap allows for plotting.
+        :param savell=True: True to save drifter tracks in lon/lat and False to save them in grid coords
+        :param doperiodic=0: Whether to use periodic boundary conditions for drifters and, if so, on which walls.
+                0: do not use periodic boundary conditions
+                1: use a periodic boundary condition in the east-west/x/i direction
+                2: use a periodic boundary condition in the north-south/y/j direction
         '''
 
         self.currents_filename = currents_filename
@@ -80,6 +85,9 @@ class Tracpy(object):
         self.U = U
         self.V = V
         self.usebasemap = usebasemap
+        self.savell = savelee
+        self.doperiodic = doperiodic
+        self.units = units
 
         # if loopsteps is None and nsteps is not None:
         #     # Use nsteps in TRACMASS and have inner loop collapse
@@ -118,7 +126,8 @@ class Tracpy(object):
         # Adding one index so that all necessary indices are captured by this number.
         # Then the run loop uses only the indices determined by tout instead of needing
         # an extra one beyond
-        self.tout = np.int((self.ndays*(24*3600.))/self.tseas + 1)
+        # now rounding up instead of down
+        self.tout = np.int(np.ceil((ndays*(24*3600))/tseas + 1))
 
         # Calculate time outputs stride. Will be 1 if want to use all model output.
         self.tstride = int(self.tseas_use/self.tseas) # will round down
@@ -393,7 +402,8 @@ class Tracpy(object):
                                 self.grid['kmt'].astype(int), 
                                 self.dzt, self.grid['dxdy'], self.grid['dxv'], 
                                 self.grid['dyu'], self.grid['h'], self.nsteps, 
-                                self.ah, self.av, self.do3d, self.doturb, self.dostream, self.N, 
+                                self.ah, self.av, self.do3d, self.doturb, 
+                                self.doperiodic, self.dostream, self.N, 
                                 t0=self.T0,
                                 ut=self.U, vt=self.V)
         # toc_tracmass[j] = time.time()
@@ -443,7 +453,14 @@ class Tracpy(object):
         ## map coordinates interpolation
         # xp2, yp2, dt = tools.interpolate(xg,yg,grid,'m_ij2xy')
         # tic = time.time()
-        lonp, latp, dt = tracpy.tools.interpolate2d(xend,yend,self.grid,'m_ij2ll',mode='constant',cval=np.nan)
+
+        ## map coordinates interpolation if saving tracks as lon/lat
+        if self.savell:
+            lonp, latp, dt = tracpy.tools.interpolate2d(xend, yend, self.grid, 'm_ij2ll', mode='constant', cval=np.nan)
+        else:
+            # rename grid index locations as lon/lat to fit in with save syntax below
+            lonp = xg; latp = yg;
+
         # print '2d interp time=', time.time()-tic
         # pdb.set_trace()
 
@@ -474,6 +491,6 @@ class Tracpy(object):
 
         # Save results to netcdf file
         tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, self.tseas_use, self.ah, self.av, \
-                            self.do3d, self.doturb, self.currents_filename, self.T0, self.U, self.V)
+                            self.do3d, self.doturb, self.currents_filename, self.T0, self.U, self.V, savell=self.savell)
         return lonp, latp, zp, ttend, self.grid, self.T0, self.U, self.V
 
