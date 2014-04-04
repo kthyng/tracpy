@@ -472,7 +472,7 @@ class Tracpy(object):
             lonp, latp, dt = tracpy.tools.interpolate2d(xend, yend, self.grid, 'm_ij2ll', mode='constant', cval=np.nan)
         else:
             # rename grid index locations as lon/lat to fit in with save syntax below
-            lonp = xg; latp = yg;
+            lonp = xend; latp = yend;
 
         # Save results to netcdf file
         tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, 
