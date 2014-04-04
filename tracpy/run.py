@@ -67,7 +67,7 @@ def run(tp, date, lon0, lat0):
 
     nc.close()
 
-    lonp, latp, zp, ttend, grid, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
+    lonp, latp, zp, ttend, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
 
     timer.addtime('5: Processing after simulation')
 
@@ -79,4 +79,4 @@ def run(tp, date, lon0, lat0):
 
     timer.write()
 
-    return lonp, latp, zp, ttend, grid, T0, U, V
+    return lonp, latp, zp, ttend, T0, U, V

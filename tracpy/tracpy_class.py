@@ -481,4 +481,4 @@ class Tracpy(object):
                             self.doperiodic, self.time_units, self.T0, self.U, 
                             self.V, savell=self.savell)
 
-        return lonp, latp, zp, ttend, self.grid, self.T0, self.U, self.V
+        return lonp, latp, zp, ttend, self.T0, self.U, self.V

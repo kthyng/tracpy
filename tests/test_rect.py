@@ -24,13 +24,13 @@ def test_2dtransport():
 
     pass
 
-def test_run_2d():
+def test_run_2d_ll():
     """
     can we initialize and run tracpy (using rectangle example). Compare final location of drifters
-    with known analytic answer.
+    with known analytic answer. Using lon/lat coords.
     """
 
-    name = 'test_run_2d'
+    name = 'test_run_2d_ll'
     
     start = time.time()
 
@@ -80,7 +80,84 @@ def test_run_2d():
                 dtFromTracmass=dtFromTracmass)
     # tp._readgrid()
 
-    lonp, latp, zp, t, grd, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
+    lonp, latp, zp, t, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
+
+    ## check the results:
+    print lonp.shape
+    print lonp
+    print latp
+    
+
+    #eastward current, latitude should not change:
+    assert np.allclose(lat0, latp.T)
+
+    # current velocity -- 0.1 m/s
+    # position 
+    distance = (ndays * 24 * 3600 * 0.1)*ff
+
+    # better to use pyproj to compute the geodesic
+    geod = pyproj.Geod(ellps = 'WGS84')
+    end = geod.fwd(lon0, lat0, (90, 90), (distance,distance), radians=False)
+
+    assert np.allclose( lonp[:,-1], end[0] )
+
+def test_run_2d_xy():
+    """
+    can we initialize and run tracpy (using rectangle example). Compare final location of drifters
+    with known analytic answer. Using x/y coords for idealized type runs.
+    """
+
+    name = 'test_run_2d_xy'
+    
+    start = time.time()
+
+    # grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
+
+    print "building grid took:", time.time() - start
+
+    # Start date in date time formatting
+    date = datetime.datetime(2013, 12, 19, 0)
+
+    # Time between outputs
+    tseas = 4*3600. # 4 hours between outputs, in seconds 
+
+    # Number of days to run the drifters.
+    ndays = tseas*9./(3600.*24)
+
+    # Sets a smaller limit than between model outputs for when to force interpolation if hasn't already occurred.
+    nsteps = 5
+
+    # Controls the sampling frequency of the drifter tracks.
+    N = 4
+
+    # This allows the user to call to TRACMASS for a different period of time than between 2 model outputs
+    dtFromTracmass = tseas/2. # Just testing to try new loop, should have same behavior as before
+
+    # Use ff = 1 for forward in time and ff = -1 for backward in time.
+    ff = 1 # will work for ff=1 or ff=-1 since checks by distance traveled
+
+    ah = 0. # m^2/s
+    av = 0. # m^2/s
+
+    # turbulence/diffusion flag
+    doturb = 0
+
+    # two particles (starting positions)
+    lon0 = [-123., -123.]
+    lat0 = [48.55, 48.75]
+
+    do3d = 0 # flag to set to 2-d
+
+    z0 = 's' #'z' #'salt' #'s' 
+    zpar = num_layers-1 # top layer
+
+    # Initialize Tracpy class
+    tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas, ndays=ndays, nsteps=nsteps,
+                N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units,
+                dtFromTracmass=dtFromTracmass, usespherical=False)
+    # tp._readgrid()
+
+    lonp, latp, zp, t, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
 
     ## check the results:
     print lonp.shape
