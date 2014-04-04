@@ -20,7 +20,7 @@ class Tracpy(object):
     def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
                 time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
-                T0=None, U=None, V=None, usebasemap=False, savell=True, doperiodic=0):
+                T0=None, U=None, V=None, usebasemap=False, savell=True, doperiodic=0, usespherical=True):
         '''
         Initialize class.
 
@@ -97,6 +97,8 @@ class Tracpy(object):
                0: do not use periodic boundary conditions
                1: use a periodic boundary condition in the east-west/x/i direction
                2: use a periodic boundary condition in the north-south/y/j direction
+        :param usespherical=True: True if want to use spherical (lon/lat) coordinates and False
+               for idealized applications where it isn't necessary to project from spherical coordinates.
         '''
 
         self.currents_filename = currents_filename
@@ -124,6 +126,7 @@ class Tracpy(object):
         self.usebasemap = usebasemap
         self.savell = savell
         self.doperiodic = doperiodic
+        self.usespherical = usespherical
 
         # if loopsteps is None and nsteps is not None:
         #     # Use nsteps in TRACMASS and have inner loop collapse
