@@ -191,9 +191,11 @@ class Tracpy(object):
         # if vertical grid information is not included in the grid file, or if all grid info
         # is not in output file, use two
         if self.grid_filename is not None:
-            self.grid = tracpy.inout.readgrid(self.grid_filename, vert_filename=self.currents_filename, usebasemap=self.usebasemap)
+            self.grid = tracpy.inout.readgrid(self.grid_filename, vert_filename=self.currents_filename, 
+                                                usebasemap=self.usebasemap, usespherical=self.usespherical)
         else:
-            self.grid = tracpy.inout.readgrid(self.currents_filename, usebasemap=self.usebasemap)
+            self.grid = tracpy.inout.readgrid(self.currents_filename, usebasemap=self.usebasemap, 
+                                                usespherical=self.usespherical)
 
     def prepare_for_model_run(self, date, lon0, lat0):
         '''
