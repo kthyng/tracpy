@@ -175,7 +175,8 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     return nc, tinds
 
 def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
-            urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i', usebasemap=False):
+            urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i', 
+            usebasemap=False, usespherical=True):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -195,6 +196,8 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
      also optional basemap box parameters. Default is for full shelf model.
      usebasemap          (False) Whether to use load basemap into grid (True) or pyproj (False).
                     Basemap is slower but can be used for plotting, and pyproj is the opposite.
+     usespherical       (True) Use spherical coordinates if true, and do not if False. So that
+                        idealized simulations can be accomplished more easily.
 
 
     Output:
