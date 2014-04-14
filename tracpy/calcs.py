@@ -587,28 +587,28 @@ def moment4(xp, M1):
     return M4, nnans
 
 
-def calc_fsle(lonpc, latpc, lonp, latp, tp, alpha=np.sqrt(2)):
-    '''
-    Calculate the FSLE of tracks lonp, latp as directly compared with
-    the tracks described by lonpc, latpc. The two sets of tracks are already assumed to 
-    be a pair. 
+    ndrifters = lonp.shape[0]
+    ntime = lonp.shape[1]
 
-    Inputs:
-        lonpc, latpc    Longitude/latitude of the control drifter tracks [ndrifter,ntime]
-        lonp, latp      Longitude/latitude of the drifter tracks [ndrifter,ntime]
-        tp              Times associated with the location info of both drifters
-        alpha           Multiplicative factor in FSLE calculation. Default alpha=sqrt(2).
+    dist = np.empty((np.cumsum(xrange(ndrifters))[-1],ntime))
+    driftercount = 0 # holds index in dist for drifters
 
-    Outputs:
-        dSave           Distances between drifters when the time is saved
-        tSave           Times between drifters right after subsequent separation distances
-                        are surpassed. Times are not averaged here.
+    # Construct drifters into [distance x time] in dist
+    for idrifter in xrange(ndrifters):
 
-    To combine with other calculations of FSLE, combine the times from many pairs, then
-    divide by the number of non-nan entries to average.
-    '''
- 
-    dist = get_dist(lonpc, lonp, latpc, latp) # in km
+        # lonpc = lonp[idrifter,:]
+        # latpc = latp[idrifter,:]
+
+        ndriftless = ndrifters-idrifter-1
+
+        # Putting distances of pairs of drifter in order in 1st dimension of dist
+        # with time in second dimension in order to go more quickly. Memory is limiting
+        # factor here.
+        dist[driftercount:driftercount+ndriftless,:] = get_dist(lonp[idrifter,:], lonp[idrifter+1:,:], 
+                                                            latp[idrifter,:], latp[idrifter+1:,:]) # in km
+
+        driftercount += ndriftless
+
     dist = dist[np.newaxis,:]
 
     # distances increasing with factor alpha
@@ -625,24 +625,27 @@ def calc_fsle(lonpc, latpc, lonp, latp, tp, alpha=np.sqrt(2)):
     # dist[0,(dist>=Rs).argmax(axis=1)]
     # Indices of where in dist the first entries are that are
     # just bigger than the Rs
-    idist = (dist>=Rs).argmax(axis=1)
-    # Indices of entries that don't count
-    ind = find(idist==0)
-    indtemp = ind!=0
-    ind = ind[indtemp] # don't want to skip first zero if it is there
+    idist = (dist.repeat(Rs.size, axis=0).T>=Rs.T).argmax(axis=0)
+    # idist = (dist>=Rs).argmax(axis=1)
+
     # distances at the relevant distances (including ones we don't want at the end)
-    dSave = dist[0][idist]
+    # dSave = dist[0][idist]
     tSave = tshift[idist] # in seconds
+    tSave[:,1:] = abs(np.diff(tSave, axis=1))
+    tSave[:,0] = 0
+
+    # Indices of entries that don't count
+    ind = tSave==0
+
     # Eliminate bad entries, but skip first since that 0 value should be there
-    dSave[ind] = np.nan
     tSave[ind] = np.nan
-    tSave[1:] = np.diff(tSave)
-    tSave[0] = 0
-    return dSave, tSave/(3600.*24) # tSave in days
+    return tSave/(3600.*24) # tSave in days
 
 def run_fsle(Files):
     '''
     Run FSLE calculation
+
+    THIS HAS BEEN UPDATED TO USE ALL PAIRS OF DRIFTERS, BUT WASN'T ACTUALLY RUN YET
     '''
 
     loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
@@ -675,50 +678,24 @@ def run_fsle(Files):
 
         lonp, latp, _ = tracpy.tools.interpolate2d(xg, yg, grid, 'm_ij2ll')
 
-        # let the index in axis 0 be the drifter id
-        ID = np.arange(lonp.shape[0])
-
-        # save pairs to save time since they are always the same
-        if not os.path.exists('tracks/pairs.npz'):
-
-            dist = np.zeros((lonp.shape[0],lonp.shape[0]))
-            for idrifter in xrange(lonp.shape[0]):
-                # dist contains all of the distances from other drifters for each drifter
-                dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
-            pairs = []
-            for idrifter in xrange(lonp.shape[0]):
-                ind = find(dist[idrifter,:]<=1)
-                for i in ind:
-                    if ID[idrifter] != ID[i]:
-                        pairs.append([min(ID[idrifter], ID[i]), 
-                                        max(ID[idrifter], ID[i])])
-
-            pairs_set = set(map(tuple,pairs))
-            pairs = map(list,pairs_set)# now pairs has only unique pairs of drifters
-            pairs.sort() #unnecessary but handy for checking work
-            np.savez('tracks/pairs.npz', pairs=pairs)
-        else:
-            pairs = np.load('tracks/pairs.npz')['pairs']
-
-        # pdb.set_trace()
-
-
         # Loop over pairs of drifters from this area/time period and sum the FSLE, 
         # then average at the end
 
-        dSave = np.zeros(20)
-        tSave = np.zeros(20)
-        nnans = np.zeros(20) # to collect number of non-nans over all drifters for a time
-        for ipair in xrange(len(pairs)):
+        ndrifters = lonp.shape[0]
+        tSave = np.zeros((1,20))
+        nnans = np.zeros((1,20)) # to collect number of non-nans over all drifters for a time
+        ddrifter = 500 # how many drifter indices to include at once
+        driftercount = 0
 
-            dSavetemp, tSavetemp = calc_fsle(lonp[pairs[ipair][0],:], latp[pairs[ipair][0],:], 
-                                        lonp[pairs[ipair][1],:], latp[pairs[ipair][1],:], tp)
+        # logic for looping through more than 1 drifter at once
+        while driftercount < ndrifters:
+            print 'drifter ' + str(driftercount) + ' of ' + str(ndrifters)
+            tSavetemp = calc_fsle(lonp[driftercount:driftercount+ddrifter,:], 
+                                latp[driftercount:driftercount+ddrifter,:], tp)
             ind = ~np.isnan(tSavetemp)
-            dSave[ind] += dSavetemp[ind]
-            tSave[ind] += tSavetemp[ind]
-            nnans[ind] += 1
-            # fsle += fsletemp
-            # nnans += nnanstemp
+            tSave += np.nansum(tSavetemp, axis=0)
+            nnans += ind.sum(axis=0)
+            driftercount += ddrifter
 
         # Save fsle for each file/area combination, NOT averaged
         np.savez(fname, dSave=dSave, tSave=tSave, nnans=nnans)
