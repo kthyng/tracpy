@@ -587,6 +587,8 @@ def moment4(xp, M1):
     return M4, nnans
 
 
+def calc_fsle(lonp, latp, tp, alpha=np.sqrt(2)):
+
     ndrifters = lonp.shape[0]
     ntime = lonp.shape[1]
 
