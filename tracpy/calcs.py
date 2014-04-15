@@ -627,7 +627,8 @@ def calc_fsle(lonp, latp, tp, alpha=np.sqrt(2)):
     # dist[0,(dist>=Rs).argmax(axis=1)]
     # Indices of where in dist the first entries are that are
     # just bigger than the Rs
-    idist = (dist.repeat(Rs.size, axis=0).T>=Rs.T).argmax(axis=0)
+    #pdb.set_trace()
+    idist = (dist.T>=Rs.T).argmax(axis=0)
     # idist = (dist>=Rs).argmax(axis=1)
 
     # distances at the relevant distances (including ones we don't want at the end)
