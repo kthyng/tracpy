@@ -166,7 +166,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
     # Then exclude repeated pairs. And calculate initial distances.
     pairs = []
     for idrifter in xrange(lonp.shape[0]):
-        pdb.set_trace()
+        # pdb.set_trace()
         # dist contains all of the distances from other drifters for each drifter
         dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
                                     latp[idrifter,0], latp[idrifter+1:,0])
