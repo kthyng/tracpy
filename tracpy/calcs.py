@@ -179,7 +179,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
                 pairs.append([min(ID[idrifter], ID[i]), 
                                 max(ID[idrifter], ID[i])])
     # pdb.set_trace()
-    print 'time for initial particle separation and pairs: ', time.time()-tstart
+    # print 'time for initial particle separation and pairs: ', time.time()-tstart
 
     # tstart = time.time()
 
@@ -221,7 +221,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
             D2 = np.nansum(np.vstack([D2, dist]), axis=0)
         nnans = nnans + ~np.isnan(dist) # save these for averaging
     D2 = D2.squeeze()/nnans # average over all pairs
-    print 'time for finding D: ', time.time()-tstart
+    # print 'time for finding D: ', time.time()-tstart
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
