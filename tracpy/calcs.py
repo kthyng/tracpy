@@ -178,7 +178,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
             if ID[idrifter] != ID[i]:
                 pairs.append([min(ID[idrifter], ID[i]), 
                                 max(ID[idrifter], ID[i])])
-    pdb.set_trace()
+    # pdb.set_trace()
     # print 'time for initial particle separation: ', time.time()-tstart
 
     # tstart = time.time()
@@ -226,7 +226,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
     # pdb.set_trace()
-    return D2, nnans
+    return D2, nnans, pairs
 
 
 def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1, squared=True):
