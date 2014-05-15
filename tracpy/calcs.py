@@ -157,7 +157,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
     # Find pairs of drifters based on initial position
 
     # Calculate the initial separation distances for each drifter from each other drifter
-    # tstart = time.time()
+    tstart = time.time()
     # dist = np.zeros((lonp.shape[0],lonp.shape[0]))*np.nan
 
     # let the index in axis 0 be the drifter id
@@ -179,7 +179,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
                 pairs.append([min(ID[idrifter], ID[i]), 
                                 max(ID[idrifter], ID[i])])
     # pdb.set_trace()
-    # print 'time for initial particle separation: ', time.time()-tstart
+    print 'time for initial particle separation and pairs: ', time.time()-tstart
 
     # tstart = time.time()
 
