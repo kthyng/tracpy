@@ -157,38 +157,50 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
     # Find pairs of drifters based on initial position
 
     # Calculate the initial separation distances for each drifter from each other drifter
-    tstart = time.time()
-    dist = np.zeros((lonp.shape[0],lonp.shape[0]))*np.nan
-    for idrifter in xrange(lonp.shape[0]):
-        # dist contains all of the distances from other drifters for each drifter
-        dist[idrifter, idrifter+1:] = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
-                                    latp[idrifter,0], latp[idrifter+1:,0])
-        # dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
-    print 'time for initial particle separation: ', time.time()-tstart
+    # tstart = time.time()
+    # dist = np.zeros((lonp.shape[0],lonp.shape[0]))*np.nan
 
-    tstart = time.time()
     # let the index in axis 0 be the drifter id
     ID = np.arange(lonp.shape[0])
-
-    # # save pairs to save time since they are always the same
-    # if not os.path.exists('tracks/pairs.npz'):
-
     # Loop through all drifters and find initial separation distances smaller than r.
-    # Then exclude repeated pairs.
+    # Then exclude repeated pairs. And calculate initial distances.
     pairs = []
     for idrifter in xrange(lonp.shape[0]):
-        ind = find(dist[idrifter,:]<=r)
+        pdb.set_trace()
+        # dist contains all of the distances from other drifters for each drifter
+        dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
+                                    latp[idrifter,0], latp[idrifter+1:,0])
+        # dist[idrifter, idrifter+1:] = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
+        #                             latp[idrifter,0], latp[idrifter+1:,0])
+        # dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
+        ind = find(dist<=r)
         for i in ind:
             if ID[idrifter] != ID[i]:
                 pairs.append([min(ID[idrifter], ID[i]), 
                                 max(ID[idrifter], ID[i])])
+    pdb.set_trace()
+    # print 'time for initial particle separation: ', time.time()-tstart
+
+    # tstart = time.time()
+
+    # # Loop through all drifters and find initial separation distances smaller than r.
+    # # Then exclude repeated pairs. And calculate initial distances.
+    # pairs = []
+    # # # save pairs to save time since they are always the same
+    # # if not os.path.exists('tracks/pairs.npz'):
+    # for idrifter in xrange(lonp.shape[0]):
+    #     ind = find(dist[idrifter,:]<=r)
+    #     for i in ind:
+    #         if ID[idrifter] != ID[i]:
+    #             pairs.append([min(ID[idrifter], ID[i]), 
+    #                             max(ID[idrifter], ID[i])])
     pairs_set = set(map(tuple,pairs))
     pairs = map(list,pairs_set)# now pairs has only unique pairs of drifters
-    # pairs.sort() #unnecessary but handy for checking work
-    #     np.savez('tracks/pairs.npz', pairs=pairs)
-    # else:
-    #     pairs = np.load('tracks/pairs.npz')['pairs']
-    print 'time for finding pairs: ', time.time()-tstart
+    # # pairs.sort() #unnecessary but handy for checking work
+    # #     np.savez('tracks/pairs.npz', pairs=pairs)
+    # # else:
+    # #     pairs = np.load('tracks/pairs.npz')['pairs']
+    # print 'time for finding pairs: ', time.time()-tstart
     # Calculate relative dispersion
 
     tstart = time.time()
