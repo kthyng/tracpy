@@ -278,30 +278,52 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     #   gridfile = netCDF.Dataset(loc[1])
     # use full dataset to get grid information
     # This addresses an issue in netCDF4 that was then fixed, but
-    # this line makes updating unnecessary. Issue described here: 
+    # this line makes updating unnecessary. Issue described here:
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
     # pdb.set_trace()
     gridfile = netCDF.Dataset(grid_filename)
-    lonu = gridfile.variables['lon_u'][:]
-    latu = gridfile.variables['lat_u'][:]
-    xu, yu = basemap(lonu,latu)
-    lonv = gridfile.variables['lon_v'][:]
-    latv = gridfile.variables['lat_v'][:]
-    xv, yv = basemap(lonv,latv)
-    lonr = gridfile.variables['lon_rho'][:]#[1:-1,1:-1]
-    latr = gridfile.variables['lat_rho'][:]#[1:-1,1:-1]
-    xr, yr = basemap(lonr,latr)
-    lonpsi = gridfile.variables['lon_psi'][:]
-    latpsi = gridfile.variables['lat_psi'][:]
-    xpsi, ypsi = basemap(lonpsi,latpsi)
-    mask = gridfile.variables['mask_rho'][:]#[1:-1,1:-1]
+    if usespherical:
+        lonu = gridfile.variables['lon_u'][:]
+        latu = gridfile.variables['lat_u'][:]
+        xu, yu = basemap(lonu,latu)
+        lonv = gridfile.variables['lon_v'][:]
+        latv = gridfile.variables['lat_v'][:]
+        xv, yv = basemap(lonv,latv)
+        lonr = gridfile.variables['lon_rho'][:]#[1:-1,1:-1]
+        latr = gridfile.variables['lat_rho'][:]#[1:-1,1:-1]
+        xr, yr = basemap(lonr,latr)
+        lonpsi = gridfile.variables['lon_psi'][:]
+        latpsi = gridfile.variables['lat_psi'][:]
+        xpsi, ypsi = basemap(lonpsi,latpsi)
+    else:
+        # read cartesian data
+        xu = gridfile.variables['x_u'][:]
+        yu = gridfile.variables['y_u'][:]
+        xv = gridfile.variables['x_v'][:]
+        yv = gridfile.variables['y_v'][:]
+        xr = gridfile.variables['x_rho'][:]
+        yr = gridfile.variables['y_rho'][:]
+        xpsi = gridfile.variables['x_psi'][:]
+        ypsi = gridfile.variables['y_psi'][:]
+
+        # assign to spherical arrays
+        lonu, latu = xu, yu
+        lonv, latv = xv, yv
+        lonr, latr = xr, yr
+        lonpsi, latpsi = xpsi, ypsi
+
+    try:
+        mask = gridfile.variables['mask_rho'][:]#[1:-1,1:-1]
+    except KeyError:
+        mask = np.ones_like(xr)
+
     pm = gridfile.variables['pm'][:]
     pn = gridfile.variables['pn'][:]
     h = gridfile.variables['h'][:]
     # angle = gridfile.variables['angle'][:]
     # pdb.set_trace()
-    if keeptime: 
+    if keeptime:
         hgridtime = time.time()
         print "horizontal grid time ", hgridtime - basemaptime
 
