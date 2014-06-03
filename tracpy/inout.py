@@ -241,37 +241,40 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     if keeptime: starttime = time.time()
 
     # Basemap parameters.
-    llcrnrlon=llcrnrlon; llcrnrlat=llcrnrlat; 
-    urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection='lcc'
-    lat_0=lat_0; lon_0=lon_0; resolution=res; area_thresh=0.
-    # pdb.set_trace()
-    if usebasemap:
-        from mpl_toolkits.basemap import Basemap
-        basemap = Basemap(llcrnrlon=llcrnrlon,
-                     llcrnrlat=llcrnrlat,
-                     urcrnrlon=urcrnrlon,
-                     urcrnrlat=urcrnrlat,
-                     projection=projection,
-                     lat_0=lat_0,
-                     lon_0=lon_0,
-                     resolution=resolution,
-                     area_thresh=area_thresh)
+    if usespherical:
+        llcrnrlon=llcrnrlon; llcrnrlat=llcrnrlat; 
+        urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection='lcc'
+        lat_0=lat_0; lon_0=lon_0; resolution=res; area_thresh=0.
+        # pdb.set_trace()
+        if usebasemap:
+            from mpl_toolkits.basemap import Basemap
+            basemap = Basemap(llcrnrlon=llcrnrlon,
+                         llcrnrlat=llcrnrlat,
+                         urcrnrlon=urcrnrlon,
+                         urcrnrlat=urcrnrlat,
+                         projection=projection,
+                         lat_0=lat_0,
+                         lon_0=lon_0,
+                         resolution=resolution,
+                         area_thresh=area_thresh)
+        else:
+            from pyproj import Proj
+            # this gives somewhat different differences between projected coordinates as compared with previous basemap
+            # definition for the default values.
+            basemap = Proj(proj='lcc', lat_1=llcrnrlat, lat_2=urcrnrlat, lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,ellps='clrk66',datum='NAD27')
+            # basemap = (proj='lcc',lat_1=44.33333333333334,lat_2=46,lat_0=43.66666666666666, lon_0=-120.5,x_0=609601.2192024384, y_0=0,ellps='clrk66',datum='NAD27')
+            # basemap = Proj("+proj=lcc +lat_0=lat_0 +lon_0=lon_0")
+                            # +x_0=1700000 \
+                            # +y_0=300000 \
+                            # +no_defs \
+                            # +a=6378137 \
+                            # +rf=298.257222101 \
+                            # +to_meter=1")
+        if keeptime: 
+            basemaptime = time.time()
+            print "basemap time ", basemaptime - starttime
     else:
-        from pyproj import Proj
-        # this gives somewhat different differences between projected coordinates as compared with previous basemap
-        # definition for the default values.
-        basemap = Proj(proj='lcc', lat_1=llcrnrlat, lat_2=urcrnrlat, lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,ellps='clrk66',datum='NAD27')
-        # basemap = (proj='lcc',lat_1=44.33333333333334,lat_2=46,lat_0=43.66666666666666, lon_0=-120.5,x_0=609601.2192024384, y_0=0,ellps='clrk66',datum='NAD27')
-        # basemap = Proj("+proj=lcc +lat_0=lat_0 +lon_0=lon_0")
-                        # +x_0=1700000 \
-                        # +y_0=300000 \
-                        # +no_defs \
-                        # +a=6378137 \
-                        # +rf=298.257222101 \
-                        # +to_meter=1")
-    if keeptime: 
-        basemaptime = time.time()
-        print "basemap time ", basemaptime - starttime
+        basemap = []
 
     # Read in grid parameters and find x and y in domain on different grids
     # if len(loc) == 2:
