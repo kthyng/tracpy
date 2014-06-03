@@ -224,7 +224,10 @@ class Tracpy(object):
             self.V = np.ma.zeros(grid['xv'].shape, order='F')
 
         # Interpolate to get starting positions in grid space
-        xstart0, ystart0, _ = tracpy.tools.interpolate2d(lon0, lat0, self.grid, 'd_ll2ij')
+        if self.usespherical: # convert from assumed input lon/lat coord locations to grid space
+            xstart0, ystart0, _ = tracpy.tools.interpolate2d(lon0, lat0, self.grid, 'd_ll2ij')
+        else: # assume input seed locations are in projected/idealized space and change to index space
+            xstart0, ystart0, _ = tracpy.tools.interpolate2d(lon0, lat0, self.grid, 'd_xy2ij')
         # Do z a little lower down
 
         # Initialize seed locations 
