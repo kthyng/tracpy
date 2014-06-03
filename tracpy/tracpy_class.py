@@ -474,7 +474,10 @@ class Tracpy(object):
 
         ## map coordinates interpolation if saving tracks as lon/lat
         if self.savell:
-            lonp, latp, dt = tracpy.tools.interpolate2d(xend, yend, self.grid, 'm_ij2ll', mode='constant', cval=np.nan)
+            if self.usespherical:
+                lonp, latp, dt = tracpy.tools.interpolate2d(xend, yend, self.grid, 'm_ij2ll', mode='constant', cval=np.nan)
+            else:
+                lonp, latp, dt = tracpy.tools.interpolate2d(xend, yend, self.grid, 'm_ij2xy', mode='constant', cval=np.nan)
         else:
             # rename grid index locations as lon/lat to fit in with save syntax below
             lonp = xend; latp = yend;
