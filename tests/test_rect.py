@@ -162,7 +162,7 @@ def test_run_2d_xy():
     # Initialize Tracpy class
     tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas, ndays=ndays, nsteps=nsteps,
                 N=N, ff=ff, ah=ah, av=av, doturb=doturb, do3d=do3d, z0=z0, zpar=zpar, time_units=time_units,
-                dtFromTracmass=dtFromTracmass, usespherical=False)
+                dtFromTracmass=dtFromTracmass)
     # tp._readgrid()
 
     xp, yp, zp, t, T0, U, V = tracpy.run.run(tp, date, x0, y0)

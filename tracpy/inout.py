@@ -176,7 +176,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
 def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
             urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i', 
-            usebasemap=False, usespherical=True):
+            usebasemap=False):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -196,9 +196,6 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
      also optional basemap box parameters. Default is for full shelf model.
      usebasemap          (False) Whether to use load basemap into grid (True) or pyproj (False).
                     Basemap is slower but can be used for plotting, and pyproj is the opposite.
-     usespherical       (True) Use spherical coordinates if true, and do not if False. So that
-                        idealized simulations can be accomplished more easily.
-
 
     Output:
      grid           Dictionary containing all necessary time-independent grid fields
@@ -240,6 +237,27 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     keeptime = 0 # do timing for readgrid
     if keeptime: starttime = time.time()
 
+    # Read in grid parameters and find x and y in domain on different grids
+    # if len(loc) == 2:
+    #   gridfile = netCDF.Dataset(loc[1])
+    # use full dataset to get grid information
+    # This addresses an issue in netCDF4 that was then fixed, but
+    # this line makes updating unnecessary. Issue described here:
+    # http://code.google.com/p/netcdf4-python/issues/detail?id=170
+    netCDF._set_default_format(format='NETCDF3_64BIT')
+    # pdb.set_trace()
+    gridfile = netCDF.Dataset(grid_filename)
+
+    # Read in whether grid is spherical or not
+    try:
+        usesphericaltemp = gridfile.variables['spherical'][:]
+        if usesphericaltemp == 'T':
+            usespherical = True
+        elif usesphericaltemp == 'F':
+            usespherical = False
+    except KeyError: # Assume not lon/lat if spherical flag is not in grid file
+        usespherical = False
+
     # Basemap parameters.
     if usespherical:
         llcrnrlon=llcrnrlon; llcrnrlat=llcrnrlat; 
@@ -276,16 +294,6 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     else:
         basemap = []
 
-    # Read in grid parameters and find x and y in domain on different grids
-    # if len(loc) == 2:
-    #   gridfile = netCDF.Dataset(loc[1])
-    # use full dataset to get grid information
-    # This addresses an issue in netCDF4 that was then fixed, but
-    # this line makes updating unnecessary. Issue described here:
-    # http://code.google.com/p/netcdf4-python/issues/detail?id=170
-    netCDF._set_default_format(format='NETCDF3_64BIT')
-    # pdb.set_trace()
-    gridfile = netCDF.Dataset(grid_filename)
     if usespherical:
         lonu = gridfile.variables['lon_u'][:]
         latu = gridfile.variables['lat_u'][:]
@@ -316,6 +324,7 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         lonr, latr = xr, yr
         lonpsi, latpsi = xpsi, ypsi
 
+    # Create mask of all active cells if there isn't one already
     try:
         mask = gridfile.variables['mask_rho'][:]#[1:-1,1:-1]
     except KeyError:

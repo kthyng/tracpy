@@ -192,21 +192,14 @@ class Tracpy(object):
         # is not in output file, use two
         if self.grid_filename is not None:
             self.grid = tracpy.inout.readgrid(self.grid_filename, vert_filename=self.currents_filename, 
-                                                usebasemap=self.usebasemap, usespherical=self.usespherical)
+                                                usebasemap=self.usebasemap)
         else:
-            self.grid = tracpy.inout.readgrid(self.currents_filename, usebasemap=self.usebasemap, 
-                                                usespherical=self.usespherical)
+            self.grid = tracpy.inout.readgrid(self.currents_filename, usebasemap=self.usebasemap)
 
     def prepare_for_model_run(self, date, lon0, lat0):
         '''
         Get everything ready so that we can get to the simulation.
-
-        FILL IN
         '''
-
-    #     self.initialize_time()
-    #     self.setup_initial_velocities()
-
 
         # Convert date to number
         date = netCDF.date2num(date, self.time_units)
