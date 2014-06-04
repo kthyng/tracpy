@@ -253,7 +253,7 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         usesphericaltemp = gridfile.variables['spherical'][:]
         if usesphericaltemp == 'T':
             usespherical = True
-        elif usesphericaltemp == 'F':
+        else:
             usespherical = False
     except KeyError: # Assume not lon/lat if spherical flag is not in grid file
         usespherical = False
