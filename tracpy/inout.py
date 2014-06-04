@@ -803,8 +803,10 @@ def savetracks(xin, yin ,zpin, tpin, name, nstepsin, Nin, ffin, tseasin,
     # git_hash_in = git_hash_in[0:git_hash_in.find('\n')]
 
     # Save file into a local directory called tracks. Make directory if it doesn't exist.
-    if not os.path.exists('tracks'):
-        os.makedirs('tracks')
+    if 'tracks' not in name:
+        if not os.path.exists('tracks'):
+            os.makedirs('tracks')
+        name = 'tracks/' + name
 
     # Open file for writing.
     # Using netCDF3-Classic because the ROMS output does and
@@ -821,7 +823,7 @@ def savetracks(xin, yin ,zpin, tpin, name, nstepsin, Nin, ffin, tseasin,
     # Info about classic: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf/NetCDF_002d4-Classic-Model-Format.html
     # Looks like I might be able to use this, still use MFDataset, have large variables, and compress too
     # 4-Classic can still only have 1 unlimited dimension
-    rootgrp = netCDF.Dataset('tracks/' + name + '.nc', 'w', format='NETCDF4_CLASSIC')
+    rootgrp = netCDF.Dataset(name + '.nc', 'w', format='NETCDF4_CLASSIC')
 
     # Define dimensions
     rootgrp.createDimension('ntrac', ntrac)
