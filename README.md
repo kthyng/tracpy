@@ -11,7 +11,7 @@ In the command prompt, type:
 `git clone https://github.com/kthyng/tracpy.git`
 1. Install the package.
 `pip install -e .`
-This makes the package an editable install so that it can be updated with future additions to TracPy.
+This makes the package an editable install so that it can be updated with future additions to TracPy. Note that a required package is [octant](https://github.com/hetland/octant).
 
 
 ## To update the code later
