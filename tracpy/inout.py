@@ -176,7 +176,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
 def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
             urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i', 
-            usebasemap=False):
+            usebasemap=False, usespherical=True):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -248,15 +248,15 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # pdb.set_trace()
     gridfile = netCDF.Dataset(grid_filename)
 
-    # Read in whether grid is spherical or not
-    try:
-        usesphericaltemp = gridfile.variables['spherical'][:]
-        if usesphericaltemp == 'T':
-            usespherical = True
-        else:
-            usespherical = False
-    except KeyError: # Assume not lon/lat if spherical flag is not in grid file
-        usespherical = False
+    # # Read in whether grid is spherical or not
+    # try:
+    #     usesphericaltemp = gridfile.variables['spherical'][:]
+    #     if usesphericaltemp == 'T':
+    #         usespherical = True
+    #     else:
+    #         usespherical = False
+    # except KeyError: # Assume not lon/lat if spherical flag is not in grid file
+    #     usespherical = False
 
     # Basemap parameters.
     if usespherical:
