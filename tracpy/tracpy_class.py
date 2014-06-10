@@ -11,6 +11,7 @@ import pdb
 import tracmass
 import datetime
 import netCDF4 as netCDF
+from matplotlib.mlab import find
 
 class Tracpy(object):
     '''
@@ -271,28 +272,18 @@ class Tracpy(object):
         else: # 3d case
             # Now that we have the grid, initialize the info for the two bounding model 
             # steps using the grid size
-            self.uf = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
-                                                self.grid['xu'].shape[1],
-                                                self.grid['sc_r'].size,
-                                                2)))*np.nan
-            self.vf = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
-                                                self.grid['xu'].shape[1],
-                                                self.grid['sc_r'].size,
-                                                2)))*np.nan
-            self.dzt = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
-                                                self.grid['xu'].shape[1],
-                                                self.grid['sc_r'].size,
-                                                2)))*np.nan
-            self.zrt = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
-                                                self.grid['xu'].shape[1],
-                                                self.grid['sc_r'].size,
-                                                2)))*np.nan
-            self.zwt = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
-                                                self.grid['xu'].shape[1],
-                                                self.grid['sc_r'].size,
-                                                2)))*np.nan
-            self.uf[:,:,:,1], self.vf[:,:,:,1], self.dzt[:,:,:,1], self.zrt[:,:,:,1], self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0],self.grid,nc)
-        # pdb.set_trace()
+            lx = self.grid['xr'].shape[0]
+            ly = self.grid['xr'].shape[1]
+            lk = self.grid['sc_r'].size
+            self.uf = np.asfortranarray(np.ones((lx-1, ly, lk-1, 2)))*np.nan
+            self.vf = np.asfortranarray(np.ones((lx, ly-1, lk-1, 2)))*np.nan
+            self.dzt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
+            self.zrt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
+            self.zwt = np.asfortranarray(np.ones((lx, ly, lk, 2)))*np.nan
+            self.uf[:,:,:,1], self.vf[:,:,:,1], \
+                self.dzt[:,:,:,1], self.zrt[:,:,:,1], \
+                self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0],self.grid,nc)
+
         ## Find zstart0 and ka
         # The k indices and z grid ratios should be on a wflux vertical grid,
         # which goes from 0 to km since the vertical velocities are defined
@@ -318,30 +309,32 @@ class Tracpy(object):
             zstart0 = np.ones(ia.size)*np.nan
 
             if self.zpar == 'fromMSL':
+                print 'zpar==''fromMSL'' not implemented yet...'
+            #     for i in xrange(ia.size):
+            #         # pdb.set_trace()
+            #         ind = (self.grid['zwt0'][ia[i],ja[i],:]<=self.z0[i])
+            #         # check to make sure there is at least one true value, so the z0 is shallower than the seabed
+            #         if np.sum(ind): 
+            #             ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+            #         # if the drifter starting vertical location is too deep for the x,y location, complain about it
+            #         else:  # Maybe make this nan or something later
+            #             print 'drifter vertical starting location is too deep for its x,y location. Try again.'
+            #         if (self.z0[i] != self.grid['zwt0'][ia[i],ja[i],ka[i]]) and (ka[i] != self.grid['km']): # check this
+            #             ka[i] = ka[i]+1
+            #         # Then find the vertical relative position in the grid cell by adding on the bit of grid cell
+            #         zstart0[i] = ka[i] - abs(self.z0[i]-self.grid['zwt0'][ia[i],ja[i],ka[i]]) \
+            #                             /abs(self.grid['zwt0'][ia[i],ja[i],ka[i]-1]-self.grid['zwt0'][ia[i],ja[i],ka[i]])
+            elif self.zpar == 'fromZeta':
+                # In this case, the starting z values of the drifters are found in grid space as z0 below
+                # the z surface for each drifter
                 for i in xrange(ia.size):
-                    # pdb.set_trace()
-                    ind = (self.grid['zwt0'][ia[i],ja[i],:]<=self.z0[i])
-                    # check to make sure there is at least one true value, so the z0 is shallower than the seabed
-                    if np.sum(ind): 
-                        ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-                    # if the drifter starting vertical location is too deep for the x,y location, complain about it
-                    else:  # Maybe make this nan or something later
-                        print 'drifter vertical starting location is too deep for its x,y location. Try again.'
-                    if (self.z0[i] != self.grid['zwt0'][ia[i],ja[i],ka[i]]) and (ka[i] != self.grid['km']): # check this
+                    ind = (self.zwt[ia[i],ja[i],:,1]<=self.z0[i])
+                    ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
+                    if (self.z0[i] != self.zwt[ia[i],ja[i],ka[i],1]) and (ka[i] != self.grid['km']): # check this
                         ka[i] = ka[i]+1
                     # Then find the vertical relative position in the grid cell by adding on the bit of grid cell
-                    zstart0[i] = ka[i] - abs(self.z0[i]-self.grid['zwt0'][ia[i],ja[i],ka[i]]) \
-                                        /abs(self.grid['zwt0'][ia[i],ja[i],ka[i]-1]-self.grid['zwt0'][ia[i],ja[i],ka[i]])
-            # elif zpar == 'fromZeta':
-            #   for i in xrange(ia.size):
-            #       pdb.set_trace()
-            #       ind = (zwtnew[ia[i],ja[i],:]<=z0[i])
-            #       ka[i] = find(ind)[-1] # find value that is just shallower than starting vertical position
-            #       if (z0[i] != zwtnew[ia[i],ja[i],ka[i]]) and (ka[i] != grid['km']): # check this
-            #           ka[i] = ka[i]+1
-            #       # Then find the vertical relative position in the grid cell by adding on the bit of grid cell
-            #       zstart0[i] = ka[i] - abs(z0[i]-zwtnew[ia[i],ja[i],ka[i]]) \
-            #                           /abs(zwtnew[ia[i],ja[i],ka[i]-1]-zwtnew[ia[i],ja[i],ka[i]])
+                    zstart0[i] = ka[i] - abs(self.z0[i]-self.zwt[ia[i],ja[i],ka[i],1]) \
+                                      /abs(self.zwt[ia[i],ja[i],ka[i]-1,1]-self.zwt[ia[i],ja[i],ka[i],1])
 
         # Find initial cell depths to concatenate to beginning of drifter tracks later
         zsave = tracpy.tools.interpolate3d(xstart0, ystart0, zstart0, self.zwt[:,:,:,1])
@@ -451,7 +444,7 @@ class Tracpy(object):
                 # interpolate to a specific output time
                 # pdb.set_trace()
                 zwt = (1.-r[n])*self.zwt[:,:,:,0] + r[n]*self.zwt[:,:,:,1]
-                zp, dt = tools.interpolate3d(xend, yend, zend, zwt)
+                zp, dt = tracpy.tools.interpolate3d(xend, yend, zend, zwt)
         else:
             zp = zend
 
