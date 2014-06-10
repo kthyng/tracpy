@@ -33,6 +33,7 @@ or
 ## To learn more about the module TracPy
 
 Learn more by running a small test case. Internet required.
+
 1. Open an iPython notebook server in the TracPy `docs` directory.
 `ipython notebook`
 1. A webpage will open in your browser showing the available notebooks in the current directory. Open the notebook called manual.
