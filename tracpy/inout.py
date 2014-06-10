@@ -16,7 +16,6 @@ import glob
 import numpy as np
 from datetime import datetime, timedelta
 import pdb
-# from mpl_toolkits.basemap import Basemap
 from matplotlib import delaunay
 import octant
 import time
@@ -51,14 +50,9 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
-    # pdb.set_trace()
+    # For thredds server where all information is available in one place
     if type(loc) == str:
         nc = netCDF.Dataset(loc)
-    # if 'http' in loc or (len(loc) == 2 and '.nc' in loc[0]): # use just input file
-        # if len(loc) == 2:
-        #     nc = netCDF.Dataset(loc[0])
-        # else:
-        #     nc = netCDF.Dataset(loc)
         if ff == 1: #forward in time
             dates = nc.variables['ocean_time'][:] # don't stride here, need all times to make index determinations
             ilow = date >= dates
@@ -78,7 +72,6 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
             files = np.sort(glob.glob(loc[0] + 'ocean_his_????.nc')) # sorted list of file names
         else:
             files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
-        # files = np.sort(glob.glob(loc + 'ocean_his_*_tochange.nc')) # this is for idealized tests
 
         # Find the list of files that cover the desired time period
         # First, check to see if there is one or more than one time index in each file because
@@ -114,12 +107,9 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
         # of finding the necessary files a little more general
         # Start by opening two files
         i = 1
-        # pdb.set_trace()
         fname = [files[ifile]]
 
         nc = netCDF.MFDataset(fname) # files in fname are in chronological order
-        # # number of indices included in opened files so far
-        # ninds = nc.variables['ocean_time'][:].size 
         # Find which output in ifile is closest to the user-input start time (choose lower index)
         # Dates for drifters from this start date
         dates = nc.variables['ocean_time'][:]   
@@ -171,7 +161,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
         # model output files together containing all necessary model outputs
         nc = netCDF.MFDataset(fname) # reopen since needed to close things in loop
-    # pdb.set_trace()
+
     return nc, tinds
 
 def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
@@ -238,14 +228,11 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     if keeptime: starttime = time.time()
 
     # Read in grid parameters and find x and y in domain on different grids
-    # if len(loc) == 2:
-    #   gridfile = netCDF.Dataset(loc[1])
     # use full dataset to get grid information
     # This addresses an issue in netCDF4 that was then fixed, but
     # this line makes updating unnecessary. Issue described here:
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
     netCDF._set_default_format(format='NETCDF3_64BIT')
-    # pdb.set_trace()
     gridfile = netCDF.Dataset(grid_filename)
 
     # # Read in whether grid is spherical or not
@@ -333,8 +320,6 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     pm = gridfile.variables['pm'][:]
     pn = gridfile.variables['pn'][:]
     h = gridfile.variables['h'][:]
-    # angle = gridfile.variables['angle'][:]
-    # pdb.set_trace()
     if keeptime:
         hgridtime = time.time()
         print "horizontal grid time ", hgridtime - basemaptime
@@ -350,7 +335,6 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         Vstretching = gridfile.variables['Vstretching'][0]
     # Still want vertical grid metrics, but are in separate file
     elif vert_filename is not None:
-    # elif nc is not None: # for if running off local grid/nc files
         nc = netCDF.Dataset(vert_filename)
         sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
         Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
@@ -389,7 +373,6 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     pm = np.asfortranarray(pm.T)
     pn = np.asfortranarray(pn.T)
     h = np.asfortranarray(h.T)
-    # pdb.set_trace()
 
     if keeptime: 
         fortranflippingtime = time.time()
@@ -399,7 +382,6 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # Grid sizes
     imt = h.shape[0] # 671
     jmt = h.shape[1] # 191
-    # km = sc_r.shape[0] # 31
     if 'sc_r' in dir():
         km = sc_r.shape[0]-1 # 30 NOT SURE ON THIS ONE YET
 
@@ -427,16 +409,9 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
 
     # tracmass ordering.
     # Not sure how to convert this to pm, pn with appropriate shift
-    dxv = 1/pm #.copy() # pm is 1/\Delta x at cell centers
-    dyu = 1/pn #.copy() # pn is 1/\Delta y at cell centers
+    dxv = 1/pm # pm is 1/\Delta x at cell centers
+    dyu = 1/pn # pn is 1/\Delta y at cell centers
 
-    # dxv = xr.copy()
-    # dxv[0:imt-2,:] = dxv[1:imt-1,:] - dxv[0:imt-2,:]
-    # dxv[imt-1:imt,:] = dxv[imt-3:imt-2,:]
-    # # pdb.set_trace()
-    # dyu = yr.copy()
-    # dyu[:,0:jmt-2] = dyu[:,1:jmt-1] - dyu[:,0:jmt-2]
-    # dyu[:,jmt-1] = dyu[:,jmt-2]
     dxdy = dyu*dxv
 
     # Change dxv,dyu to be correct u and v grid size after having 
@@ -453,7 +428,6 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         print "grid metrics time ", gridmetricstime - delaunaytime
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example project from Bror
-    # pdb.set_trace()
     if 'sc_r' in dir():
         mask2 = mask.copy()
         kmt = np.ones((imt,jmt),order='f')*km
@@ -601,37 +575,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
             sshread = True
         else:
             sshread = False
-    
-    # time_read = time.time()-tic_temp
 
-    # tic_temp = time.time()
-    # # make arrays in same order as is expected in the fortran code
-    # # ROMS expects [time x k x j x i] but tracmass is expecting [i x j x k x time]
-    # # change these arrays to be fortran-directioned instead of python
-    # # u = u.T.copy(order='f')
-    # # v = v.T.copy(order='f')
-    # # ssh = ssh.T.copy(order='f')
-    # # # Flip vertical dimension because in ROMS surface is at k=-1 
-    # # # and in tracmass surface is at 1
-    # # u = np.flipud(u)
-    # # v = np.flipud(v)
-    # time_flip1 = time.time()-tic_temp
-
-    # This is code from tracmass itself, which is being replaced by Rob's octant code
-    # # Copy calculations from rutgersNWA/readfields.f95
-    # dzt = np.ones((grid['imt'],grid['jmt'],grid['km']))*np.nan
-    # dzu = np.ones((grid['imt']-1,grid['jmt'],grid['km']))*np.nan
-    # dzv = np.ones((grid['imt'],grid['jmt']-1,grid['km']))*np.nan
-    # for k in xrange(grid['km']):
-    #   dzt0 = (grid['sc_r'][k]-grid['Cs_r'][k])*grid['hc'] \
-    #           + grid['Cs_r'][k]*grid['h']
-    #   dzt[:,:,k] = dzt0 + ssh*(1.+dzt0/grid['h'])
-
-    # dzt0 = dzt[:,:,grid['km']-1]
-    # dzt[:,:,0:grid['km']-1] = dzt[:,:,1:grid['km']] - dzt[:,:,0:grid['km']-1]
-    # dzt[:,:,grid['km']-1] = ssh - dzt0
-
-    # tic_temp = time.time()
     h = grid['h'].T.copy(order='c')
     # Use octant to calculate depths for the appropriate vertical grid parameters
     # have to transform a few back to ROMS coordinates and python ordering for this
@@ -642,13 +586,8 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
         zwt = octant.depths.get_zw(grid['Vtransform'], grid['Vstretching'], grid['km']+1, grid['theta_s'], grid['theta_b'], 
                         h, grid['hc'], zeta=0, Hscale=3)
     # Change dzt to tracmass/fortran ordering
-    # zwt = zwt.T.copy(order='f')
-    # dzt = zwt[:,:,1:] - zwt[:,:,:-1]
     dzt = zwt[1:,:,:] - zwt[:-1,:,:]
-    # pdb.set_trace()
-    # time_zw = time.time()-tic_temp
 
-    # tic_temp = time.time()
     # also want depths on rho grid
     if sshread:
         zrt = octant.depths.get_zrho(grid['Vtransform'], grid['Vstretching'], grid['km'], grid['theta_s'], grid['theta_b'], 
@@ -656,36 +595,14 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
     else:
         zrt = octant.depths.get_zrho(grid['Vtransform'], grid['Vstretching'], grid['km'], grid['theta_s'], grid['theta_b'], 
                         h, grid['hc'], zeta=0, Hscale=3)
-    # Change dzt to tracmass/fortran ordering
-    # zrt = zrt.T.copy(order='f')
-    # time_zr = time.time()-tic_temp
 
-    # tic_temp = time.time()
     dzu = .5*(dzt[:,:,0:grid['imt']-1] + dzt[:,:,1:grid['imt']])
     dzv = .5*(dzt[:,0:grid['jmt']-1,:] + dzt[:,1:grid['jmt'],:])
-    # dzu = .5*(dzt[0:grid['imt']-1,:,:] + dzt[1:grid['imt'],:,:])
-    # dzv = .5*(dzt[:,0:grid['jmt']-1,:] + dzt[:,1:grid['jmt'],:])
-    # dzu = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
-    # dzv = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
-    # dzu[0:grid['imt']-1,:,:] = dzt[0:grid['imt']-1,:,:]*0.5 + dzt[1:grid['imt'],:,:]*0.5
-    # dzv[:,0:grid['jmt']-1,:] = dzt[:,0:grid['jmt']-1,:]*0.5 + dzt[:,1:grid['jmt'],:]*0.5
-    # pdb.set_trace()
-    # time_interp = time.time()-tic_temp
 
-    # tic_temp = time.time()
     # Change order back to ROMS/python for this calculation
-    # u = u.T.copy(order='c')
-    # v = v.T.copy(order='c')
-    # dzu = dzu.T.copy(order='c')
-    # dzv = dzv.T.copy(order='c')
-    # dzt = dzt.T.copy(order='c')
     dyu = grid['dyu'].T.copy(order='c')
     dxv = grid['dxv'].T.copy(order='c')
-    # zrt = zrt.T.copy(order='c')
-    # time_flip2 = time.time()-tic_temp
-    # pdb.set_trace()
 
-    # tic_temp = time.time()
     # I think I can avoid this loop for the isoslice case
     if z0 == None: # 3d case
         uflux1 = u*dzu*dyu
@@ -698,79 +615,36 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
     elif z0 == 'rho' or z0 == 'salt' or z0 == 'temp':
         # the vertical setup we're selecting an isovalue of
         vert = nc.variables[z0][tind,:,:,:]
-        # pdb.set_trace()
         # Calculate flux and then take slice
         uflux1 = octant.tools.isoslice(u*dzu*dyu,op.resize(vert,2),zpar)
         vflux1 = octant.tools.isoslice(v*dzv*dxv,op.resize(vert,1),zpar)
         dzt = octant.tools.isoslice(dzt,vert,zpar)
         zrt = octant.tools.isoslice(zrt,vert,zpar)
-        # pdb.set_trace()
     elif z0 == 'z':
         # Calculate flux and then take slice
         uflux1 = octant.tools.isoslice(u*dzu*dyu,op.resize(zrt,2),zpar)
         vflux1 = octant.tools.isoslice(v*dzv*dxv,op.resize(zrt,1),zpar)
         dzt = octant.tools.isoslice(dzt,zrt,zpar)
         zrt = np.ones(uflux1.shape)*zpar # array of the input desired depth
-    # time_flux = time.time()-tic_temp
 
-    # tic_temp = time.time()
     # Change all back to tracmass/fortran ordering if being used again
-    # tic = time.time()
-    # uflux1 = uflux1.T.copy(order='f')
-    # vflux1 = vflux1.T.copy(order='f')
-    # dzt = dzt.T.copy(order='f')
-    # zrt = zrt.T.copy(order='f')
-    # ssh = ssh.T.copy(order='f')
-    # zwt = zwt.T.copy(order='f')
-    # print "copy time",time.time()-tic
-    # tic = time.time()
     # This is faster than copying arrays
     # Don't bother changing order of these arrays since I have to change it in 
     # run.py anyway (concatenate appears not to preserve ordering)
     uflux1 = uflux1.T
     vflux1 = vflux1.T
     dzt = np.asfortranarray(dzt.T)
-    # uflux1 = np.asfortranarray(uflux1.T)
-    # vflux1 = np.asfortranarray(vflux1.T)
-    # dzt = np.asfortranarray(dzt.T)
     zrt = np.asfortranarray(zrt.T)
     if sshread:
         ssh = np.asfortranarray(ssh.T)
     zwt = np.asfortranarray(zwt.T)
-    # print "fortran time",time.time()-tic
-    # time_flip3 = time.time()-tic_temp
 
-
-    # tic_temp = time.time()
     # make sure that all fluxes have a placeholder for depth
     if is_string_like(z0):
         uflux1 = uflux1.reshape(np.append(uflux1.shape,1))
         vflux1 = vflux1.reshape(np.append(vflux1.shape,1))
         dzt = dzt.reshape(np.append(dzt.shape,1))
         zrt = zrt.reshape(np.append(zrt.shape,1))
-    # time_reshape = time.time()-tic_temp
-
-
-    # # Flip vertical dimension because in ROMS surface is at k=-1 
-    # # and in tracmass surface is at 1
-    # # This is not true. In tracmass, surface is at k=KM
-    # uflux1 = uflux1[:,:,::-1]
-    # vflux1 = vflux1[:,:,::-1]
-    # dzt = dzt[:,:,::-1]
-    # uflux1 = np.flipud(uflux1)
-    # vflux1 = np.flipud(vflux1)
-    # dzt = np.flipud(dzt)
-
-
-    # print "time to read=",time_read
-    # # print "time to flip=",time_flip1
-    # print "time to get zw=",time_zw
-    # print "time to get zr=",time_zr
-    # print "time to interp=",time_interp
-    # print "time to flip2=",time_flip2
-    # print "time to flux=",time_flux
-    # print "time to flip3=",time_flip3
-    # print "time to reshape=",time_reshape
 
     return uflux1, vflux1, dzt, zrt, zwt
 
@@ -828,7 +702,6 @@ def savetracks(xin, yin ,zpin, tpin, name, nstepsin, Nin, ffin, tseasin,
     # Define dimensions
     rootgrp.createDimension('ntrac', ntrac)
     rootgrp.createDimension('nt', nt)
-    # pdb.set_trace()
     if Uin is not None:
         xul = Uin.shape[0]
         yul = Uin.shape[1]

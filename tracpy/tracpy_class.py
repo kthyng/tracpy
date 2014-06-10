@@ -245,36 +245,18 @@ class Tracpy(object):
         yend = np.ones((ia.size,(len(tinds)-1)*self.N+1))*np.nan
         zend = np.ones((ia.size,(len(tinds)-1)*self.N+1))*np.nan
         zp = np.ones((ia.size,(len(tinds)-1)*self.N+1))*np.nan
-        # iend = np.ones((ia.size,(len(tinds)-1)*self.N))*np.nan
-        # jend = np.ones((ia.size,(len(tinds)-1)*self.N))*np.nan
-        # kend = np.ones((ia.size,(len(tinds)-1)*self.N))*np.nan
         ttend = np.zeros((ia.size,(len(tinds)-1)*self.N+1))
         flag = np.zeros((ia.size),dtype=np.int) # initialize all exit flags for in the domain
 
         # Initialize vertical stuff and fluxes
         # Read initial field in - to 'new' variable since will be moved
         # at the beginning of the time loop ahead
+        lx = self.grid['xr'].shape[0]
+        ly = self.grid['xr'].shape[1]
+        lk = self.grid['sc_r'].size
         if is_string_like(self.z0): # isoslice case
             # Now that we have the grid, initialize the info for the two bounding model 
             # steps using the grid size
-            self.uf = np.asfortranarray(np.ones((self.grid['xu'].shape[0], 
-                                                self.grid['xu'].shape[1], 1, 2)))*np.nan
-            self.vf = np.asfortranarray(np.ones((self.grid['xv'].shape[0], 
-                                                self.grid['xv'].shape[1], 1, 2)))*np.nan
-            self.dzt = np.asfortranarray(np.ones((self.grid['xr'].shape[0], 
-                                                self.grid['xr'].shape[1], 1, 2)))*np.nan
-            self.zrt = np.asfortranarray(np.ones((self.grid['xr'].shape[0], 
-                                                self.grid['xr'].shape[1], 1, 2)))*np.nan
-            self.zwt = np.asfortranarray(np.ones((self.grid['xr'].shape[0], 
-                                                self.grid['xr'].shape[1], self.grid['sc_r'].size, 2)))*np.nan
-            self.uf[:,:,:,1], self.vf[:,:,:,1], self.dzt[:,:,:,1], self.zrt[:,:,:,1], self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0],self.grid,nc,self.z0,self.zpar,zparuv=self.zparuv)
-            # self.ufnew,self.vfnew,self.dztnew,self.zrtnew,self.zwtnew = tracpy.inout.readfields(tinds[0],self.grid,nc,self.z0,self.zpar,zparuv=self.zparuv)
-        else: # 3d case
-            # Now that we have the grid, initialize the info for the two bounding model 
-            # steps using the grid size
-            lx = self.grid['xr'].shape[0]
-            ly = self.grid['xr'].shape[1]
-            lk = self.grid['sc_r'].size
             self.uf = np.asfortranarray(np.ones((lx-1, ly, lk-1, 2)))*np.nan
             self.vf = np.asfortranarray(np.ones((lx, ly-1, lk-1, 2)))*np.nan
             self.dzt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
@@ -282,7 +264,19 @@ class Tracpy(object):
             self.zwt = np.asfortranarray(np.ones((lx, ly, lk, 2)))*np.nan
             self.uf[:,:,:,1], self.vf[:,:,:,1], \
                 self.dzt[:,:,:,1], self.zrt[:,:,:,1], \
-                self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0],self.grid,nc)
+                self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0], self.grid, nc, self.z0, self.zpar, zparuv=self.zparuv)
+
+        else: # 3d case
+            # Now that we have the grid, initialize the info for the two bounding model 
+            # steps using the grid size
+            self.uf = np.asfortranarray(np.ones((lx-1, ly, lk-1, 2)))*np.nan
+            self.vf = np.asfortranarray(np.ones((lx, ly-1, lk-1, 2)))*np.nan
+            self.dzt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
+            self.zrt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
+            self.zwt = np.asfortranarray(np.ones((lx, ly, lk, 2)))*np.nan
+            self.uf[:,:,:,1], self.vf[:,:,:,1], \
+                self.dzt[:,:,:,1], self.zrt[:,:,:,1], \
+                self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0], self.grid, nc)
 
         ## Find zstart0 and ka
         # The k indices and z grid ratios should be on a wflux vertical grid,
