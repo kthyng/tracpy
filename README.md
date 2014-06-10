@@ -1,5 +1,7 @@
 # TracPy
 
+![DOI](https://zenodo.org/badge/4563/kthyng/tracpy.png "DOI")
+
 Fortran core of TRACMASS + Python wrapping around the outside.
 
 
