@@ -1,6 +1,6 @@
 # TracPy
 
-[[DOI](https://zenodo.org/badge/4563/kthyng/tracpy.png "DOI")](https://zenodo.org/record/10433#.U6SWWBYxmd8)
+[<img src="https://zenodo.org/badge/4563/kthyng/tracpy.png" class="picFloat">](https://zenodo.org/record/10433#.U6SWWBYxmd8)
 
 Fortran core of TRACMASS + Python wrapping around the outside.
 
