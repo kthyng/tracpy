@@ -28,7 +28,7 @@ class Tracpy(object):
         Note: GCM==General Circulation Model, meaning the predicted u/v velocity fields that are input 
         into TracPy to run the drifters.
 
-        :param currents_filename: NetCDF file name (with extension) or OpenDAP url to GCM output.
+        :param currents_filename: NetCDF file name (with extension) or OpenDAP url to GCM output. If you intend to input a set of NetCDF file names, use glob notation.
         :param grid_filename=None: NetCDF grid file name or OpenDAP url to GCM grid.
         :param nsteps=1: sets the max time step between GCM model outputs between drifter steps.
                (iter in TRACMASS) Does not control the output sampling anymore.

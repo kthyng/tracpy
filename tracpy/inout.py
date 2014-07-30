@@ -51,7 +51,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # For thredds server where all information is available in one place
-    if type(loc) == str:
+    if 'http' in loc:
         nc = netCDF.Dataset(loc)
         if ff == 1: #forward in time
             dates = nc.variables['ocean_time'][:] # don't stride here, need all times to make index determinations
@@ -68,10 +68,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
     # This is for the case when we have a bunch of files to sort through
     else:
-        if len(loc) == 2:
-            files = np.sort(glob.glob(loc[0] + 'ocean_his_????.nc')) # sorted list of file names
-        else:
-            files = np.sort(glob.glob(loc + 'ocean_his_????.nc')) # sorted list of file names
+        files = np.sort(glob.glob(loc)) # sorted list of file names
 
         # Find the list of files that cover the desired time period
         # First, check to see if there is one or more than one time index in each file because
