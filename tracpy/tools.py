@@ -238,22 +238,29 @@ def convert_indices(direction,x,y):
 
     return x, y
 
-def check_points(lon0,lat0,grid, nobays=False):
+def check_points(lon0,lat0,grid, z0=None, nobays=False):
     """
     Eliminate starting locations for drifters that are outside numerical domain
     and that are masked out.
 
     Inputs:
         lon0,lat0   Starting locations for drifters in lon/lat
+        z0          Starting locations for drifters in z
         grid        Grid made from readgrid.py
         nobays      Whether to use points in bays or not. Default is False.
 
     Outputs:
         lon0,lat0   Fixed lon0,lat0
+        z0          Fixed z0
     """
 
     lonr = grid['lonr']
     latr = grid['latr']
+
+    if z0 is not None:
+        from scipy.interpolate import interp2d
+        h = grid['h']
+        hint = interp2d(lonr[:,1], latr[1,:], h.T, fill_value=np.nan)
 
     # If covering the whole domain, need to exclude points outside domain.
     # Use info just inside domain so points aren't right at the edge.
@@ -275,7 +282,16 @@ def check_points(lon0,lat0,grid, nobays=False):
                 if not path.contains_point(np.vstack((lon0[jd,it],lat0[jd,it]))):
                     lon0[jd,it] = np.nan
                     lat0[jd,it] = np.nan
-                # break
+                    if z0 is not None:
+                        z0[jd,it] = np.nan
+
+                if z0 is not None:
+                    if z0[jd,it] <= -1*hint(lon0[jd,it], lat0[jd,it]) + 1:
+                        lon0[jd,it] = np.nan
+                        lat0[jd,it] = np.nan
+                        if z0 is not None:
+                            z0[jd,it] = np.nan
+                    # break
 
     elif lon0.ndim == 1:
         for jd in range(lon0.shape[0]): # loop through drifters
@@ -284,8 +300,17 @@ def check_points(lon0,lat0,grid, nobays=False):
             if not path.contains_point(np.vstack((lon0[jd],lat0[jd]))):
                 lon0[jd] = np.nan
                 lat0[jd] = np.nan
+                if z0 is not None:
+                    z0[jd] = np.nan
 
-    # pdb.set_trace()
+            if z0 is not None:
+                # check that the drifter starts at least 1m above the bottom
+                # alternative would be to use nearest-neighbour interpolation
+                # but I think the run code always floors the fractional index.
+                if z0[jd] <= -1*hint(lon0[jd], lat0[jd]) + 1:
+                    lon0[jd] = np.nan
+                    lat0[jd] = np.nan
+                    z0[jd] = np.nan
 
     # Also nan out points that are masked
     fmask = grid['trirllrho'].nn_interpolator(grid['mask'].flatten())
@@ -304,7 +329,13 @@ def check_points(lon0,lat0,grid, nobays=False):
     lon0 = lon0[ind2].flatten()
     lat0 = lat0[ind2].flatten()
 
-    return lon0,lat0
+    if z0 is not None:
+        z0 = z0[ind2].flatten()
+
+    if z0 is None:
+        return lon0, lat0
+    else:
+        return lon0, lat0, z0
 
 def seed(lon, lat, dlon=.5, dlat=.5, N=30):
     '''
