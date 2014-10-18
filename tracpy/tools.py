@@ -327,6 +327,11 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
         ind2 = np.ones(ind1.shape).astype(bool)
 
     ind2 = ~np.isnan(lon0)*ind1*ind2
+
+    L = len(ind2.ravel())
+    Lnan = sum(ind2.ravel())
+    print L-Lnan,'/', L, ' drifters NaN-ed out.'
+
     lon0 = lon0[ind2].flatten()
     lat0 = lat0[ind2].flatten()
 
