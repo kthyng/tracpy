@@ -258,6 +258,8 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
     lonr = grid['lonr']
     latr = grid['latr']
 
+    # make interpolation function for water depth h.
+    # Used to check if float is above the bottom
     if z0 is not None:
         from scipy.interpolate import interp2d
         h = grid['h']
@@ -287,7 +289,8 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
                         z0[jd,it] = np.nan
 
                 if z0 is not None:
-                    if z0[jd,it] <= -1*hint(lon0[jd,it], lat0[jd,it]) + 1:
+                    # check that the drifter starts above the bottom
+                    if z0[jd,it] <= -1*hint(lon0[jd,it], lat0[jd,it]):
                         lon0[jd,it] = np.nan
                         lat0[jd,it] = np.nan
                         if z0 is not None:
@@ -305,10 +308,8 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
                     z0[jd] = np.nan
 
             if z0 is not None:
-                # check that the drifter starts at least 1m above the bottom
-                # alternative would be to use nearest-neighbour interpolation
-                # but I think the run code always floors the fractional index.
-                if z0[jd] <= -1*hint(lon0[jd], lat0[jd]) + 1:
+                # check that the drifter starts above the bottom
+                if z0[jd] <= -1*hint(lon0[jd], lat0[jd]):
                     lon0[jd] = np.nan
                     lat0[jd] = np.nan
                     z0[jd] = np.nan
