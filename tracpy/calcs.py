@@ -14,7 +14,7 @@ from scipy import ndimage
 import time
 import tracpy
 
-def Var(xp, yp, tp, varin, nc):
+def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
     '''
     Calculate the given property, varin, along the input drifter tracks. This property can
     be changing in time and space.
@@ -27,6 +27,7 @@ def Var(xp, yp, tp, varin, nc):
         varin       Variable to calculate. Available options are: u, v, salt, temp, h, zeta
         nc          Netcdf file object where the model output can be accessed which includes 
                     all necessary times
+        units       For time conversion, not used for depths 
 
     Outputs:
         varp        Variable along the drifter track
@@ -44,11 +45,11 @@ def Var(xp, yp, tp, varin, nc):
     tstart = time.time()
 
     # Time indices for the drifter track points
-    units = 'seconds since 1970-01-01'
-    t = nc.variables['ocean_time'][:] # model times
-    istart = find(netCDF.num2date(t, units) <= netCDF.num2date(tp[0], units))[-1]
-    iend = find(netCDF.num2date(t, units) >= netCDF.num2date(tp[-1], units))[0]
-    tinds = np.arange(istart, iend)
+    if varin!='h': # don't need time for h
+        t = nc.variables['ocean_time'][:] # model times
+        istart = find(netCDF.num2date(t, units) <= netCDF.num2date(tp[0], units))[-1]
+        iend = find(netCDF.num2date(t, units) >= netCDF.num2date(tp[-1], units))[0]
+        tinds = np.arange(istart, iend)
 
 
     # Read in model information. Try reading it all in the for time, y, and x and then
