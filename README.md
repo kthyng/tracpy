@@ -26,18 +26,12 @@ To instead install the package locally:
 
 1. Move into your TracPy directory.
 1. Update your GitHub repository.
-
 `git pull`
 1. Edit your install of TracPy.
-
 `pip install -e .` 
-
 or
-
 `pip install --force-reinstall -e .`
-
-or, for local installation:
-
+or, for local installation: 
 `pip install --ignore-installed --user .`
 
 
