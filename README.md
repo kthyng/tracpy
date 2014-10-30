@@ -10,11 +10,15 @@ Fortran core of TRACMASS + Python wrapping around the outside.
 1. Make your new TracPy directory and change directories into it.
 1. Clone the TracPy repository from GitHub. 
 In the command prompt, type: 
+
 `git clone https://github.com/kthyng/tracpy.git`
 1. Install the package globally:
+
 `pip install -e .`
 This makes the package an editable install so that it can be updated with future additions to TracPy. Note that a required package is [octant](https://github.com/hetland/octant).
-or install the package locally:
+
+To instead install the package locally:
+
 `pip install --user .`
 
 
@@ -22,11 +26,19 @@ or install the package locally:
 
 1. Move into your TracPy directory.
 1. Update your GitHub repository.
+
 `git pull`
 1. Edit your install of TracPy.
+
 `pip install -e .` 
+
 or
+
 `pip install --force-reinstall -e .`
+
+or, for local installation:
+
+`pip install --ignore-installed --user .`
 
 
 ## To test the code
