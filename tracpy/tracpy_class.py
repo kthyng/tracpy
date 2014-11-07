@@ -91,6 +91,7 @@ class Tracpy(object):
         :param T0=None: Volume transport represented by each drifter. for use with dostream=1.
         :param U=None: east-west transport, is updated by TRACMASS. Only used if dostream=1.
         :param V=None: north-south transport, is updated by TRACMASS. Only used if dostream=1.
+               Note: U,V currently initialized elsewhere if not input explicitly.
         :param usebasemap=False: whether to use basemap for projections in readgrid or not. 
                Not is faster, but using basemap allows for plotting.
         :param savell=True: True to save drifter tracks in lon/lat and False to save them in grid coords
@@ -215,8 +216,8 @@ class Tracpy(object):
 
         # If dostream==1, do transport calculations and initialize to an empty array
         if self.U is None and self.dostream:
-            self.U = np.ma.zeros(grid['xu'].shape, order='F')
-            self.V = np.ma.zeros(grid['xv'].shape, order='F')
+            self.U = np.ma.zeros(self.grid['xu'].shape, order='F')
+            self.V = np.ma.zeros(self.grid['xv'].shape, order='F')
 
         # Interpolate to get starting positions in grid space
         if self.usespherical: # convert from assumed input lon/lat coord locations to grid space
