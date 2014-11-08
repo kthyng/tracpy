@@ -155,6 +155,9 @@ class Tracpy(object):
 
         if zparuv is None:
             self.zparuv = zpar
+        else:
+            self.zparuv = zparuv
+            
         if tseas_use is None:
             self.tseas_use = tseas
 
