@@ -34,7 +34,11 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     model output indices within those files to use.
 
     Input:
-     loc        File location
+     loc        File location. loc can be:
+                * a thredds server web address
+                * a single string of a file location
+                * a list of strings of multiple file locations to be searched
+                through
      date       datetime format start date
      ff         Time direction. ff=1 forward, ff=-1 backward
      tout       Number of model outputs to use
@@ -51,7 +55,8 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # For thredds server where all information is available in one place
-    if 'http' in loc:
+    # or for a single file
+    if 'http' in loc or type(loc)==str:
         nc = netCDF.Dataset(loc)
         if ff == 1: #forward in time
             dates = nc.variables['ocean_time'][:] # don't stride here, need all times to make index determinations
@@ -68,7 +73,9 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
 
     # This is for the case when we have a bunch of files to sort through
     else:
-        files = np.sort(glob.glob(loc)) # sorted list of file names
+        # the globbing should happen ahead of time so this case looks different than
+        # the single file case
+        # files = np.sort(glob.glob(loc)) # sorted list of file names
 
         # Find the list of files that cover the desired time period
         # First, check to see if there is one or more than one time index in each file because
