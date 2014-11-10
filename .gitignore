@@ -6,3 +6,17 @@
 *.so
 .DS_Store
 old/
+
+*.ipynb*
+
+build/
+docs/figures
+docs/manual.tex
+docs/manual_files
+docs/tracks
+figures
+outdir
+tests/input/tracks
+tests/tracks
+tracks
+tracpy.egg-info

@@ -4,7 +4,7 @@ import netCDF4 as netCDF
 import pdb
 from tracpy.time_class import Time
 
-def run(tp, date, lon0, lat0):
+def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     '''
     some variables are not specifically called because f2py is hides them
      like imt, jmt, km, ntractot
@@ -16,6 +16,10 @@ def run(tp, date, lon0, lat0):
     date        Start date in datetime object
     lon0        Drifter starting locations in x/zonal direction.
     lat0        Drifter starting locations in y/meridional direction.
+    T0          Optional weighting of drifters for use with stream functions.
+                Is not used if dostream=0.
+    U,V         Optional array for east-west/north-south transport, is updated by TRACMASS. 
+                Only used if dostream=1.
 
     Other variables:
 
@@ -40,7 +44,7 @@ def run(tp, date, lon0, lat0):
         # Loop through substeps in call to TRACMASS in case we want to add on windage, etc, for each step
         for nsubstep in xrange(tp.nsubsteps):
 
-            xstart, ystart, zstart, ufsub, vfsub = tp.prepare_for_model_step(tinds[j+1], nc, flag, xend, yend, zend, j, nsubstep)
+            xstart, ystart, zstart, ufsub, vfsub, T0 = tp.prepare_for_model_step(tinds[j+1], nc, flag, xend, yend, zend, j, nsubstep, T0)
             ind = (flag[:] == 0) # indices where the drifters are still inside the domain
 
             timer.addtime('2: Preparing for model step   ')
@@ -53,7 +57,7 @@ def run(tp, date, lon0, lat0):
                 yend_temp,\
                 zend_temp,\
                 flag[ind],\
-                ttend_temp, U, V = tp.step(xstart, ystart, zstart, ufsub, vfsub)
+                ttend_temp, U, V = tp.step(xstart, ystart, zstart, ufsub, vfsub, T0, U, V)
 
             timer.addtime('3: Stepping, using TRACMASS   ')
 
@@ -67,7 +71,7 @@ def run(tp, date, lon0, lat0):
 
     nc.close()
 
-    lonp, latp, zp, ttend, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp)
+    lonp, latp, zp, ttend, T0, U, V = tp.finishSimulation(ttend, t0save, xend, yend, zp, T0, U, V)
 
     timer.addtime('5: Processing after simulation')
 
