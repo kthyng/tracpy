@@ -21,7 +21,7 @@ class Tracpy(object):
     def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
                 time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
-                T0=None, U=None, V=None, usebasemap=False, savell=True, doperiodic=0, usespherical=True):
+                usebasemap=False, savell=True, doperiodic=0, usespherical=True):
         '''
         Initialize class.
 
@@ -88,10 +88,6 @@ class Tracpy(object):
                this is just an ability to use model output at less frequency than is available, 
                probably just for testing purposes or matching other models. Should be a multiple 
                of tseas (or will be rounded later).
-        :param T0=None: Volume transport represented by each drifter. for use with dostream=1.
-        :param U=None: east-west transport, is updated by TRACMASS. Only used if dostream=1.
-        :param V=None: north-south transport, is updated by TRACMASS. Only used if dostream=1.
-               Note: U,V currently initialized elsewhere if not input explicitly.
         :param usebasemap=False: whether to use basemap for projections in readgrid or not. 
                Not is faster, but using basemap allows for plotting.
         :param savell=True: True to save drifter tracks in lon/lat and False to save them in grid coords
@@ -122,9 +118,6 @@ class Tracpy(object):
         self.dostream = dostream
         self.N = N
         self.time_units = time_units
-        self.T0 = T0
-        self.U = U
-        self.V = V
         self.usebasemap = usebasemap
         self.savell = savell
         self.doperiodic = doperiodic
@@ -176,10 +169,6 @@ class Tracpy(object):
         # Calculate time outputs stride. Will be 1 if want to use all model output.
         self.tstride = int(self.tseas_use/self.tseas) # will round down
 
-        # U,V currently initialized elsewhere if not input explicitly.
-        if dostream:
-            assert self.T0 is not None
-
         # For later use
         # fluxes
         self.uf = None
@@ -216,11 +205,6 @@ class Tracpy(object):
         # Read in grid parameters into dictionary, grid, if haven't already
         if self.grid is None:
             self._readgrid()
-
-        # If dostream==1, do transport calculations and initialize to an empty array
-        if self.U is None and self.dostream:
-            self.U = np.ma.zeros(self.grid['xu'].shape, order='F')
-            self.V = np.ma.zeros(self.grid['xv'].shape, order='F')
 
         # Interpolate to get starting positions in grid space
         if self.usespherical: # convert from assumed input lon/lat coord locations to grid space
@@ -393,7 +377,7 @@ class Tracpy(object):
 
         return xstart, ystart, zstart, ufsub, vfsub
 
-    def step(self, xstart, ystart, zstart, ufsub, vfsub):
+    def step(self, xstart, ystart, zstart, ufsub, vfsub, T0, U, V):
         '''
         Take some number of steps between a start and end time.
         FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES
@@ -415,8 +399,7 @@ class Tracpy(object):
                                 self.grid['dyu'], self.grid['h'], self.nsteps, 
                                 self.ah, self.av, self.do3d, self.doturb, 
                                 self.doperiodic, self.dostream, self.N, 
-                                t0=self.T0,
-                                ut=self.U, vt=self.V)
+                                t0=T0, ut=U, vt=V)
 
         # return the new positions or the delta lat/lon
         return xend, yend, zend, flag, ttend, U, V
@@ -449,7 +432,7 @@ class Tracpy(object):
         # return the new positions or the delta lat/lon
         return xend, yend, zend, zp, ttend
 
-    def finishSimulation(self, ttend, t0save, xend, yend, zp):
+    def finishSimulation(self, ttend, t0save, xend, yend, zp, T0, U, V):
         '''
         Wrap up simulation.
         NOT DOING TRANSPORT YET
@@ -471,7 +454,7 @@ class Tracpy(object):
         tracpy.inout.savetracks(lonp, latp, zp, ttend, self.name, self.nsteps, self.N, self.ff, 
                             self.tseas_use, self.ah, self.av,
                             self.do3d, self.doturb, self.currents_filename, 
-                            self.doperiodic, self.time_units, self.T0, self.U, 
-                            self.V, savell=self.savell)
+                            self.doperiodic, self.time_units, T0, U, 
+                            V, savell=self.savell)
 
-        return lonp, latp, zp, ttend, self.T0, self.U, self.V
+        return lonp, latp, zp, ttend, T0, U, V
