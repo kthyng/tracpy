@@ -328,7 +328,7 @@ class Tracpy(object):
 
         return tinds, nc, t0save, xend, yend, zend, zp, ttend, flag
 
-    def prepare_for_model_step(self, tind, nc, flag, xend, yend, zend, j, nsubstep):
+    def prepare_for_model_step(self, tind, nc, flag, xend, yend, zend, j, nsubstep, T0):
         '''
         Already in a step, get ready to actually do step
         '''
@@ -341,6 +341,8 @@ class Tracpy(object):
         xstart = np.ma.masked_where(flag[:]==1,xstart)
         ystart = np.ma.masked_where(flag[:]==1,ystart)
         zstart = np.ma.masked_where(flag[:]==1,zstart)
+        if T0 is not None:
+            T0 = np.ma.masked_where(flag[:]==1,T0)
 
         # Move previous new time step to old time step info
         self.uf[:,:,:,0] = self.uf[:,:,:,1].copy()
@@ -375,7 +377,7 @@ class Tracpy(object):
         # (vertical are zero-based in tracmass)
         xstart, ystart = tracpy.tools.convert_indices('py2f',xstart,ystart)
 
-        return xstart, ystart, zstart, ufsub, vfsub
+        return xstart, ystart, zstart, ufsub, vfsub, T0
 
     def step(self, xstart, ystart, zstart, ufsub, vfsub, T0, U, V):
         '''
@@ -387,7 +389,7 @@ class Tracpy(object):
         '''
 
         # Figure out where in time we are 
-
+        # pdb.set_trace()
         xend, yend, zend, flag,\
             ttend, U, V = \
                 tracmass.step(np.ma.compressed(xstart),
@@ -399,7 +401,7 @@ class Tracpy(object):
                                 self.grid['dyu'], self.grid['h'], self.nsteps, 
                                 self.ah, self.av, self.do3d, self.doturb, 
                                 self.doperiodic, self.dostream, self.N, 
-                                t0=T0, ut=U, vt=V)
+                                t0=np.ma.compressed(T0), ut=U, vt=V)
 
         # return the new positions or the delta lat/lon
         return xend, yend, zend, flag, ttend, U, V
