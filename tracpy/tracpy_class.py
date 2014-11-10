@@ -389,19 +389,32 @@ class Tracpy(object):
         '''
 
         # Figure out where in time we are 
-        # pdb.set_trace()
-        xend, yend, zend, flag,\
-            ttend, U, V = \
-                tracmass.step(np.ma.compressed(xstart),
-                                np.ma.compressed(ystart),
-                                np.ma.compressed(zstart),
-                                self.tseas_use, ufsub, vfsub, self.ff, 
-                                self.grid['kmt'].astype(int), 
-                                self.dzt, self.grid['dxdy'], self.grid['dxv'], 
-                                self.grid['dyu'], self.grid['h'], self.nsteps, 
-                                self.ah, self.av, self.do3d, self.doturb, 
-                                self.doperiodic, self.dostream, self.N, 
-                                t0=np.ma.compressed(T0), ut=U, vt=V)
+        
+        if T0 is not None:
+            xend, yend, zend, flag,\
+                ttend, U, V = \
+                    tracmass.step(np.ma.compressed(xstart),
+                                    np.ma.compressed(ystart),
+                                    np.ma.compressed(zstart),
+                                    self.tseas_use, ufsub, vfsub, self.ff, 
+                                    self.grid['kmt'].astype(int), 
+                                    self.dzt, self.grid['dxdy'], self.grid['dxv'], 
+                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
+                                    self.ah, self.av, self.do3d, self.doturb, 
+                                    self.doperiodic, self.dostream, self.N, 
+                                    t0=np.ma.compressed(T0), ut=U, vt=V)
+        else:
+            xend, yend, zend, flag,\
+                ttend, U, V = \
+                    tracmass.step(np.ma.compressed(xstart),
+                                    np.ma.compressed(ystart),
+                                    np.ma.compressed(zstart),
+                                    self.tseas_use, ufsub, vfsub, self.ff, 
+                                    self.grid['kmt'].astype(int), 
+                                    self.dzt, self.grid['dxdy'], self.grid['dxv'], 
+                                    self.grid['dyu'], self.grid['h'], self.nsteps, 
+                                    self.ah, self.av, self.do3d, self.doturb, 
+                                    self.doperiodic, self.dostream, self.N)
 
         # return the new positions or the delta lat/lon
         return xend, yend, zend, flag, ttend, U, V
