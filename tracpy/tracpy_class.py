@@ -21,7 +21,7 @@ class Tracpy(object):
     def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
                 time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
-                usebasemap=False, savell=True, doperiodic=0, usespherical=True):
+                usebasemap=False, savell=True, doperiodic=0, usespherical=True, grid=None):
         '''
         Initialize class.
 
@@ -97,11 +97,12 @@ class Tracpy(object):
                2: use a periodic boundary condition in the north-south/y/j direction
         :param usespherical=True: True if want to use spherical (lon/lat) coordinates and False
                for idealized applications where it isn't necessary to project from spherical coordinates.
+        :param grid=None: Grid is initialized to None and is found subsequently normally, but can be set with the TracPy object in order to save time when running a series of simulations.
         '''
 
         self.currents_filename = currents_filename
         self.grid_filename = grid_filename
-        self.grid = None
+        self.grid = grid
 
         # Initial parameters
         self.nsteps = nsteps
