@@ -335,8 +335,8 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         hc = gridfile.variables['hc'][:]
         theta_s = gridfile.variables['theta_s'][:]
         theta_b = gridfile.variables['theta_b'][:]
-        Vtransform = gridfile.variables['Vtransform'][0]
-        Vstretching = gridfile.variables['Vstretching'][0]
+        Vtransform = gridfile.variables['Vtransform'][:]
+        Vstretching = gridfile.variables['Vstretching'][:]
     # Still want vertical grid metrics, but are in separate file
     elif vert_filename is not None:
         nc = netCDF.Dataset(vert_filename)
