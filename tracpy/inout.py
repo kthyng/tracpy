@@ -76,6 +76,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
         # the globbing should happen ahead of time so this case looks different than
         # the single file case
         # files = np.sort(glob.glob(loc)) # sorted list of file names
+        files = loc # file list is now to be input
 
         # Find the list of files that cover the desired time period
         # First, check to see if there is one or more than one time index in each file because

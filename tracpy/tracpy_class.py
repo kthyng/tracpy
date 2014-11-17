@@ -18,7 +18,7 @@ class Tracpy(object):
     TracPy class.
     '''
 
-    def __init__(self, currents_filename, grid_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
+    def __init__(self, currents_filename, grid_filename=None, vert_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
                 time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
                 usebasemap=False, savell=True, doperiodic=0, usespherical=True, grid=None):
@@ -30,6 +30,7 @@ class Tracpy(object):
 
         :param currents_filename: NetCDF file name (with extension), list of file names, or OpenDAP url to GCM output.
         :param grid_filename=None: NetCDF grid file name or OpenDAP url to GCM grid.
+        :param vert_filename=None: If vertical grid information is not included in the grid file, or if all grid info is not in output file, use two.
         :param nsteps=1: sets the max time step between GCM model outputs between drifter steps.
                (iter in TRACMASS) Does not control the output sampling anymore.
                The velocity fields are assumed frozen while a drifter is stepped through a given 
@@ -102,6 +103,20 @@ class Tracpy(object):
 
         self.currents_filename = currents_filename
         self.grid_filename = grid_filename
+
+        # If grid_filename is distinct, assume we need a separate vert_filename for vertical grid info
+        # use what is input or use info from currents_filename
+        if grid_filename is not None: 
+            if vert_filename is not None:
+                self.vert_filename = vert_filename
+            else:
+                if type(currents_filename)==str: # there is one input filename
+                    self.vert_filename = currents_filename
+                else: # we have a list of names
+                    self.vert_filename = currents_filename[0]
+        else:
+            self.vert_filename = vert_filename # this won't be used though
+
         self.grid = grid
 
         # Initial parameters
@@ -186,7 +201,7 @@ class Tracpy(object):
         # if vertical grid information is not included in the grid file, or if all grid info
         # is not in output file, use two
         if self.grid_filename is not None:
-            self.grid = tracpy.inout.readgrid(self.grid_filename, vert_filename=self.currents_filename, 
+            self.grid = tracpy.inout.readgrid(self.grid_filename, self.vert_filename, 
                                                 usebasemap=self.usebasemap, usespherical=self.usespherical)
         else:
             self.grid = tracpy.inout.readgrid(self.currents_filename, usebasemap=self.usebasemap,
