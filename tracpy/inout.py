@@ -77,7 +77,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
         # the single file case
         # files = np.sort(glob.glob(loc)) # sorted list of file names
         files = loc # file list is now to be input
-
+        # pdb.set_trace()
         # Find the list of files that cover the desired time period
         # First, check to see if there is one or more than one time index in each file because
         # if there is only one, we need to compare two files to see where we are in time
@@ -102,9 +102,16 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
                 ttemp = nctemp.variables['ocean_time'][:]
                 # pdb.set_trace()
                 nctemp.close()
+                # need to check subsequent file as well, in case starting time is between files
+                if i<(len(files)-1):
+                    nctemp2 = netCDF.Dataset(files[i+1])
+                    ttemp2 = nctemp2.variables['ocean_time'][:]
+                    nctemp2.close()
                 # If datenum_in is larger than the first time in the file but smaller
                 # than the last time, then this is the correct file to use to start
-                if date >= ttemp[0] and date <= ttemp[-1]:
+                # or, if the starting date is between this file and the next, start 
+                # with this file (for interpolation between the outputs)
+                if (date >= ttemp[0] and date <= ttemp[-1]) or (date>ttemp[-1] and date<ttemp2[0]):
                     ifile = i # this is the starting file identifier then
                     break
 
