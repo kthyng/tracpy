@@ -144,18 +144,20 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
                 nc = netCDF.MFDataset(fname) # files in fname are in chronological order
 
             else: # multiple snapshots per file
-
+                # pdb.set_trace()
                 # if the final index we want is beyond the length of these files,
                 # keep adding files on
-                while tinds[-1] > len(dates): 
+                # need an extra index for interpolation
+                while tinds[-1]+1 > len(dates):
+                # while len(tinds)+1 > len(dates): 
                     # if tdir: #forward - add 2nd file on end
                     fname.append(files[ifile+i])
                     nc = netCDF.MFDataset(fname) # files in fname are in chronological order
                     dates = nc.variables['ocean_time'][:]   
-                    ilow = date >= dates
-                    # time index with time value just below datenum_in (relative to file ifile)
-                    istart = dates[ilow].size - 1
-                    tinds = range(istart,istart+tout, tstride)
+                    # ilow = date >= dates
+                    # # time index with time value just below datenum_in (relative to file ifile)
+                    # istart = dates[ilow].size - 1
+                    # tinds = range(istart,istart+tout, tstride)
                     nc.close()
                     i = i + 1
 
@@ -170,7 +172,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
                 tinds = range(istart,istart-tout, -tstride)
                 nc.close()
                 i = i + 1
-
+        
         # model output files together containing all necessary model outputs
         nc = netCDF.MFDataset(fname) # reopen since needed to close things in loop
 
