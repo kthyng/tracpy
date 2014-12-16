@@ -108,7 +108,7 @@ def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
     return varp
 
 
-def get_dist(lon1, lons, lat1, lats, spherical): 
+def get_dist(lon1, lons, lat1, lats, spherical=True): 
     '''
     Function to compute great circle distance between point lat1 and lon1 
     and arrays of points given by lons, lats or both same length arrays.
@@ -129,7 +129,7 @@ def get_dist(lon1, lons, lat1, lats, spherical):
 
     else:
 
-        distance = np.sqrt((lats - lat1)**2 + (lons - lon1)**2)
+        distance = np.sqrt((lats - lat1)**2 + (lons - lon1)**2)/1000.
 
     return distance
 
@@ -178,15 +178,15 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
         # dist contains all of the distances from other drifters for each drifter
         dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
                                     latp[idrifter,0], latp[idrifter+1:,0], spherical=spherical)
-        # pdb.set_trace()
         # dist[idrifter, idrifter+1:] = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
         #                             latp[idrifter,0], latp[idrifter+1:,0])
         # dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
         ind = find(dist<=r)
         for i in ind:
-            if ID[idrifter] != ID[i]:
-                pairs.append([min(ID[idrifter], ID[i]), 
-                                max(ID[idrifter], ID[i])])
+            if ID[idrifter] != ID[i+idrifter+1]:
+            # if ID[idrifter] != ID[i]:
+                pairs.append([min(ID[idrifter], ID[i+idrifter+1]), 
+                                max(ID[idrifter], ID[i+idrifter+1])])
     # pdb.set_trace()
     # print 'time for initial particle separation and pairs: ', time.time()-tstart
 
@@ -221,7 +221,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
 
         # calculate distance in time
         dist = get_dist(lonp[pairs[ipair][0],:], lonp[pairs[ipair][1],:], 
-                    latp[pairs[ipair][0],:], latp[pairs[ipair][1],:])
+                    latp[pairs[ipair][0],:], latp[pairs[ipair][1],:], spherical=spherical)
 
         # dispersion can be presented as squared or not
         if squared:
