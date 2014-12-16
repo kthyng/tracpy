@@ -108,26 +108,33 @@ def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
     return varp
 
 
-def get_dist(lon1, lons, lat1, lats): 
+def get_dist(lon1, lons, lat1, lats, spherical): 
     '''
     Function to compute great circle distance between point lat1 and lon1 
     and arrays of points given by lons, lats or both same length arrays.
     Uses Haversine formula. Distance is in km.
     '''
 
-    lon1 = lon1*np.pi/180.
-    lons = lons*np.pi/180.
-    lat1 = lat1*np.pi/180.
-    lats = lats*np.pi/180.
+    if spherical:
 
-    earth_radius = 6373.
-    distance = earth_radius*2.0*np.arcsin(np.sqrt(np.sin(0.50*(lat1-lats))**2 \
-                                       + np.cos(lat1)*np.cos(lats) \
-                                       * np.sin(0.50*(lon1-lons))**2))
+        lon1 = lon1*np.pi/180.
+        lons = lons*np.pi/180.
+        lat1 = lat1*np.pi/180.
+        lats = lats*np.pi/180.
+
+        earth_radius = 6373.
+        distance = earth_radius*2.0*np.arcsin(np.sqrt(np.sin(0.50*(lat1-lats))**2 \
+                                           + np.cos(lat1)*np.cos(lats) \
+                                           * np.sin(0.50*(lon1-lons))**2))
+
+    else:
+
+        distance = np.sqrt((lats - lat1)**2 + (lons - lon1)**2)
+
     return distance
 
 
-def rel_dispersion(lonp, latp, r=1, squared=True):
+def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
     '''
     Calculate the relative dispersion of a set of tracks. First, initial pairs
     of drifters are found, based on a maximum initial separation distance, then
@@ -139,6 +146,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
                         Default is 1 kilometer.
         squared         Whether to present the results as separation distance squared or 
                         not squared. Squared by default.
+        spherical       True for inputs in lon/lat, and False for already in meters.
 
     Outputs:
         D2              Relative dispersion (squared or not) averaged over drifter 
@@ -167,10 +175,10 @@ def rel_dispersion(lonp, latp, r=1, squared=True):
     # Then exclude repeated pairs. And calculate initial distances.
     pairs = []
     for idrifter in xrange(lonp.shape[0]):
-        # pdb.set_trace()
         # dist contains all of the distances from other drifters for each drifter
         dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
-                                    latp[idrifter,0], latp[idrifter+1:,0])
+                                    latp[idrifter,0], latp[idrifter+1:,0], spherical=spherical)
+        pdb.set_trace()
         # dist[idrifter, idrifter+1:] = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
         #                             latp[idrifter,0], latp[idrifter+1:,0])
         # dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
