@@ -178,7 +178,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
         # dist contains all of the distances from other drifters for each drifter
         dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
                                     latp[idrifter,0], latp[idrifter+1:,0], spherical=spherical)
-        pdb.set_trace()
+        # pdb.set_trace()
         # dist[idrifter, idrifter+1:] = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
         #                             latp[idrifter,0], latp[idrifter+1:,0])
         # dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
