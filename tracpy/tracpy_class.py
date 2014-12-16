@@ -307,7 +307,8 @@ class Tracpy(object):
             zstart0 = np.ones(ia.size)*np.nan
 
             if self.zpar == 'fromMSL':
-                print 'zpar==''fromMSL'' not implemented yet...'
+                # print 'zpar==''fromMSL'' not implemented yet...'
+                raise NotImplementedError("zpar==''fromMSL'' not implemented yet...")
             #     for i in xrange(ia.size):
             #         # pdb.set_trace()
             #         ind = (self.grid['zwt0'][ia[i],ja[i],:]<=self.z0[i])
