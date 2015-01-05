@@ -170,24 +170,19 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
     # dist = np.zeros((lonp.shape[0],lonp.shape[0]))*np.nan
 
     # let the index in axis 0 be the drifter id
-    ID = np.arange(lonp.shape[0])
+    # ID = np.arange(lonp.shape[0])
     # Loop through all drifters and find initial separation distances smaller than r.
     # Then exclude repeated pairs. And calculate initial distances.
     pairs = []
     for idrifter in xrange(lonp.shape[0]):
-        # dist contains all of the distances from other drifters for each drifter
+        # dist contains all of the distances from other unchecked drifters for each drifter
         dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
                                     latp[idrifter,0], latp[idrifter+1:,0], spherical=spherical)
-        # dist[idrifter, idrifter+1:] = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
-        #                             latp[idrifter,0], latp[idrifter+1:,0])
-        # dist[idrifter,:] = get_dist(lonp[idrifter,0], lonp[:,0], latp[idrifter,0], latp[:,0])
-        ind = find(dist<=r)
+        # add in which drifter we are at to shift to correct index and one since starts after comparison point
+        ind = idrifter + 1 + find(dist<=r) 
         for i in ind:
-            if ID[idrifter] != ID[i+idrifter+1]:
-            # if ID[idrifter] != ID[i]:
-                pairs.append([min(ID[idrifter], ID[i+idrifter+1]), 
-                                max(ID[idrifter], ID[i+idrifter+1])])
-    # pdb.set_trace()
+            pairs.append([min(idrifter, i), max(idrifter, i)])
+
     # print 'time for initial particle separation and pairs: ', time.time()-tstart
 
     # tstart = time.time()
@@ -222,7 +217,8 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
         # calculate distance in time
         dist = get_dist(lonp[pairs[ipair][0],:], lonp[pairs[ipair][1],:], 
                     latp[pairs[ipair][0],:], latp[pairs[ipair][1],:], spherical=spherical)
-
+        # if np.nanmax(np.diff(dist))>2:
+        #     print pairs[ipair], np.nanmax(np.diff(dist))
         # dispersion can be presented as squared or not
         if squared:
             D2 = np.nansum(np.vstack([D2, dist**2]), axis=0)
