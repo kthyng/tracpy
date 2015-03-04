@@ -134,7 +134,7 @@ def get_dist(lon1, lons, lat1, lats, spherical=True):
     return distance
 
 
-def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
+def rel_dispersion(lonp, latp, r=[0,1], squared=True, spherical=True):
     '''
     Calculate the relative dispersion of a set of tracks. First, initial pairs
     of drifters are found, based on a maximum initial separation distance, then
@@ -142,8 +142,9 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
 
     Inputs:
         lonp, latp      Longitude/latitude of the drifter tracks [ndrifter,ntime]
-        r               Initial separation distance (kilometers) defining pairs of drifters. 
-                        Default is 1 kilometer.
+        r               Initial separation distance minimum and maximum (kilometers) 
+                        to be used to define pairs of drifters. 
+                        Default is 0 km min and 1 kilometer max.
         squared         Whether to present the results as separation distance squared or 
                         not squared. Squared by default.
         spherical       True for inputs in lon/lat, and False for already in meters.
@@ -160,7 +161,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
     of nnans.
 
     Example call:
-    tracpy.calcs.rel_dispersion(dr.variables['lonp'][:], dr.variables['latp'][:], r=1, squared=True)
+    tracpy.calcs.rel_dispersion(dr.variables['lonp'][:], dr.variables['latp'][:], r=[0,1], squared=True)
     '''
 
     # Find pairs of drifters based on initial position
@@ -179,7 +180,7 @@ def rel_dispersion(lonp, latp, r=1, squared=True, spherical=True):
         dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
                                     latp[idrifter,0], latp[idrifter+1:,0], spherical=spherical)
         # add in which drifter we are at to shift to correct index and one since starts after comparison point
-        ind = idrifter + 1 + find(dist<=r) 
+        ind = idrifter + 1 + find(dist<=r[1]) + find(dist>=r[0]) 
         for i in ind:
             pairs.append([min(idrifter, i), max(idrifter, i)])
 
