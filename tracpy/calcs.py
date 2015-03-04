@@ -180,7 +180,7 @@ def rel_dispersion(lonp, latp, r=[0,1], squared=True, spherical=True):
         dist = get_dist(lonp[idrifter,0], lonp[idrifter+1:,0], 
                                     latp[idrifter,0], latp[idrifter+1:,0], spherical=spherical)
         # add in which drifter we are at to shift to correct index and one since starts after comparison point
-        ind = idrifter + 1 + find(dist<=r[1]) + find(dist>=r[0]) 
+        ind = idrifter + 1 + find(dist<=r[1] * dist>=r[0]) 
         for i in ind:
             pairs.append([min(idrifter, i), max(idrifter, i)])
 
