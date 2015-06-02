@@ -178,9 +178,7 @@ flag = 0
 !=======================================================
 
 ntracLoop: do ntrac=1,ntractot  
-!     print *,'ntractot=',ntractot
-    ! start track off with no error
-!     errCode = 0
+
     ! Counter for sub-interations for each drifter. In the source, this was read in but I am not sure why.
     niter = 0
     Ni = 1 ! counter for when to write to file
@@ -196,14 +194,10 @@ ntracLoop: do ntrac=1,ntractot
     kb = kstart(ntrac)
   
     ! ===  start loop for each trajectory ===
-    !         scrivi=.true.
     niterLoop: do 
         niter=niter+1 ! iterative step of trajectory
-!         print *,'niter=',niter
         rg = ts 
-!         rg=dmod(ts,1.d0) ! time interpolation constant between 0 and 1
         rr = 1.d0-rg
-!         print *,'ts=',ts,' rg=',rg,' rr=',rr
         ! Update particle indices and locations
         x0 = x1
         y0 = y1
@@ -212,18 +206,11 @@ ntracLoop: do ntrac=1,ntractot
         iam = ia-1
         ja = jb
         ka = kb
-!       print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=',uflux(ia ,ja,ka,2),' dxyz=',dxyz
-!       print '(a,f8.1,a,f8.1,a,f12.2)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2),' dxyz=',dxyz
-!       print *,'ia=',ia,' ja=',ja,' ka=',ka
-!       print *,'iter=',iter,'ntractot=',ntractot
-!         ! start track off with no error (maybe export these later to keep track of)
+        ! start track off with no error (maybe export these later to keep track of)
         errCode = 0
 
-! print *,'ib=',ib,' ia=',ia,' jb=',jb,' ja=',ja
-
         call calc_dxyz(ib,jb,kb,rr,imt,jmt,km,dzt,dxdy,dxyz)
-        ! I am putting the error checks directly in the loop for convenience
-        !         call errorCheck('dxyzError',errCode,dxyz,flag)
+
         ! Check the grid box volume
         if(dxyz == 0.d0) then
             print *,'====================================='
@@ -231,9 +218,6 @@ ntracLoop: do ntrac=1,ntractot
             print *,'-------------------------------------'
             print *,'ntrac=',ntrac!,' ints=', ints
             print *,'ib=',ib,'jb=',jb,'kb=',kb
-            !           print *,'kmt=',kmt(ib,jb)
-            !           print *,'dz=',dz(kb)
-            !           print *,'dxyz=',dxyz,' dxdy=',dxdy(ib,jb)
             print *,'-------------------------------------'
             print *,'The trajectory is killed'
             print *,'====================================='
@@ -241,7 +225,6 @@ ntracLoop: do ntrac=1,ntractot
             flag(ntrac) = 1 
         end if
 
-!         call errorCheck('coordBoxError' ,errCode)
         ! ===  Check that coordinates belongs to   ===
         ! ===  correct box. Valuable for debugging ===
         if( dble(ib-1).gt.x1 .or. dble(ib).lt.x1 )  then
@@ -283,17 +266,11 @@ ntracLoop: do ntrac=1,ntractot
             stop
         end if
 
-!         call errorCheck('infLoopError'  ,errCode)
-
         if(niter.gt.30000) then ! break infinite loops
-!         if(niter-nrj(ntrac,4).gt.30000) then ! break infinite loops
-!             nloop=nloop+1             
             print *,'====================================='
             print *,'Warning: Particle in infinite loop '
             print *,'ntrac:',ntrac
             print *,'niter:',niter!,'nrj:',nrj(ntrac,4)
-!             print *,'dxdy:',dxdy(ib,jb),'dxyz:',dxyz
-!             print *,'kmt:',kmt(ia-1,ja-1),'dz(k):',dz(ka-1)
             print *,'ia=',ia,' ib=',ib,' ja=',ja,' jb=',jb, & 
                ' ka=',ka,' kb=',kb
             print *,'x1=',x1,' x0=',x0,' y1=',y1,' y0=',y0, & 
@@ -320,27 +297,15 @@ ntracLoop: do ntrac=1,ntractot
         !==============================================!
 
         dsmin=dtmin/dxyz
-!         print *,'dsmin=',dsmin,' dtmin=',dtmin,' dxyz=',dxyz
 
-        ! ! === calculate the turbulent velocities ===
+        ! === calculate the turbulent velocities ===
         if(doturb==1) then
             call turbuflux(ia,ja,ka,rr,dtmin,ah,imt,jmt,km,uflux,vflux,wflux,ff,do3d,upr)
         end if
 
-!         ! === calculate the vertical velocity ===
-!              print *,''
-!            print *,'ntrac=',ntrac
-!         print *,'before vertvel ========================================'  
-!         print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!             ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-!         print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
-!             ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
-!         print *,'imt=',imt,' size(uflux)=',size(uflux,1),' size(vflux)=',size(vflux,1)
+        ! === calculate the vertical velocity ===
         call vertvel(rr,ia,ja,ka,imt,jmt,km,ff,uflux,vflux,do3d,wflux)
-!         print *,'returned from vertvel ========================================'
-!         print *,'wflux=',wflux
 
-!  print *,'ja=',ja,' jb=',jb,x1,y1
         if(doturb==1) then
             call cross(1,ia,ja,ka,x0,dse,dsw,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb,upr) ! zonal
             call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb,upr) ! meridional
@@ -350,38 +315,18 @@ ntracLoop: do ntrac=1,ntractot
             call cross(2,ia,ja,ka,y0,dsn,dss,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb) ! meridional
             call cross(3,ia,ja,ka,z0,dsu,dsd,rr,uflux,vflux,wflux,ff,km,jmt,imt,do3d,doturb) ! vertical
         endif
-!         print *, 'dse=',dse,' dsw=',dsw,' dsn=',dsn,' dss=',dss,' dsmin=',dsmin
-          ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
-!         print *,'Before calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dtmin=',dtmin
+        ds=dmin1(dse,dsw,dsn,dss,dsu,dsd,dsmin)
 
-!         call errorCheck('dsCrossError', errCode)
-     ! === Can not find any path for unknown reasons ===
+        ! === Can not find any path for unknown reasons ===
         if(ds == UNDEF .or.ds == 0.d0)then 
             print *, " "
             print *, " "
             print *,'==================================================='
             print *,'Warning: not find any path for unknown reason '
             print *, " "
-!             write (*,FMT='(A, 5E9.2)'),' ds=',ds,dse,dsw,dsn,dss
-!             write (*,FMT='(4E9.2)'), dsu,dsd,dsmin,dxyz
-!             print *,'---------------------------------------------------'
-!             print *,"   ntrac = ",ntrac
-!             write (*,'(A7, I10, A7, I10, A7, I10)'), & 
-!                 ' ia= ', ia, ' ja= ', ja, ' ka= ', ka
-!             write (*,'(A7, I10, A7, I10, A7, I10)'), & 
-!                 ' ib= ', ib, ' jb= ', jb, ' kb= ', kb
-!             write (*,'(A7, F10.3, A7, F10.3, A7, F10.3)'), & 
-!                 ' x0= ', x0, ' y0= ', y0, ' z0= ', z0
-!             write (*,'(A7, F10.3, A7, F10.3, A7, F10.3)'), & 
-!                 ' x0= ', x0, ' y0= ', y0, ' z0= ', z0
-!             write (*,'(A7, I10, A7, I10, A7, I10)'), & 
-!                 ' k_inv= ', km+1-kmt(ia,ja), ' kmt= ', kmt(ia,ja), &
-!                 'lnd= ', mask(ia,ja)
             print *,'---------------------------------------------------'
             print *,'The trajectory is killed'
             print *,'==================================================='
-    !         nerror=nerror+1
-    !         nrj(ntrac,6)=1
             flag(ntrac) = 1
             errCode = -56
         end if
@@ -389,19 +334,8 @@ ntracLoop: do ntrac=1,ntractot
 
         call calc_time(ds,dsmin,dt,dtmin,tss,tseas,ts,tt,dxyz,dstep,iter,rb,dsc)
 
-!         print *,'After calc_time: ds=',ds,' tss=',tss,' ts=',ts,' tt=',tt,' dt=',dt,' dtmin=',dtmin
-
         ! === calculate the new positions ===
         ! === of the trajectory           ===  
-!         if(ntrac==42) then
-!              print *,''
-!            print *,'before pos'  
-!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-!             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
-!                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
-!         endif
-
         if(doturb==1) then
             call pos(ia,ja,ka,ib,jb,kb,x0,y0,z0,x1,y1,z1,ds,dse,dsw,dsn,dss,dsu,dsd,dsmin,dsc,&
                 ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,do3d,doturb,upr)
@@ -410,84 +344,41 @@ ntracLoop: do ntrac=1,ntractot
                 ff,imt,jmt,km,rr,rb,uflux,vflux,wflux,do3d,doturb)
         endif
 
-!         print *,''
-!         print *,'x1/x0=',x1/x0,' y1/y0=',y1/y0
-
-!         if(ntrac==42) then
-!             print *,'after pos'
-!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-!             !         print '(a,f10.2,a,f10.2,a,f10.2,a,e7.1,a,f4.2,a,f4.2,a,f4.2,a,f5.2)','tt=',tt, ' t0=',t0,' ds=',ds,' rr=',rr,' rbg=',rbg,' rb=',rb,' ts=',ts
-!             print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia,ja,ka,1)=',uflux(ia,ja,ka,1),' uflux(ia ,ja,ka,2)=', &
-!                 uflux(ia ,ja,ka,2),' dxyz=',dxyz
-!             print '(a,f8.1,a,f8.1,a,f12.2)','uflux(ia-1,ja,ka,1)=',uflux(ia-1,ja,ka,1),' uflux(ia-1 ,ja,ka,2)=', &
-!                 uflux(ia-1 ,ja,ka,2)
-!             print '(a,f8.1,a,f8.1,a)','vflux(ia,ja,ka,1)=',vflux(ia,ja,ka,1),' vflux(ia ,ja,ka,2)=',vflux(ia ,ja,ka,2)
-!             print '(a,f8.1,a,f8.1,a)','vflux(ia,ja-1,ka,1)=',vflux(ia,ja-1,ka,1),' vflux(ia ,ja-1,ka,2)=',vflux(ia ,ja-1,ka,2)
-!             print '(a,f7.1,a,f6.1,a,f5.2,a,f5.2)', 'tt=',tt,' dt=',dt,' ts=',ts,' tss=',tss
-!             print *,''
-!         endif
-!         === make sure that trajectory ===
+        ! === make sure that trajectory ===
         ! === is inside ib,jb,kb box    ===
-!         print *,'ib=',ib,' jb=',jb,' x1=',x1,' idint(x1)=',idint(x1)
         if(x1.ne.dble(idint(x1))) ib=idint(x1)+1 ! index for correct cell?
         if(y1.ne.dble(idint(y1))) jb=idint(y1)+1 ! index for correct cell?
-!         print *,'ib=',ib,' jb=',jb
 
-!             print *,'after box check'  
-!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-!             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
-!                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
-
-!         call errorCheck('boundError', errCode)
         if(ia>imt .or. ib>imt .or. ja>jmt .or. jb>jmt &
              .or. ia<1 .or. ib<1 .or. ja<1 .or. jb<1) then
             print *,'====================================='
             print *,'Warning: Trajectory leaving model area'
             print *,'-------------------------------------'
-    !           print *,'iaib',ia,ib,ja,jb,ka,kb
-    !           print *,'xyz',x0,x1,y0,y1,z0,z1
-    !           print *,'ds',dse,dsw,dsn,dss,dsu,dsd
-    !           print *,'dsmin=',ds,dsmin,dtmin,dxyz
-    !           print *,'tt=',tt,ts
-    !           print *,'ntrac=',ntrac
             print *,'-------------------------------------'
             print *,'The trajectory is killed'
             print *,'====================================='
-!            nerror=nerror+1
-!            boundError = boundError +1
             errCode = -50
-!            if (strict==1) stop
             flag(ntrac) = 1
-
-!            nrj(ntrac,6)=1
         endif
         if (errCode.ne.0) cycle ntracLoop
 
-!         call errorCheck('airborneError', errCode)
-         ! if trajectory above sea level,
-         ! then put back in the middle of shallowest layer (evaporation)
-         if( z1.ge.dble(km) ) then
+        ! if trajectory above sea level,
+        ! then put back in the middle of shallowest layer (evaporation)
+        if( z1.ge.dble(km) ) then
             z1=dble(km)-0.5d0
             kb=km
             errCode = -50
-         endif
+        endif
 
-!         call errorCheck('corrdepthError', errCode)
-         ! sets the right level for the corresponding trajectory depth
-         if(z1.ne.dble(idint(z1))) then
+        ! sets the right level for the corresponding trajectory depth
+        if(z1.ne.dble(idint(z1))) then
             kb=idint(z1)+1
             if(kb == km+1) kb=km  ! (should perhaps be removed)
             errCode = -52
-         endif
+        endif
 
-!         call errorCheck('cornerError', errCode)
-         if(x1 == dble(idint(x1)) .and. y1 == dble(idint(y1)))  then
+        if(x1 == dble(idint(x1)) .and. y1 == dble(idint(y1)))  then
             print *,'corner problem'
-            !print *,'corner problem',ntrac,x1,x0,y1,y0,ib,jb
-            !print *,'ds=',ds,dse,dsw,dsn,dss,dsu,dsd,dsmin
-            !stop 34957
             ! corner problems may be solved the following way 
             ! but should really not happen at all
             if(ds == dse .or. ds == dsw) then
@@ -509,16 +400,11 @@ ntracLoop: do ntrac=1,ntractot
             errCode = -54
          endif
 
-
-! print *,'ib(after)=',ib,' ia=',ia
-! print *,'x1=',x1,' y1=',y1,' z1=',z1
         ! === diffusion, which adds a random position ===
         ! === position to the new trajectory          ===
-
         if(doturb==2 .or. doturb==3) then
             call diffuse(x1, y1, z1, ib, jb, kb, dt,imt,jmt,km, dxv,dyu,dzt,h,ah,av,do3d,doturb)
         endif
-        !         nout=nout+1 ! number of trajectories that have exited the space and time domain
 
         ! === Optional periodic boundary conditions ===
         ! If activated, a drifter is moved from the appropriate domain edge and 
@@ -565,68 +451,18 @@ ntracLoop: do ntrac=1,ntractot
             endif
         endif
 
-
-
-
-!  print *,'ja=',ja,' jb=',jb,x1,y1
-
-!             print *,'end of loop'  
-!             print '(a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2,a,f6.2)','x0=',x0,' x1=',x1,&
-!                 ' y0=',y0,' y1=',y1,' z0=',z0,' z1=',z1
-!             print '(a,i3,a,i3,a,i3,a,i3,a,i3,a,i3)','ia=',ia,' ib=',ib,&
-!                 ' ja=',ja,' jb=',jb,' ka=',ka,' kb=',kb
-
         ! If drifter is on a grid cell wall, add/subtract its initial volume
         ! transport to the appropriate grid cells
         ! drifter needs to have just made it to the wall to count
-!         print *,'x1=', x1, ' dble(ib)=', dble(ib), ' x0=', x0, ' dble(ia)=', dble(ia)
-!         print *,'y1=', y1, ' dble(jb)=', dble(jb), ' y0=', y0, ' dble(ja)=', dble(ja)
         if (dostream==1) then
             if(idint(x1)>idint(x0)) then ! moving in positive x direction
-!             if(x1==dble(ia) .and. x1>x0) then ! moving in positive x direction
-!                 print *, 'moving in positive x direction'
-!                 print *, 'ut(ia, jb)=', ut(ia, jb), &
-!                             ' ut(ib, jb)=', ut(ib, jb), &
-!                             ' T0(ntrac)=', T0(ntrac)
                 ut(ia, ja) = ut(ia, ja) + T0(ntrac) ! positive direction exit
-!                 ut(ia, jb) = ut(ia, jb) - T0(ntrac) ! leaving cell
-!                 ut(ib, jb) = ut(ib, jb) + T0(ntrac) ! entering cell
-!                 print *, 'ut(ia, jb)=', ut(ia, jb), &
-!                             ' ut(ib, jb)=', ut(ib, jb)
-
             else if(idint(x1)<idint(x0)) then
-!             else if(x1==dble(ia-1) .and. x1<x0) then ! moving in negative x direction
-!                 print *, 'moving in negative x direction'
-!                 print *, 'ut(ia, jb)=', ut(ia, jb), &
-!                             ' ut(ib, jb)=', ut(ib, jb), &
-!                             ' T0(ntrac)=', T0(ntrac)
                 ut(ia-1, ja) = ut(ia-1, ja) - T0(ntrac) ! negative direction exit
-!                 ut(ia, jb) = ut(ia, jb) - T0(ntrac) ! leaving cell
-!                 ut(ib, jb) = ut(ib, jb) + T0(ntrac) ! entering cell
-!                 print *, 'ut(ia, jb)=', ut(ia, jb), &
-!                             ' ut(ib, jb)=', ut(ib, jb)
             else if(idint(y1)>idint(y0)) then
-!             else if(y1==dble(ja) .and. y1>y0) then ! moving in positive y direction
-!                 print *, 'moving in positive y direction'
-!                 print *, 'vt(ib, ja)=', vt(ib, ja), &
-!                             ' vt(ib, jb)=', vt(ib, jb), &
-!                             ' T0(ntrac)=', T0(ntrac)
                 vt(ia, ja) = vt(ia, ja) + T0(ntrac) ! positive direction exit
-!                 vt(ib, ja) = vt(ib, ja) - T0(ntrac)
-!                 vt(ib, jb) = vt(ib, jb) + T0(ntrac)
-!                 print *, 'vt(ib, ja)=', vt(ib, ja), &
-!                             ' vt(ib, jb)=', vt(ib, jb)
             else if(idint(y1)<idint(y0)) then
-!             else if(y1==dble(ja-1) .and. y1<y0) then ! moving in negative y direction
-!                 print *, 'moving in negative y direction'
-!                 print *, 'vt(ib, ja)=', vt(ib, ja), &
-!                             ' vt(ib, jb)=', vt(ib, jb), &
-!                             ' T0(ntrac)=', T0(ntrac)
                 vt(ia, ja-1) = vt(ia, ja-1) - T0(ntrac) ! negative direction exit
-!                 vt(ib, ja) = vt(ib, ja) - T0(ntrac)
-!                 vt(ib, jb) = vt(ib, jb) + T0(ntrac)
-!                 print *, 'vt(ib, ja)=', vt(ib, ja), &
-!                             ' vt(ib, jb)=', vt(ib, jb)
             end if
         end if
 
@@ -644,29 +480,20 @@ ntracLoop: do ntrac=1,ntractot
             xend(ntrac,Ni) = rwn*x0 + rwp*x1 
             yend(ntrac,Ni) = rwn*y0 + rwp*y1
             zend(ntrac,Ni) = rwn*z0 + rwp*z1
-!             iend(ntrac,Ni) = rwn*ia + rwp*ib
-!             jend(ntrac,Ni) = rwn*ja + rwp*jb
-!             kend(ntrac,Ni) = rwn*ka + rwp*kb
             ttend(ntrac,Ni) = (rwn*(tt-dt) + rwp*tt)*ff
             Ni = Ni + 1 ! counter for writing
         endif
 
-! This is the normal stopping routine for the loop. I am going to do a shorter one
+        ! This is the normal stopping routine for the loop. I am going to do a shorter one
         ! === stop trajectory if the choosen time or ===
         ! === water mass properties are exceeded     ===
         ! Have already written to save arrays above
         if(tt.ge.tseas) then ! was .gt. in original code
-!         if(tt-t0.ge.tseas) then ! was .gt. in original code, also eliminated t0 since was =0
-        !               nexit(NEND)=nexit(NEND)+1
-!             print *, 'Stopping trajectory due to time'
-!             print *, 'tt=',tt,' t0=',t0,' tseas=',tseas
-!             print *, 'x1=',x1,' y1=',y1
             flag(ntrac) = 0 ! want to continue drifters if time was the limiting factor here
             exit niterLoop
         endif
          
     end do niterLoop
-    !         nout=nout+1 ! ' trajectories exited the space and time domain'
 
 end do ntracLoop
 
