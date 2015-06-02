@@ -106,16 +106,16 @@ class Tracpy(object):
 
         # If grid_filename is distinct, assume we need a separate vert_filename for vertical grid info
         # use what is input or use info from currents_filename
-        if grid_filename is not None: 
-            if vert_filename is not None:
-                self.vert_filename = vert_filename
-            else:
-                if type(currents_filename)==str: # there is one input filename
-                    self.vert_filename = currents_filename
-                else: # we have a list of names
-                    self.vert_filename = currents_filename[0]
-        else:
-            self.vert_filename = vert_filename # this won't be used though
+        # if grid_filename is not None: 
+        #     if vert_filename is not None:
+        #         self.vert_filename = vert_filename
+        #     else:
+        #         if type(currents_filename)==str: # there is one input filename
+        #             self.vert_filename = currents_filename
+        #         else: # we have a list of names
+        #             self.vert_filename = currents_filename[0]
+        # else:
+        self.vert_filename = vert_filename # this won't be used though
 
         self.grid = grid
 
@@ -201,8 +201,12 @@ class Tracpy(object):
         # if vertical grid information is not included in the grid file, or if all grid info
         # is not in output file, use two
         if self.grid_filename is not None:
-            self.grid = tracpy.inout.readgrid(self.grid_filename, self.vert_filename, 
-                                                usebasemap=self.usebasemap, usespherical=self.usespherical)
+            if self.vert_filename is not None:
+                self.grid = tracpy.inout.readgrid(self.grid_filename, self.vert_filename, 
+                                                    usebasemap=self.usebasemap, usespherical=self.usespherical)
+            else:
+                self.grid = tracpy.inout.readgrid(self.grid_filename, 
+                                                    usebasemap=self.usebasemap, usespherical=self.usespherical)
         else:
             self.grid = tracpy.inout.readgrid(self.currents_filename, usebasemap=self.usebasemap,
                                                 usespherical=self.usespherical)
