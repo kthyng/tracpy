@@ -121,6 +121,8 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                     The 1st dimension is: [u'_ia,u'_ia-1,v'_ja,v'_ja-1,w'_ka,w'_ka-1]
 !    rwn, rwp       : Interpolation constants for when outputting.
 !    wrapx, wrapy   : Set to 1 if drifter wrapped around domain.
+!    x0big, y0big   : Set to 1 if x0/y0 is bigger than x1/y1, and 0 otherwise.
+!                     For use with periodic bcs.
 !
 !====================================================================
 
@@ -152,7 +154,7 @@ real*8                                                  :: rr, rg, rb, dsc, &
                                                            tt, tss, ts, rwn, rwp
 integer                                                 :: ntrac, niter, ia, ja, ka, &
                                                            iam, ib, jb, kb, errCode, &
-                                                           Ni, wrapx, wrapy
+                                                           Ni, wrapx, wrapy, x0big, y0big
 real*8,     parameter                                   :: UNDEF=1.d20
 
 real*8, dimension(6,2)                                    :: upr
@@ -171,11 +173,6 @@ kstart = ceiling(zstart)
 ! controls the iterative stepping between the two input model outputs
 dstep = 1.d0/dble(iter)
 dtmin = dstep*tseas 
-
-! Set wrapx, wrapy to 0 since no drifter has wrapped around due to periodic boundary 
-! conditions to start. 
-wrapx = 0
-wrapy = 0
 
 flag = 0
 
@@ -215,6 +212,11 @@ ntracLoop: do ntrac=1,ntractot
         ka = kb
         ! start track off with no error (maybe export these later to keep track of)
         errCode = 0
+
+        ! Set wrapx, wrapy to 0 since no drifter has wrapped around due to periodic boundary 
+        ! conditions to start. 
+        wrapx = 0
+        wrapy = 0
 
         call calc_dxyz(ib,jb,kb,rr,imt,jmt,km,dzt,dxdy,dxyz)
 
@@ -422,7 +424,7 @@ ntracLoop: do ntrac=1,ntractot
         ! Also note that I don't think drifters can actually have values outside the box [1,imt-1,1,jmt-1]
         if(x1<=1.d0) then ! at west end of domain
             if(doperiodic==1) then ! using periodic boundary conditions
-                x1 = dble(imt-1) ! place drifter at the east end of the domain
+                x1 = dble(imt-1) - (1.d0-x1) ! place drifter near the east end of the domain
                 ib = idint(x1)+1 ! need to update grid index too
                 wrapx = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
@@ -430,9 +432,9 @@ ntracLoop: do ntrac=1,ntractot
                 flag(ntrac) = 1
                 exit niterLoop
             endif
-        else if(x1>=imt-1) then ! at east end of domain
+        else if(x1>=(imt-1)) then ! at east end of domain
             if(doperiodic==1) then ! using periodic boundary conditions
-                x1 = 1.d0 ! place drifter at the west end of the domain
+                x1 = 1.d0 + (x1-dble(imt-1)) ! place drifter near the west end of the domain
                 ib = idint(x1)+1 ! need to update grid index too
                 wrapx = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
@@ -443,7 +445,7 @@ ntracLoop: do ntrac=1,ntractot
         endif
         if(y1<=1.d0) then ! at south end of domain
             if(doperiodic==2) then ! using periodic boundary conditions
-                y1 = dble(imt-1) ! place drifter at the north end of the domain
+                y1 = dble(imt-1) - (1.d0-y1) ! place drifter near the north end of the domain
                 jb = idint(y1)+1 ! need to update grid index too
                 wrapy = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
@@ -451,9 +453,9 @@ ntracLoop: do ntrac=1,ntractot
                 flag(ntrac) = 1
                 exit niterLoop
             endif
-        else if(y1>=jmt-1) then ! at north end of domain
+        else if(y1>=(jmt-1)) then ! at north end of domain
             if(doperiodic==2) then ! using periodic boundary conditions
-                y1 = 1.d0 ! place drifter at the south end of the domain
+                y1 = 1.d0 + (y1-dble(jmt-1)) ! place drifter near the south end of the domain
                 jb = idint(y1)+1 ! need to update grid index too
                 wrapy = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
@@ -494,16 +496,20 @@ ntracLoop: do ntrac=1,ntractot
             ! and then wrap back.
             if (wrapx==1) then ! periodic in x
                 if (x0<x1) then ! x0 is smaller, so switch it to bigger side
-                    x0 = x0 + imt-1
+                    x0 = x0 + (imt-1)
+                    x0big = 0
                 else if (x1<x0) then ! x1 is smaller, so switch it to bigger side
-                    x1 = x1 + imt-1
+                    x1 = x1 + (imt-1)
+                    x0big = 1
                 end if
             end if
             if (wrapy==1) then ! periodic in y
                 if (y0<y1) then ! y0 is smaller, so switch it to bigger side
-                    y0 = y0 + jmt-1
+                    y0 = y0 + (jmt-1)
+                    y0big = 0
                 else if (y1<y0) then ! y1 is smaller, so switch it to bigger side
-                    y1 = y1 + jmt-1
+                    y1 = y1 + (jmt-1)
+                    y0big = 1
                 end if
             end if
             xend(ntrac,Ni) = rwn*x0 + rwp*x1 
@@ -513,16 +519,24 @@ ntracLoop: do ntrac=1,ntractot
             Ni = Ni + 1 ! counter for writing
             ! now do the unwrapping if needed
             if (wrapx==1) then ! periodic in x
-                if (xend(ntrac,Ni) >= imt-1) then ! wrap back to small side
+                if (xend(ntrac,Ni) >= (imt-1)) then ! wrap back to small side
                     xend(ntrac,Ni) = xend(ntrac,Ni) - (imt-1)
                 end if
-                wrapx = 0 ! turn flag off
+                if (x0big==0) then
+                    x0 = x0 - (imt-1)
+                else if (x0big==1) then 
+                    x1 = x1 - (imt-1)
+                end if
             end if
             if (wrapy==1) then ! periodic in y
-                if (yend(ntrac,Ni) >= jmt-1) then ! wrap back to small side
+                if (yend(ntrac,Ni) >= (jmt-1)) then ! wrap back to small side
                     yend(ntrac,Ni) = yend(ntrac,Ni) - (jmt-1)
                 end if
-                wrapy = 0 ! turn flag off
+                if (y0big==0) then
+                    y0 = y0 - (jmt-1)
+                else if (y0big==1) then 
+                    y1 = y1 - (jmt-1)
+                end if
             end if
         endif
 
