@@ -120,6 +120,7 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 !                     size [6,2]. The 2nd dimension is for two time steps.
 !                     The 1st dimension is: [u'_ia,u'_ia-1,v'_ja,v'_ja-1,w'_ka,w'_ka-1]
 !    rwn, rwp       : Interpolation constants for when outputting.
+!    wrapx, wrapy   : Set to 1 if drifter wrapped around domain.
 !
 !====================================================================
 
@@ -150,7 +151,8 @@ real*8                                                  :: rr, rg, rb, dsc, &
                                                            x0, y0, z0, x1, y1, z1, &
                                                            tt, tss, ts, rwn, rwp
 integer                                                 :: ntrac, niter, ia, ja, ka, &
-                                                           iam, ib, jb, kb, errCode, Ni
+                                                           iam, ib, jb, kb, errCode, &
+                                                           Ni, wrapx, wrapy
 real*8,     parameter                                   :: UNDEF=1.d20
 
 real*8, dimension(6,2)                                    :: upr
@@ -169,6 +171,11 @@ kstart = ceiling(zstart)
 ! controls the iterative stepping between the two input model outputs
 dstep = 1.d0/dble(iter)
 dtmin = dstep*tseas 
+
+! Set wrapx, wrapy to 0 since no drifter has wrapped around due to periodic boundary 
+! conditions to start. 
+wrapx = 0
+wrapy = 0
 
 flag = 0
 
@@ -417,6 +424,7 @@ ntracLoop: do ntrac=1,ntractot
             if(doperiodic==1) then ! using periodic boundary conditions
                 x1 = dble(imt-1) ! place drifter at the east end of the domain
                 ib = idint(x1)+1 ! need to update grid index too
+                wrapx = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
                 x1 = 1.d0
                 flag(ntrac) = 1
@@ -426,15 +434,17 @@ ntracLoop: do ntrac=1,ntractot
             if(doperiodic==1) then ! using periodic boundary conditions
                 x1 = 1.d0 ! place drifter at the west end of the domain
                 ib = idint(x1)+1 ! need to update grid index too
+                wrapx = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
                 x1 = dble(imt-1)
                 flag(ntrac) = 1
                 exit niterLoop
             endif
-        else if(y1<=1.d0) then ! at south end of domain
+        if(y1<=1.d0) then ! at south end of domain
             if(doperiodic==2) then ! using periodic boundary conditions
                 y1 = dble(imt-1) ! place drifter at the north end of the domain
                 jb = idint(y1)+1 ! need to update grid index too
+                wrapy = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
                 y1 = 1.d0
                 flag(ntrac) = 1
@@ -444,6 +454,7 @@ ntracLoop: do ntrac=1,ntractot
             if(doperiodic==2) then ! using periodic boundary conditions
                 y1 = 1.d0 ! place drifter at the south end of the domain
                 jb = idint(y1)+1 ! need to update grid index too
+                wrapy = 1 ! the drifter has wrapped around
             else ! not using periodic boundary conditions
                 y1 = dble(jmt-1)
                 flag(ntrac) = 1
@@ -467,7 +478,7 @@ ntracLoop: do ntrac=1,ntractot
         end if
 
         ! Check for case in which the model iteration has passed a write time
-       if(tt/tseas >= dble(Ni)/dble(N)) then
+        if(tt/tseas >= dble(Ni)/dble(N)) then
 
             ! Time interpolation weights
             ! Time at the output time minus the time for x0 over the time window, weight for x0, etc
@@ -476,12 +487,34 @@ ntracLoop: do ntrac=1,ntractot
 
             ! Interpolate to find values at the desired output time.
             ! linear combination of previous step and current step to find output
-            ! at the output time between
+            ! at the output time between.
+            ! If drifter wrapped around the domain due to periodic bc, need to
+            ! unwrap before interpolation (always unwrap to large side), 
+            ! and then wrap back.
+            if (wrapx==1) then ! periodic in x
+                if x0<x1 then ! x0 is smaller, so switch it to bigger side
+                    x0 = x0 + imt-1
+                else if x1<x0 then ! x1 is smaller, so switch it to bigger side
+                    x1 = x1 + imt-1
+            if (wrapy==1) then ! periodic in y
+                if y0<y1 then ! y0 is smaller, so switch it to bigger side
+                    y0 = y0 + jmt-1
+                else if y1<y0 then ! y1 is smaller, so switch it to bigger side
+                    y1 = y1 + jmt-1
             xend(ntrac,Ni) = rwn*x0 + rwp*x1 
             yend(ntrac,Ni) = rwn*y0 + rwp*y1
             zend(ntrac,Ni) = rwn*z0 + rwp*z1
             ttend(ntrac,Ni) = (rwn*(tt-dt) + rwp*tt)*ff
             Ni = Ni + 1 ! counter for writing
+            ! now do the unwrapping if needed
+            if (wrapx==1) then ! periodic in x
+                if xend(ntrac,Ni) >= imt-1 then ! wrap back to small side
+                    xend(ntrac,Ni) = xend(ntrac,Ni) - (imt-1)
+                wrapx = 0 ! turn flag off
+            if (wrapy==1) then ! periodic in y
+                if yend(ntrac,Ni) >= jmt-1 then ! wrap back to small side
+                    yend(ntrac,Ni) = yend(ntrac,Ni) - (jmt-1)
+                wrapy = 0 ! turn flag off
         endif
 
         ! This is the normal stopping routine for the loop. I am going to do a shorter one
