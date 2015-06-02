@@ -440,6 +440,7 @@ ntracLoop: do ntrac=1,ntractot
                 flag(ntrac) = 1
                 exit niterLoop
             endif
+        endif
         if(y1<=1.d0) then ! at south end of domain
             if(doperiodic==2) then ! using periodic boundary conditions
                 y1 = dble(imt-1) ! place drifter at the north end of the domain
@@ -492,15 +493,19 @@ ntracLoop: do ntrac=1,ntractot
             ! unwrap before interpolation (always unwrap to large side), 
             ! and then wrap back.
             if (wrapx==1) then ! periodic in x
-                if x0<x1 then ! x0 is smaller, so switch it to bigger side
+                if (x0<x1) then ! x0 is smaller, so switch it to bigger side
                     x0 = x0 + imt-1
-                else if x1<x0 then ! x1 is smaller, so switch it to bigger side
+                else if (x1<x0) then ! x1 is smaller, so switch it to bigger side
                     x1 = x1 + imt-1
+                end if
+            end if
             if (wrapy==1) then ! periodic in y
-                if y0<y1 then ! y0 is smaller, so switch it to bigger side
+                if (y0<y1) then ! y0 is smaller, so switch it to bigger side
                     y0 = y0 + jmt-1
-                else if y1<y0 then ! y1 is smaller, so switch it to bigger side
+                else if (y1<y0) then ! y1 is smaller, so switch it to bigger side
                     y1 = y1 + jmt-1
+                end if
+            end if
             xend(ntrac,Ni) = rwn*x0 + rwp*x1 
             yend(ntrac,Ni) = rwn*y0 + rwp*y1
             zend(ntrac,Ni) = rwn*z0 + rwp*z1
@@ -508,13 +513,17 @@ ntracLoop: do ntrac=1,ntractot
             Ni = Ni + 1 ! counter for writing
             ! now do the unwrapping if needed
             if (wrapx==1) then ! periodic in x
-                if xend(ntrac,Ni) >= imt-1 then ! wrap back to small side
+                if (xend(ntrac,Ni) >= imt-1) then ! wrap back to small side
                     xend(ntrac,Ni) = xend(ntrac,Ni) - (imt-1)
+                end if
                 wrapx = 0 ! turn flag off
+            end if
             if (wrapy==1) then ! periodic in y
-                if yend(ntrac,Ni) >= jmt-1 then ! wrap back to small side
+                if (yend(ntrac,Ni) >= jmt-1) then ! wrap back to small side
                     yend(ntrac,Ni) = yend(ntrac,Ni) - (jmt-1)
+                end if
                 wrapy = 0 ! turn flag off
+            end if
         endif
 
         ! This is the normal stopping routine for the loop. I am going to do a shorter one
