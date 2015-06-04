@@ -59,18 +59,20 @@ def setupROMSfiles(loc,date,ff,tout, time_units, tstride=1):
     # or for a single file
     if 'http' in loc or type(loc)==str:
         nc = netCDF.Dataset(loc)
-        if ff == 1: #forward in time
-            dates = nc.variables['ocean_time'][:] # don't stride here, need all times to make index determinations
-            ilow = date >= dates
-            # time index with time value just below datenum_in (relative to file ifile)
-            istart = dates[ilow].size - 1
-            tinds = range(istart,istart+tout, tstride) #use tstride here to get tinds correct
-        else: #backward
-            dates = nc.variables['ocean_time'][:]   
-            ilow = date >= dates
-            # time index with time value just below datenum_in (relative to file ifile)
-            istart = dates[ilow].size - 1
-            tinds = range(istart,istart-tout, -tstride) #use tstride here to get tinds correct
+        # dates = nc.variables['ocean_time'][:] # don't stride here, need all times to make index determinations
+        # # time index with time value just below date (relative to file ifile)
+        # istart = find(dates<=date)[-1]
+        # if ff == 1: #forward in time
+        #     # ilow = date >= dates
+        #     # # time index with time value just below datenum_in (relative to file ifile)
+        #     # istart = dates[ilow].size - 1
+        #     tinds = range(istart,istart+tout, tstride) #use tstride here to get tinds correct
+        # else: #backward
+        #     # dates = nc.variables['ocean_time'][:]   
+        #     # ilow = date >= dates
+        #     # # time index with time value just below datenum_in (relative to file ifile)
+        #     # istart = dates[ilow].size - 1
+        #     tinds = range(istart,istart-tout, -tstride) #use tstride here to get tinds correct
 
     # This is for the case when we have a bunch of files to sort through
     else:
@@ -79,17 +81,17 @@ def setupROMSfiles(loc,date,ff,tout, time_units, tstride=1):
 
         nc = netCDF.MFDataset(loc) # files in fname are in chronological order
 
-        # Convert date to number
-        dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units)
-        # time index with time value just below date (relative to file ifile)
-        istart = find(dates<=date)[-1]
+    # Convert date to number
+    dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units)
+    # time index with time value just below date (relative to file ifile)
+    istart = find(dates<=date)[-1]
 
-        # Select indices 
-        if ff==1:
-            tinds = range(istart,istart+tout, tstride) # indices of model outputs desired
-        else: # backward in time
-            # have to shift istart since there are now new indices behind since going backward
-            tinds = range(istart,istart-tout, -tstride)
+    # Select indices 
+    if ff==1:
+        tinds = range(istart,istart+tout, tstride) # indices of model outputs desired
+    else: # backward in time
+        # have to shift istart since there are now new indices behind since going backward
+        tinds = range(istart,istart-tout, -tstride)
 
     return nc, tinds
 
