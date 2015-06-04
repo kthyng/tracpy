@@ -25,7 +25,7 @@ import os
 import tracpy
 from matplotlib.mlab import find
 
-def setupROMSfiles(loc,date,ff,tout, tstride=1):
+def setupROMSfiles(loc,date,ff,tout, time_units, tstride=1):
     '''
     setupROMSfiles()
     Kristen Thyng, March 2013
@@ -42,6 +42,7 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
      date       datetime format start date
      ff         Time direction. ff=1 forward, ff=-1 backward
      tout       Number of model outputs to use
+     time_units To convert to datetime
      tstride    Stride in time, in case want to use less model output
                  than is available. Default is 1, using all output.
 
@@ -75,106 +76,20 @@ def setupROMSfiles(loc,date,ff,tout, tstride=1):
     else:
         # the globbing should happen ahead of time so this case looks different than
         # the single file case
-        # files = np.sort(glob.glob(loc)) # sorted list of file names
-        files = loc # file list is now to be input
-        # pdb.set_trace()
-        # Find the list of files that cover the desired time period
-        # First, check to see if there is one or more than one time index in each file because
-        # if there is only one, we need to compare two files to see where we are in time
-        # So, open the first file to check.
-        nctemp = netCDF.Dataset(files[0])
-        ttemp = nctemp.variables['ocean_time'][:]
-        nctemp.close()
-        if ttemp.size==1: # one output/time step per file. 
-            noutputs = 1
-            # Assume it is safe to open them all to search for starting place. Rest of indices
-            # are checked below.
-            nctemp = netCDF.MFDataset(files)
-            ttemp = nctemp.variables['ocean_time'][:]
-            nctemp.close()
-            # find which time steps date is between and take earlier one as the starting file
-            ifile = find(ttemp<=date)[0]
 
-        else: # more than one output per file  
-            noutputs = 0          
-            for i,name in enumerate(files): # Loop through files
-                nctemp = netCDF.Dataset(name)
-                ttemp = nctemp.variables['ocean_time'][:]
-                # pdb.set_trace()
-                nctemp.close()
-                # need to check subsequent file as well, in case starting time is between files
-                if i<(len(files)-1):
-                    nctemp2 = netCDF.Dataset(files[i+1])
-                    ttemp2 = nctemp2.variables['ocean_time'][:]
-                    nctemp2.close()
-                # If datenum_in is larger than the first time in the file but smaller
-                # than the last time, then this is the correct file to use to start
-                # or, if the starting date is between this file and the next, start 
-                # with this file (for interpolation between the outputs)
-                if (date >= ttemp[0] and date <= ttemp[-1]) or (date>ttemp[-1] and date<ttemp2[0]):
-                    ifile = i # this is the starting file identifier then
-                    break
+        nc = netCDF.MFDataset(loc) # files in fname are in chronological order
 
-        # Since the number of indices per file can change, make the process
-        # of finding the necessary files a little more general
-        # Start by opening two files
-        i = 1
-        fname = [files[ifile]]
-
-        nc = netCDF.MFDataset(fname) # files in fname are in chronological order
-        # Find which output in ifile is closest to the user-input start time (choose lower index)
-        # Dates for drifters from this start date
-        dates = nc.variables['ocean_time'][:]   
-        ilow = date >= dates
+        # Convert date to number
+        dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units)
         # time index with time value just below date (relative to file ifile)
-        istart = dates[ilow].size - 1
-        nc.close()
+        istart = find(dates<=date)[-1]
+
         # Select indices 
         if ff==1:
             tinds = range(istart,istart+tout, tstride) # indices of model outputs desired
         else: # backward in time
             # have to shift istart since there are now new indices behind since going backward
             tinds = range(istart,istart-tout, -tstride)
-        # If we need more indices than available in these files, add another
-
-        if ff==1:
-            # If there is one output per file, just grab the number of necessary files
-            if noutputs:
-                fname = files[ifile:ifile+tout]
-                nc = netCDF.MFDataset(fname) # files in fname are in chronological order
-
-            else: # multiple snapshots per file
-                # pdb.set_trace()
-                # if the final index we want is beyond the length of these files,
-                # keep adding files on
-                # need an extra index for interpolation
-                while tinds[-1]+1 > len(dates):
-                # while len(tinds)+1 > len(dates): 
-                    # if tdir: #forward - add 2nd file on end
-                    fname.append(files[ifile+i])
-                    nc = netCDF.MFDataset(fname) # files in fname are in chronological order
-                    dates = nc.variables['ocean_time'][:]   
-                    # ilow = date >= dates
-                    # # time index with time value just below datenum_in (relative to file ifile)
-                    # istart = dates[ilow].size - 1
-                    # tinds = range(istart,istart+tout, tstride)
-                    nc.close()
-                    i = i + 1
-
-        else: #backwards in time
-            while tinds[-1] < 0:
-                fname.insert(0,files[ifile-i])
-                nc = netCDF.MFDataset(fname)
-                dates = nc.variables['ocean_time'][:]   
-                ilow = date >= dates
-                # time index with time value just below datenum_in (relative to file ifile)
-                istart = dates[ilow].size - 1
-                tinds = range(istart,istart-tout, -tstride)
-                nc.close()
-                i = i + 1
-        
-        # model output files together containing all necessary model outputs
-        nc = netCDF.MFDataset(fname) # reopen since needed to close things in loop
 
     return nc, tinds
 

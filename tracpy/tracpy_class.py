@@ -212,11 +212,11 @@ class Tracpy(object):
         Get everything ready so that we can get to the simulation.
         '''
 
-        # Convert date to number
-        date = netCDF.date2num(date, self.time_units)
+        # # Convert date to number
+        # date = netCDF.date2num(date, self.time_units)
 
         # Figure out what files will be used for this tracking
-        nc, tinds = tracpy.inout.setupROMSfiles(self.currents_filename, date, self.ff, self.tout, tstride=self.tstride)
+        nc, tinds = tracpy.inout.setupROMSfiles(self.currents_filename, date, self.ff, self.tout, self.time_units, tstride=self.tstride)
 
         # Read in grid parameters into dictionary, grid, if haven't already
         if self.grid is None:
