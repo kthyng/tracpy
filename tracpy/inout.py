@@ -345,18 +345,29 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
         hc = gridfile.variables['hc'][:]
         theta_s = gridfile.variables['theta_s'][:]
         theta_b = gridfile.variables['theta_b'][:]
-        Vtransform = gridfile.variables['Vtransform'][:]
-        Vstretching = gridfile.variables['Vstretching'][:]
+        if 'Vtransform' in gridfile.variables:
+            Vtransform = gridfile.variables['Vtransform'][:]
+            Vstretching = gridfile.variables['Vstretching'][:]
+        else:
+            Vtransform = 1
+            Vstretching = 1
     # Still want vertical grid metrics, but are in separate file
     elif vert_filename is not None:
         nc = netCDF.Dataset(vert_filename)
-        sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
+        if 's_w' in nc.variables:
+            sc_r = nc.variables['s_w'][:] # sigma coords, 31 layers
+        else:
+            sc_r = nc.variables['sc_w'][:] # sigma coords, 31 layers
         Cs_r = nc.variables['Cs_w'][:] # stretching curve in sigma coords, 31 layers
         hc = nc.variables['hc'][:]
         theta_s = nc.variables['theta_s'][:]
         theta_b = nc.variables['theta_b'][:]
-        Vtransform = nc.variables['Vtransform'][:]
-        Vstretching = nc.variables['Vstretching'][:]
+        if 'Vtransform' in nc.variables:
+            Vtransform = nc.variables['Vtransform'][:]
+            Vstretching = nc.variables['Vstretching'][:]
+        else:
+            Vtransform = 1
+            Vstretching = 1
 
     if keeptime: 
         vgridtime = time.time()
