@@ -59,8 +59,8 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
                             colors=col, linewidths=0.5)
 
     # Outline numerical domain
-    if outline:  # backward compatibility
-        outline = [1,1,1,1]
+    # if outline:  # backward compatibility
+    #     outline = [1,1,1,1]
     if outline[0]:
         ax.plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
     if outline[1]:
