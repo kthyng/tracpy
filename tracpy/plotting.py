@@ -23,7 +23,7 @@ import tools
 
 def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, -80), 
                 hlevs=np.hstack(([10,20],np.arange(50,500,50))), 
-                col='lightgrey', fig=None, outline=True, merslabels=[0, 0, 0, 1],
+                col='lightgrey', fig=None, outline=[1, 1, 0, 1], merslabels=[0, 0, 0, 1],
                 parslabels=[1, 0, 0, 0]):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
@@ -32,6 +32,7 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
     pars    parallels to plot
     mers    meridians to plot
     hlevs   which depth contours to plot
+    outline     west, east, north, south lines (left, right, top, bottom)
     """
 
     # matplotlib.rcParams.update({'font.size': 18})#,'font.weight': 'bold'})
@@ -57,12 +58,15 @@ def background(grid=None, ax=None, pars=np.arange(18, 35), mers=np.arange(-100, 
     ax.contour(grid['xr'], grid['yr'], grid['h'], hlevs, 
                             colors=col, linewidths=0.5)
 
-    if outline:
-        # Outline numerical domain
+    # Outline numerical domain
+    if outline[0]:
         ax.plot(grid['xr'][0,:], grid['yr'][0,:], 'k:')
+    if outline[1]:
         ax.plot(grid['xr'][-1,:], grid['yr'][-1,:], 'k:')
-        ax.plot(grid['xr'][:,0], grid['yr'][:,0], 'k:')
+    if outline[2]:
         ax.plot(grid['xr'][:,-1], grid['yr'][:,-1], 'k:')
+    if outline[3]:
+        ax.plot(grid['xr'][:,0], grid['yr'][:,0], 'k:')
 
 
 def hist(lonp, latp, fname, tind='final', which='contour', vmax=None, fig=None, ax=None, \
