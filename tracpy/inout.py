@@ -50,10 +50,10 @@ def setupROMSfiles(loc,date,ff,tout, time_units, tstride=1):
      nc         NetCDF object for relevant files
      tinds      Indices of outputs to use from fname files
     '''
-    # This addresses an issue in netCDF4 that was then fixed, but
-    # this line makes updating unnecessary. Issue described here: 
-    # http://code.google.com/p/netcdf4-python/issues/detail?id=170
-    netCDF._set_default_format(format='NETCDF3_64BIT')
+    # # This addresses an issue in netCDF4 that was then fixed, but
+    # # this line makes updating unnecessary. Issue described here: 
+    # # http://code.google.com/p/netcdf4-python/issues/detail?id=170
+    # netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # For thredds server where all information is available in one place
     # or for a single file
@@ -80,7 +80,7 @@ def setupROMSfiles(loc,date,ff,tout, time_units, tstride=1):
 
     return nc, tinds
 
-def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5, 
+def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5, llcrnrlat=22.5, 
             urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i', 
             usebasemap=False, usespherical=True):
     '''
@@ -100,6 +100,7 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
                     is stored, if not in grid_loc. Can also skip this if don't need 
                     vertical grid info.
      also optional basemap box parameters. Default is for full shelf model.
+     proj           Basemap projection.
      usebasemap          (False) Whether to use load basemap into grid (True) or pyproj (False).
                     Basemap is slower but can be used for plotting, and pyproj is the opposite.
 
@@ -148,7 +149,8 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # This addresses an issue in netCDF4 that was then fixed, but
     # this line makes updating unnecessary. Issue described here:
     # http://code.google.com/p/netcdf4-python/issues/detail?id=170
-    netCDF._set_default_format(format='NETCDF3_64BIT')
+    # Newer netCDF is complaining about this line so let's try without it.
+    # netCDF._set_default_format(format='NETCDF3_64BIT')
     gridfile = netCDF.Dataset(grid_filename)
 
     # # Read in whether grid is spherical or not
@@ -164,7 +166,7 @@ def readgrid(grid_filename, vert_filename=None, llcrnrlon=-98.5, llcrnrlat=22.5,
     # Basemap parameters.
     if usespherical:
         llcrnrlon=llcrnrlon; llcrnrlat=llcrnrlat; 
-        urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection='lcc'
+        urcrnrlon=urcrnrlon; urcrnrlat=urcrnrlat; projection=proj
         lat_0=lat_0; lon_0=lon_0; resolution=res; area_thresh=0.
         # pdb.set_trace()
         if usebasemap:
