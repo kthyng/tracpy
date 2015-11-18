@@ -21,7 +21,7 @@ class Tracpy(object):
     def __init__(self, currents_filename, grid_filename=None, vert_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test', dostream=0, N=1, 
                 time_units='seconds since 1970-01-01', dtFromTracmass=None, zparuv=None, tseas_use=None,
-                usebasemap=False, savell=True, doperiodic=0, usespherical=True, grid=None):
+                usebasemap=False, savell=True, doperiodic=0, usespherical=True, grid=None, windage=False):
         '''
         Initialize class.
 
@@ -99,6 +99,7 @@ class Tracpy(object):
         :param usespherical=True: True if want to use spherical (lon/lat) coordinates and False
                for idealized applications where it isn't necessary to project from spherical coordinates.
         :param grid=None: Grid is initialized to None and is found subsequently normally, but can be set with the TracPy object in order to save time when running a series of simulations.
+        :param windage=False: Do not add direct wind forcing (windage=False) or do add direct wind forcing (windage=True).
         '''
 
         self.currents_filename = currents_filename
@@ -138,6 +139,7 @@ class Tracpy(object):
         self.savell = savell
         self.doperiodic = doperiodic
         self.usespherical = usespherical
+        self.windage = windage
 
         # if loopsteps is None and nsteps is not None:
         #     # Use nsteps in TRACMASS and have inner loop collapse
@@ -166,7 +168,7 @@ class Tracpy(object):
             self.zparuv = zpar
         else:
             self.zparuv = zparuv
-            
+
         if tseas_use is None:
             self.tseas_use = tseas
 
@@ -192,6 +194,9 @@ class Tracpy(object):
         self.dzt = None
         self.zrt = None
         self.zwt = None
+        # in case windage is used
+        self.uwind = None
+        self.vwind = None
 
     def _readgrid(self):
         '''
@@ -268,7 +273,7 @@ class Tracpy(object):
             self.zwt = np.asfortranarray(np.ones((lx, ly, lk, 2)))*np.nan
             self.uf[:,:,:,1], self.vf[:,:,:,1], \
                 self.dzt[:,:,:,1], self.zrt[:,:,:,1], \
-                self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0], self.grid, nc, self.z0, self.zpar, zparuv=self.zparuv)
+                self.zwt[:,:,:,1] = tracpy.inout.readfields(tinds[0], self.grid, nc, self.z0, self.zpar, zparuv=self.zparuv, windage=self.windage)
 
         else: # 3d case
             # Now that we have the grid, initialize the info for the two bounding model 
@@ -370,7 +375,7 @@ class Tracpy(object):
 
         # Read stuff in for next time loop
         if is_string_like(self.z0): # isoslice case
-            self.uf[:,:,:,1],self.vf[:,:,:,1],self.dzt[:,:,:,1],self.zrt[:,:,:,1],self.zwt[:,:,:,1] = tracpy.inout.readfields(tind, self.grid, nc, self.z0, self.zpar, zparuv=self.zparuv)
+            self.uf[:,:,:,1],self.vf[:,:,:,1],self.dzt[:,:,:,1],self.zrt[:,:,:,1],self.zwt[:,:,:,1] = tracpy.inout.readfields(tind, self.grid, nc, self.z0, self.zpar, zparuv=self.zparuv, windage=self.windage)
         else: # 3d case
             self.uf[:,:,:,1],self.vf[:,:,:,1],self.dzt[:,:,:,1],self.zrt[:,:,:,1],self.zwt[:,:,:,1] = tracpy.inout.readfields(tind, self.grid, nc)
 

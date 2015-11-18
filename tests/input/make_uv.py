@@ -1,20 +1,17 @@
 import numpy as np
 import netCDF4 as netCDF
 import datetime
-# import pdb
-# from matplotlib.pyplot import *
-# from matplotlib import delaunay
-# import op
 
 # Make uniform eastward flow for rectangle simulation
+# also add in surface wind stress to test its use.
 
-
+# Which wind
+wind = 'lower'  # wind can be 'higher', 'lower', or the 'same' as the currents speed
 
 # Read in grid for sizing info
 grd = netCDF.Dataset('grid.nc')
 xl = grd.variables['x_rho'][:].shape[1]
 yl = grd.variables['x_rho'][:].shape[0]
-
 
 # Add in vertical grid info
 N = 3
@@ -28,14 +25,12 @@ hmin = 100.
 theta_s = 1e-4
 tcline = 0.
 
-
 # Time
 units = 'seconds since 1970-01-01'
 tl = 24 # three time outputs
 dt = 4*3600 # 4 hours between outputs
 startdate = netCDF.date2num(datetime.datetime(2013, 12, 17, 0), units)
 t = np.arange(startdate, startdate + tl*dt, dt)
-
 
 # Make velocity fields
 # Linear flow in x in 4D: [i,j,k,t], use staggered grid still
@@ -44,9 +39,19 @@ v = np.zeros((tl,N,yl-1,xl))
 # u = np.ones((xl,yl-1,N,tl)) 
 # v = np.zeros((xl-1,yl,N,tl))
 
+# Make wind fields
+if wind == 'higher':
+    C = 0.0001  # wind=0.251100980476
+elif wind == 'same':
+    C = 1.586e-05  # wind=0.1
+elif wind == 'lower':
+    C = 0.00001  # wind=0.0794051021005
+sustr = C*np.ones((tl, yl, xl-1))  # u wind stress
+svstr = np.zeros((tl, yl-1, xl))  # v wind stress
+
 
 # Save file
-rootgrp = netCDF.Dataset('ocean_his_0001.nc','w',format='NETCDF4')
+rootgrp = netCDF.Dataset('ocean_his_0001' + wind + '.nc','w',format='NETCDF4')
 # Define dimensions
 rootgrp.createDimension('xpsi',xl-1)
 rootgrp.createDimension('xr',xl)
@@ -56,15 +61,6 @@ rootgrp.createDimension('zl',N)
 rootgrp.createDimension('zlp1',N+1)
 rootgrp.createDimension('tl',tl)
 # Create variables
-# xpsis = rootgrp.createVariable('xpsi','f8',('xpsi','ypsi'))
-# xus = rootgrp.createVariable('xu','f8',('xpsi','yr'))
-# xvs = rootgrp.createVariable('xv','f8',('xr','ypsi'))
-# xrs = rootgrp.createVariable('xr','f8',('xr','yr'))
-# ypsis = rootgrp.createVariable('ypsi','f8',('xpsi','ypsi'))
-# yus = rootgrp.createVariable('yu','f8',('xpsi','yr'))
-# yvs = rootgrp.createVariable('yv','f8',('xr','ypsi'))
-# yrs = rootgrp.createVariable('yr','f8',('xr','yr'))
-# dxyzs = rootgrp.createVariable('dxyz','f8',('xr','yr','zl','tl'))
 us = rootgrp.createVariable('u','f8',('tl','zl','yr','xpsi'))
 vs = rootgrp.createVariable('v','f8',('tl','zl','ypsi','xr'))
 ts = rootgrp.createVariable('ocean_time','f8',('tl',))
@@ -79,17 +75,10 @@ hmins = rootgrp.createVariable('hmin','f8')
 tclines = rootgrp.createVariable('tcline','f8')
 Vtransforms = rootgrp.createVariable('Vtransform','f8')
 Vstretchings = rootgrp.createVariable('Vstretching','f8')
+sustrs = rootgrp.createVariable('sustr', 'f8', ('tl', 'yr', 'xpsi'))
+svstrs = rootgrp.createVariable('svstr', 'f8', ('tl', 'ypsi', 'xr'))
 
 # Write data to netCDF variables
-# xpsis[:] = xpsi
-# xus[:] = xu
-# xvs[:] = xv
-# xrs[:] = xr
-# ypsis[:] = ypsi
-# yus[:] = yu
-# yvs[:] = yv
-# yrs[:] = yr
-# dxyzs[:] = dxyz
 us[:] = u
 vs[:] = v
 ts[:] = t
@@ -104,4 +93,6 @@ hmins[:] = hmin
 tclines[:] = tcline
 Vtransforms[:] = 1
 Vstretchings[:] = 1
+sustrs[:] = sustr
+svstrs[:] = svstr
 rootgrp.close()

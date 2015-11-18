@@ -428,7 +428,7 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5, llc
     return grid
 
 
-def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
+def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, windage=False):
     '''
     readfields()
     Kristen Thyng, March 2013
@@ -452,6 +452,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
             from the k index in the grid. This might happen if, for example, only the surface current
             were saved, but the model run originally did have many layers. This parameter
             represents the k index for the u and v output, not for the grid.
+     windage (optional) Whether to add windage to surface drifters or not.
 
     Output:
      uflux1     Zonal (x) flux at tind
@@ -496,6 +497,42 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
             sshread = True
         else:
             sshread = False
+        # If windage is being used, read in the wind fields and then combine with the currents.
+        # Assume this is only used in the surface drifter case for now.
+        if windage:
+            # Read in the wind stress from the model (assuming the wind velocity itself isn't available)
+            sustr = nc.variables['sustr'][tind, :, :]  # on u grid
+            svstr = nc.variables['svstr'][tind, :, :]  # on v grid
+            sustrpsi = op.resize(sustr, 0)  # resize sustr in y direction to be on psi grid
+            svstrpsi = op.resize(svstr, 1)  # resize svstr in x direction to be on psi grid
+            # Calculate the wind speed from the wind stress
+            # using info from http://marine.rutgers.edu/dmcs/ms501/2004/Notes/Wilkin20041014.htm
+            # drag coefficient C_D=0.0013, density of air as 1.22 kg/m^3
+            wind = np.sqrt(np.sqrt(sustrpsi**2 + svstrpsi**2) / (0.0013*1.22))
+            # break into components (on psi grid)
+            theta = np.arctan2(svstrpsi, sustrpsi)  # angle between wind components
+            uwindpsi = np.cos(theta)*wind
+            vwindpsi = np.sin(theta)*wind
+            ## need to expand wind back from psi grid to u and v grids
+            uwind = np.empty((u.shape))
+            # middle part in y direction is filled in from averaging from psi grid:
+            uwind[1:-1, :] = op.resize(uwindpsi, 0)
+            # extrapolate out the edges
+            uwind[0, :] = uwind[1, :]
+            uwind[-1, :] = uwind[-2, :]
+            # now for v
+            vwind = np.empty((v.shape))
+            # middle part in x direction is filled in from averaging from psi grid:
+            vwind[:, 1:-1] = op.resize(vwindpsi, 1)
+            # extrapolate out the edges
+            vwind[:, 0] = vwind[:, 1]
+            vwind[:, -1] = vwind[:, -2]
+            ##
+            # Combine the currents and wind together
+            W = 0.03  # percent drag from the wind directly on the drifters
+            u = (1-W)*u + W*uwind  # combined velocity field is a weighted average of currents and wind drag
+            v = (1-W)*v + W*vwind  # combined velocity field is a weighted average of currents and wind drag
+
     else:
         u = nc.variables['u'][tind,:,:,:] 
         v = nc.variables['v'][tind,:,:,:]
@@ -504,6 +541,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None):
             sshread = True
         else:
             sshread = False
+
 
     h = grid['h'].T.copy(order='c')
     # Use octant to calculate depths for the appropriate vertical grid parameters
