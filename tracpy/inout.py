@@ -67,7 +67,9 @@ def setupROMSfiles(loc,date,ff,tout, time_units, tstride=1):
         nc = netCDF.MFDataset(loc) # files in fname are in chronological order
 
     # Convert date to number
-    dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units)
+    # dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units)
+    # The calendar definition extends dates to before the year 1582 for use with idealized simulations without meaningful dates.
+    dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units, calendar='proleptic_gregorian')
     # time index with time value just below date (relative to file ifile)
     istart = find(dates<=date)[-1]
 
