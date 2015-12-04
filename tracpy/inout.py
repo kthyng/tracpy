@@ -428,7 +428,7 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5, llc
     return grid
 
 
-def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, windage=False):
+def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, W=False, deflection=0):
     '''
     readfields()
     Kristen Thyng, March 2013
@@ -452,7 +452,9 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, windage=False):
             from the k index in the grid. This might happen if, for example, only the surface current
             were saved, but the model run originally did have many layers. This parameter
             represents the k index for the u and v output, not for the grid.
-     windage (optional) Whether to add windage to surface drifters or not.
+     W (optional) Whether to add windage to surface drifters or not.
+     deflection (optional), 7 is a good number, degrees deflection due to Coriolis, positive for northern hemisphere
+
 
     Output:
      uflux1     Zonal (x) flux at tind
@@ -490,7 +492,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, windage=False):
     # tic_temp = time.time()
     # Read in model output for index tind
     if z0 == 's': # read in less model output to begin with, to save time
-        u = nc.variables['u'][tind,zparuv,:,:] 
+        u = nc.variables['u'][tind,zparuv,:,:]
         v = nc.variables['v'][tind,zparuv,:,:]
         if 'zeta' in nc.variables:
             ssh = nc.variables['zeta'][tind,:,:] # [t,j,i], ssh in tracmass
@@ -499,7 +501,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, windage=False):
             sshread = False
         # If windage is being used, read in the wind fields and then combine with the currents.
         # Assume this is only used in the surface drifter case for now.
-        if windage:
+        if type(W)==np.float64:
             # Read in the wind stress from the model (assuming the wind velocity itself isn't available)
             sustr = nc.variables['sustr'][tind, :, :]  # on u grid
             svstr = nc.variables['svstr'][tind, :, :]  # on v grid
@@ -510,7 +512,7 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, windage=False):
             # drag coefficient C_D=0.0013, density of air as 1.22 kg/m^3
             wind = np.sqrt(np.sqrt(sustrpsi**2 + svstrpsi**2) / (0.0013*1.22))
             # break into components (on psi grid)
-            theta = np.arctan2(svstrpsi, sustrpsi)  # angle between wind components
+            theta = np.arctan2(svstrpsi, sustrpsi) - np.radians(deflection)  # angle between wind components
             uwindpsi = np.cos(theta)*wind
             vwindpsi = np.sin(theta)*wind
             ## need to expand wind back from psi grid to u and v grids
@@ -529,7 +531,6 @@ def readfields(tind,grid,nc,z0=None, zpar=None, zparuv=None, windage=False):
             vwind[:, -1] = vwind[:, -2]
             ##
             # Combine the currents and wind together
-            W = 0.03  # percent drag from the wind directly on the drifters
             u = (1-W)*u + W*uwind  # combined velocity field is a weighted average of currents and wind drag
             v = (1-W)*v + W*vwind  # combined velocity field is a weighted average of currents and wind drag
 
