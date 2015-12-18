@@ -16,7 +16,9 @@ import glob
 import numpy as np
 from datetime import datetime, timedelta
 import pdb
-from matplotlib import delaunay
+# from matplotlib import delaunay
+from scipy.spatial import Delaunay
+import matplotlib.tri as mtri
 import octant
 import time
 from matplotlib.pyplot import *
@@ -84,7 +86,7 @@ def setupROMSfiles(loc,date,ff,tout, time_units, tstride=1):
 
 def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5, llcrnrlat=22.5, 
             urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30, lon_0=-94, res='i', 
-            usebasemap=False, usespherical=True):
+            usebasemap=False, usespherical=True, zone=15):
     '''
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -186,7 +188,7 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5, llc
             from pyproj import Proj
             # this gives somewhat different differences between projected coordinates as compared with previous basemap
             # definition for the default values.
-            basemap = Proj(proj='lcc', lat_1=llcrnrlat, lat_2=urcrnrlat, lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,ellps='clrk66',datum='NAD27')
+            basemap = Proj(proj=proj, lat_1=llcrnrlat, lat_2=urcrnrlat, lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,ellps='clrk66',datum='NAD27', zone=zone)
             # basemap = (proj='lcc',lat_1=44.33333333333334,lat_2=46,lat_0=43.66666666666666, lon_0=-120.5,x_0=609601.2192024384, y_0=0,ellps='clrk66',datum='NAD27')
             # basemap = Proj("+proj=lcc +lat_0=lat_0 +lon_0=lon_0")
                             # +x_0=1700000 \
@@ -328,11 +330,25 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5, llc
     # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
     Y, X = np.meshgrid(np.arange(jmt),np.arange(imt)) # grid in index coordinates, without ghost cells
     # Triangulation for grid space to curvilinear space
-    tri = delaunay.Triangulation(X.flatten(),Y.flatten())
+    pts = np.column_stack((xr.flatten(), yr.flatten()))
+    tess = Delaunay(pts)
+    tri = mtri.Triangulation(xr.flatten(), yr.flatten(), tess.simplices.copy())
+    # tri = delaunay.Triangulation(X.flatten(),Y.flatten())
+
     # Triangulation for curvilinear space to grid space
     # pdb.set_trace()
-    trir = delaunay.Triangulation(xr.flatten(),yr.flatten())
-    trirllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
+    # The following did not work, but it seems as though using SciPy's Triangulation works.
+    # http://matveichev.blogspot.com/2014/02/matplotlibs-tricontour-interesting.html
+    # trir = delaunay.Triangulation(xr.flatten(),yr.flatten())
+    # trirllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
+    pts = np.column_stack((xr.flatten(), yr.flatten()))
+    tess = Delaunay(pts)
+    trir = mtri.Triangulation(xr.flatten(), yr.flatten(), tess.simplices.copy())
+    # trir = delaunay.Triangulation(xr.flatten(),yr.flatten(), tess.simplices.copy())
+
+    pts = np.column_stack((lonr.flatten(), latr.flatten()))
+    tess = Delaunay(pts)
+    trirllrho = mtri.Triangulation(lonr.flatten(), latr.flatten(), tess.simplices.copy())
 
     if keeptime: 
         delaunaytime = time.time()

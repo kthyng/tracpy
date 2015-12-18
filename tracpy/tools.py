@@ -16,6 +16,7 @@ from matplotlib.mlab import *
 import pdb
 from scipy import ndimage
 import time
+import matplotlib.tri as mtri
 
 def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest',cval=0.):
     """
@@ -63,32 +64,33 @@ def interpolate2d(x,y,grid,itype,xin=None,yin=None,order=1,mode='nearest',cval=0
 
     if itype == 'd_xy2ij':
         # Set up functions for interpolating 
-        fx = grid['trir'].nn_interpolator(grid['X'].flatten())
-        fy = grid['trir'].nn_interpolator(grid['Y'].flatten())
+        # changing format to use more robust triangulation in grid set up
+        fx = mtri.LinearTriInterpolator(grid['trir'], grid['X'].flatten())
+        fy = mtri.LinearTriInterpolator(grid['trir'], grid['Y'].flatten())
         # Need to shift indices to move from rho grid of interpolator to arakawa c grid
         xi = fx(x,y) - .5
         yi = fy(x,y) - .5
 
     elif itype == 'd_ij2xy':
         # Set up functions for interpolating 
-        fx = grid['tri'].nn_interpolator(grid['xr'].flatten())
-        fy = grid['tri'].nn_interpolator(grid['yr'].flatten())
+        fx = mtri.LinearTriInterpolator(grid['tri'], grid['xr'].flatten())
+        fy = mtri.LinearTriInterpolator(grid['tri'], grid['yr'].flatten())
         # Need to shift indices to move to rho grid of interpolator from arakawa c grid
         xi = fx(x+0.5, y+0.5)
         yi = fy(x+0.5, y+0.5)
 
     elif itype == 'd_ll2ij':
         # Set up functions for interpolating 
-        fx = grid['trirllrho'].nn_interpolator(grid['X'].flatten())
-        fy = grid['trirllrho'].nn_interpolator(grid['Y'].flatten())
+        fx = mtri.LinearTriInterpolator(grid['trirllrho'], grid['X'].flatten())
+        fy = mtri.LinearTriInterpolator(grid['trirllrho'], grid['Y'].flatten())
         # Need to shift indices to move from rho grid of interpolator to arakawa c grid
         xi = fx(x,y) - .5
         yi = fy(x,y) - .5
 
     elif itype == 'd_ij2ll':
         # Set up functions for interpolating 
-        fx = grid['tri'].nn_interpolator(grid['lonr'].flatten())
-        fy = grid['tri'].nn_interpolator(grid['latr'].flatten())
+        fx = mtri.LinearTriInterpolator(grid['tri'], grid['lonr'].flatten())
+        fy = mtri.LinearTriInterpolator(grid['tri'], grid['latr'].flatten())
         # Need to shift indices to move to rho grid of interpolator from arakawa c grid
         xi = fx(x+0.5, y+0.5)
         yi = fy(x+0.5, y+0.5)
