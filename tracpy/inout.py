@@ -16,7 +16,6 @@ import glob
 import numpy as np
 from datetime import datetime, timedelta
 import pdb
-# from matplotlib import delaunay
 from scipy.spatial import Delaunay
 import matplotlib.tri as mtri
 import octant
@@ -333,18 +332,14 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5, llc
     pts = np.column_stack((xr.flatten(), yr.flatten()))
     tess = Delaunay(pts)
     tri = mtri.Triangulation(xr.flatten(), yr.flatten(), tess.simplices.copy())
-    # tri = delaunay.Triangulation(X.flatten(),Y.flatten())
 
     # Triangulation for curvilinear space to grid space
     # pdb.set_trace()
     # The following did not work, but it seems as though using SciPy's Triangulation works.
     # http://matveichev.blogspot.com/2014/02/matplotlibs-tricontour-interesting.html
-    # trir = delaunay.Triangulation(xr.flatten(),yr.flatten())
-    # trirllrho = delaunay.Triangulation(lonr.flatten(),latr.flatten())
     pts = np.column_stack((xr.flatten(), yr.flatten()))
     tess = Delaunay(pts)
     trir = mtri.Triangulation(xr.flatten(), yr.flatten(), tess.simplices.copy())
-    # trir = delaunay.Triangulation(xr.flatten(),yr.flatten(), tess.simplices.copy())
 
     pts = np.column_stack((lonr.flatten(), latr.flatten()))
     tess = Delaunay(pts)
