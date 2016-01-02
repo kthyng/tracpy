@@ -3,11 +3,6 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
                 & ntractot,xend,yend,zend,flag,ttend, &
                 & iter,ah,av,do3d,doturb, doperiodic, dostream, N, T0, &
                 & ut, vt)
-! SUBROUTINE step(xstart,ystart,zstart,tseas, &
-!                 & uflux,vflux,ff,imt,jmt,km,kmt,dzt,dxdy,dxv,dyu,h, &
-!                 & ntractot,xend,yend,zend,iend,jend,kend,flag,ttend, &
-!                 & iter,ah,av,do3d,doturb, dostream, N, T0, &
-!                 & ut, vt)
 
 !============================================================================
 ! Loop to step a numerical drifter forward for the time tseas between two 
@@ -19,79 +14,84 @@ SUBROUTINE step(xstart,ystart,zstart,tseas, &
 ! controlled by outside wrapping Python code.
 ! Kristen M. Thyng Feb 2013
 !
-!  Input:
+! Input:
 !
-!    xstart         : Starting x,y,z position of drifters for this set of two
-!    ystart           model outputs, in fraction of the grid cell in each
-!    zstart           direction. [ntractoc]
-!    tseas          : Time between model-output velocity fields that are input.
-!                     Also max time for this loop (seconds)
-!    uflux          : u velocity (zonal) flux field, two time steps [ixjxkxt]
-!    vflux          : v velocity (meridional) flux field, two time steps [ixjxkxt]
-!    ff             : time direction. ff=1 forward, ff=-1 backward
-!    imt,jmt,km     : grid index sizing constants in (x,y,z), are for 
-!                     horizontal and vertical rho grid [scalar]
-!    kmt            : Number of vertical levels in horizontal space [imt,jmt]
-!    dzt            : Height of k-cells in 3 dim in meters on rho vertical grid. [imt,jmt,km]
-!    dxdy           : Horizontal area of cells defined at cell centers [imt,jmt]
-!    dxv            : Horizontal grid cell walls areas in x direction [imt,jmt-1]
-!    dyu            : Horizontal grid cell walls areas in y direction [imt-1,jmt]
-!    h              : Depths [imt,jmt]
-!    ntractoc       : Total number of drifters
-!    iter           : number of interpolation time steps to do between model outputs, 
-!                     was called nsteps in run.py. This controls the max time step 
-!                     between drifter steps but not how often the drifter location is sampled.
-!    ah             : horizontal diffusion in m^2/s. Input parameter.
-!                   : For -turb and -diffusion flags
-!    av             : vertical diffusion in m^2/s. Input parameter. For -diffusion flag.
-!    do3d           : Flag to set whether to use 3d velocities or not. 
-!                   : do3d=0 makes the run 2d and do3d=1 makes the run 3d
-!    doturb         : Flag to set whether or not to use turb/diff and which kind if so
-!                   : doturb=0 means no turb/diffusion,
-!                   : doturb=1 means adding parameterized turbulence
-!                   : doturb=2 means adding diffusion on a circle
-!                   : doturb=3 means adding diffusion on an ellipse (anisodiffusion)
-!    doperiodic     : Whether to use periodic boundary conditions for drifters and, if so, on which walls.
-!                   : 0: do not use periodic boundary conditions
-!                   : 1: use a periodic boundary condition in the east-west/x/i direction
-!                   : 2: use a periodic boundary condition in the north-south/y/j direction
-!    dostream       : Either calculate (dostream=1) or don't (dostream=0) the
-!                     Lagrangian stream function variables.
-!    N              : The number of samplings of the drifter tracks will be N+1 total.
-!  Optional inputs:
-!    T0             : (optional) Initial volume transport of drifters (m^3/s)
-!    ut, vt     : (optional) Array aggregating volume transports as drifters move [imt,jmt]
+! :param xstart, ystart, zstart: Starting x,y,z position of drifters for this
+! set of two model outputs, in fraction of the grid cell in each direction.
+! [ntractoc]
+! :param tseas: Time between model-output velocity fields that are input.
+! Also max time for this loop (seconds)
+! :param uflux: u velocity (zonal) flux field, two time steps [ixjxkxt]
+! :param vflux: v velocity (meridional) flux field, two time steps [ixjxkxt]
+! :param ff: time direction. ff=1 forward, ff=-1 backward
+! :param imt,jmt,km: grid index sizing constants in (x,y,z), are for 
+! horizontal and vertical rho grid [scalar]
+! :param kmt: Number of vertical levels in horizontal space [imt,jmt]
+! :param dzt: Height of k-cells in 3 dim in meters on rho vertical grid.
+! [imt,jmt,km]
+! :param dxdy: Horizontal area of cells defined at cell centers [imt,jmt]
+! :param dxv: Horizontal grid cell walls areas in x direction [imt,jmt-1]
+! :param dyu: Horizontal grid cell walls areas in y direction [imt-1,jmt]
+! :param h: Depths [imt,jmt]
+! :param ntractoc: Total number of drifters
+! :param iter: number of interpolation time steps to do between model outputs, 
+! was called nsteps in run.py. This controls the max time step between drifter
+! steps but not how often the drifter location is sampled.
+! :param ah: horizontal diffusion in m^2/s. Input parameter.
+! For -turb and -diffusion flags
+! :param av: vertical diffusion in m^2/s. Input parameter. 
+! For -diffusion flag.
+! :param do3d: Flag to set whether to use 3d velocities or not. do3d=0 makes
+! the run 2d and do3d=1 makes the run 3d
+! :param doturb: Flag to set whether or not to use turb/diff and which kind
+! if so
+! doturb=0 means no turb/diffusion,
+! doturb=1 means adding parameterized turbulence
+! doturb=2 means adding diffusion on a circle
+! doturb=3 means adding diffusion on an ellipse (anisodiffusion)
+! :param doperiodic: Whether to use periodic boundary conditions for drifters
+! and, if so, on which walls.
+! 0: do not use periodic boundary conditions
+! 1: use a periodic boundary condition in the east-west/x/i direction
+! 2: use a periodic boundary condition in the north-south/y/j direction
+! :param dostream: Either calculate (dostream=1) or don't (dostream=0) the
+! Lagrangian stream function variables.
+! :param N: The number of samplings of the drifter tracks will be N+1 total.
 !
-!  Output:
+! Optional inputs:
+! :param T0: (optional) Initial volume transport of drifters (m^3/s)
+! :param ut, vt: (optional) Array aggregating volume transports as drifters
+! move [imt,jmt]
 !
-!    flag           : set to 1 for a drifter if drifter shouldn't be stepped in the 
-!                     future anymore
-!    xend           : the new grid fraction position of drifters in x/y/z [ntractot,iter]
-!    yend       
-!    zend       
-!    ttend          : time in seconds relative to the code start for when particles are
-!                     output. [ntractot,iter]
+! Output:
+! :param flag: set to 1 for a drifter if drifter shouldn't be stepped in the 
+! future anymore
+! :param xend, yend, zend: the new grid fraction position of drifters in x/y/z
+! [ntractot,iter]
+! :param ttend: time in seconds relative to the code start for when particles
+! are output. [ntractot,iter]
 !
-!  Other parameters used in function:
-!
-!    istart         : Starting grid index of drifters in x,y,z for this set of two
-!    jstart           model outputs, should be integers and be for grid cell wall
-!    kstart           just beyond the drifter location. These are inferred 
-!                     from x/y/zstart arrays. [ntractoc]
-!    rg             : rg=1-rr for time interpolation between time steps. Controls how much
-!                   : of later time step is used in interpolation.
-!    rr             : time interpolation constant between 0 and 1. Controls how much
-!                   : of earlier time step is used in interpolation.
-!    rb             : time interpolation constant between 0 and 1. Controls how much
-!                   : of earlier time step is used in interpolation (for next time 
-!                     at the end of the loop?).
-!    dsc            : Not sure what this is right now
-!    dstep          : Model time step between time interpolation steps between model outputs
-!    dtmin          : time step based on the interpolation step between model output times.
-!                   : sets a limit on the time step that a drifter can go. (seconds)
-!    dxyz           : Volume of drifter's grid cell (m^3)
-!    dt             : time step of trajectory iteration in seconds  
-!    dsmin          : time step based on the interpolation step between model output times.
+! Other parameters used in function:
+! :param istart, jstart, kstart: Starting grid index of drifters in x,y,z for
+! this set of two model outputs, should be integers and be for grid cell wall
+! just beyond the drifter location. These are inferred from x/y/zstart arrays.
+! [ntractoc]
+! :param rg: rg=1-rr for time interpolation between time steps. Controls how
+! much of later time step is used in interpolation.
+! :param rr: time interpolation constant between 0 and 1. Controls how much of
+! earlier time step is used in interpolation.
+! :param rb: time interpolation constant between 0 and 1. Controls how much of
+! earlier time step is used in interpolation (for next time at the end of the
+! loop?).
+! :param dsc: Not sure what this is right now
+! :param dstep: Model time step between time interpolation steps between model
+! outputs
+! :param dtmin: time step based on the interpolation step between model output
+! times. sets a limit on the time step that a drifter can go. (seconds)
+! :param dxyz: Volume of drifter's grid cell (m^3)
+! :param dt: time step of trajectory iteration in seconds  
+! :param dsmin: time step based on the interpolation step between model output
+! times.
 !                   : sets a limit on the time step that a drifter can go. (s/m^3)
 !                     dtmin/(dx*dy*dz)
 !    ds             : crossing time to reach the grid box wall (units=s/m3). ds=dt/(dx*dy*dz)
