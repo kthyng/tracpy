@@ -35,10 +35,9 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinxfortran.fortran_domain',
+    'sphinxfortran.fortran_autodoc',
 ]
-#     'sphinxfortran.fortran_domain',
-#     'sphinxfortran.fortran_autodoc',
-# ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -48,8 +47,9 @@ templates_path = ['_templates']
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
 
-# # For fortran files
-# fortran_src = '*.f95'
+# For fortran files
+fortran_src = '*.f95'
+
 
 # autoclass_content = 'both'
 # Ensure that the __init__ method gets documented.
@@ -58,6 +58,7 @@ def skip(app, what, name, obj, skip, options):
     if name == "__init__" or name == "_readgrid":
         return False
     return skip
+
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)

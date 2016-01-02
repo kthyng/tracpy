@@ -14,6 +14,9 @@ Contents:
 .. This is for the Python code:
    modules
 
+.. This is for the Fortran code:
+.. f:autoprogram:: src
+
 Indices and tables
 ==================
 
