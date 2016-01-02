@@ -311,7 +311,6 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5,
     xpsi = np.asfortranarray(xpsi.T)
     ypsi = np.asfortranarray(ypsi.T)
     lonr = np.asfortranarray(lonr.T)
-
     latr = np.asfortranarray(latr.T)
     lonu = np.asfortranarray(lonu.T)
     latu = np.asfortranarray(latu.T)

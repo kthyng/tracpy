@@ -15,7 +15,16 @@ Contents:
    modules
 
 .. This is for the Fortran code:
-.. f:autoprogram:: src
+.. f:autosrcfile:: calc_dxyz.f95
+.. f:autosrcfile:: calc_time.f95
+.. f:autosrcfile:: cross.f95
+.. f:autosrcfile:: diffusion.f95
+.. f:autosrcfile:: loop_pos.f95
+.. f:autosrcfile:: pos.f95
+.. f:autosrcfile:: step.f95
+.. f:autosrcfile:: turb.f95
+.. f:autosrcfile:: vertvel.f95
+
 
 Indices and tables
 ==================

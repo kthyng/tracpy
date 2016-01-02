@@ -48,7 +48,7 @@ templates_path = ['_templates']
 source_suffix = '.rst'
 
 # For fortran files
-fortran_src = '*.f95'
+fortran_src = '../src/*.f95'
 
 
 # autoclass_content = 'both'

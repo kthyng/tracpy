@@ -73,9 +73,9 @@ CALL RANDOM_NUMBER (qran)
                    ! === (varies with the same aplitude as the mean vel)
   !qran=1.*qran-0.5  ! Reduced amplitude of turb.
 !  qran=4.*qran-2. ! ===  amplitude of turbulence with random numbers between -2 and 2
-!  qran=8.*qran-4. ! ===  amplitude of turbulence with random numbers between -2 and 2 only works with !  upr(:,1)=upr(:,2)
-!  qran=30.*qran-15. ! ===  amplitude of turbulence with random numbers between -2 and 2 only works with !  upr(:,1)=upr(:,2)
-qran=amp*qran-0.5*amp ! ===  amplitude of turbulence with random numbers between -2 and 2 only works with !  upr(:,1)=upr(:,2)
+!  qran=8.*qran-4. ! ===  amplitude of turbulence with random numbers between -2 and 2 only works with   (upr)(:,1)=upr(:,2)
+!  qran=30.*qran-15. ! ===  amplitude of turbulence with random numbers between -2 and 2 only works with   upr(:,1)=upr(:,2)
+qran=amp*qran-0.5*amp ! ===  amplitude of turbulence with random numbers between -2 and 2 only works with   upr(:,1)=upr(:,2)
     
 rg=1.d0-rr
 
@@ -106,7 +106,7 @@ upr(2,2)=uv(2)*qran(1)
 upr(3,2)=uv(3)*qran(3)
 upr(4,2)=uv(4)*qran(3)
 
-!  upr(:,1)=upr(:,2) ! impose same velocities for t-1 and t (this makes it unstable! but why? K.Döös)
+!  upr(:,1)=upr(:,2) !  impose same velocities for t-1 and t (this makes it unstable. but why? K.Doos)
   
 if(do3d==1) then
 
@@ -119,7 +119,6 @@ if(do3d==1) then
      !Detta ser ut som en bugg   ! t2
      !  upr(5,n) = w(ka-1) - ff * ( upr(1,n) - upr(2,n) + upr(3,n) - upr(4,n) )
      !  upr(6,n) = 0.d0
-     !Detta gör att man bara justerar vertikala hastigheten på ovansidan av boxen ! u2
      !  upr(5,n) = - ff * ( upr(1,n) - upr(2,n) + upr(3,n) - upr(4,n) )
      !  upr(6,n) = 0.d0
      
