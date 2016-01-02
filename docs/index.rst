@@ -11,6 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 3
 
+.. This is for the Python code:
    modules
 
 Indices and tables

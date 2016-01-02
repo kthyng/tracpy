@@ -12,9 +12,7 @@ from matplotlib.mlab import find
 
 
 class Tracpy(object):
-    """
-    TracPy class.
-    """
+    """TracPy class."""
 
     def __init__(self, currents_filename, grid_filename=None,
                  vert_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
@@ -23,8 +21,7 @@ class Tracpy(object):
                  dtFromTracmass=None, zparuv=None, tseas_use=None,
                  usebasemap=False, savell=True, doperiodic=0,
                  usespherical=True, grid=None):
-        """
-        Initialize class.
+        """Initialize class.
 
         Note: GCM==General Circulation Model, meaning the predicted u/v
         velocity fields that are input into TracPy to run the drifters.
@@ -546,7 +543,9 @@ class Tracpy(object):
     def finishSimulation(self, ttend, t0save, xend, yend, zp, T0, U, V):
         """
         Wrap up simulation.
-        NOT DOING TRANSPORT YET
+
+        Note:
+            Not doing transport yet.
         """
 
         ttend = ttend + t0save  # add back in base time in seconds
