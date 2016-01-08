@@ -341,7 +341,7 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     # This is for rho
     # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
     # grid in index coordinates, without ghost cells
-    grid.Y, grid.X = np.meshgrid(np.arange(grid.jmt), np.arange(grid.imt))
+    grid.X, grid.Y = np.meshgrid(np.arange(grid.jmt), np.arange(grid.imt))
     # Triangulation for grid space to curvilinear space
     pts = np.column_stack((grid.X.flatten(), grid.Y.flatten()))
     tess = Delaunay(pts)
