@@ -21,6 +21,8 @@ def test_2dtransport():
 
 def test_run_2d_ll():
     """
+    Test initialization and running of tracpy with lat/lon coordinates.
+
     can we initialize and run tracpy (using rectangle example). Compare final
     location of drifters with known analytic answer. Using lon/lat coords.
     """
@@ -32,10 +34,6 @@ def test_run_2d_ll():
     num_layers = 3
 
     name = 'test_run_2d_ll'
-
-    start = time.time()
-
-    print "building grid took:", time.time() - start
 
     # Start date in date time formatting
     date = datetime.datetime(2013, 12, 19, 0)
@@ -68,36 +66,47 @@ def test_run_2d_ll():
     doturb = 0
 
     # two particles (starting positions)
-    lon0 = [-123., -123.]
-    lat0 = [48.55, 48.75]
+    lon0 = [[-123.]]
+    lat0 = [[48.55]]
 
     do3d = 0  # flag to set to 2-d
 
     z0 = 's'  # 'z' 'salt' 's'
     zpar = num_layers-1  # top layer
 
+    usespherical = True
+
+    # Get projection object
+    proj = tracpy.tools.make_proj(setup='nwgom', usebasemap=True)
+
+    # Read in grid
+    grid = tracpy.inout.readgrid(grid_filename, proj,
+                                 vert_filename=currents_filename,
+                                 usespherical=usespherical)
+
     # Initialize Tracpy class
-    tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas,
+    tp = Tracpy(currents_filename, grid, name=name, tseas=tseas,
                 ndays=ndays, nsteps=nsteps, N=N, ff=ff, ah=ah, av=av,
                 doturb=doturb, do3d=do3d, z0=z0, zpar=zpar,
-                time_units=time_units, dtFromTracmass=dtFromTracmass)
+                time_units=time_units, dtFromTracmass=dtFromTracmass,
+                usespherical=usespherical)
 
-    lonp, yp, zp, t, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
+    lonp, latp, zp, t, T0, U, V = tracpy.run.run(tp, date, lon0, lat0)
 
     ## check the results:
     print lonp.shape
     print lonp
-    print yp
+    print latp
 
-    #eastward current, latitude should not change:
-    assert np.allclose(lat0, yp.T)
+    # since eastward current, latitude should not change:
+    assert np.allclose(lat0, latp.T)
 
     # current velocity -- 0.1 m/s
     # position
     distance = (ndays * 24 * 3600 * 0.1)*ff
 
     # better to use pyproj to compute the geodesic
-    geod = pyproj.Geod(ellps='WGS84')
+    geod = pyproj.Geod(ellps='clrk66')
     end = geod.fwd(lon0, lat0, (90, 90), (distance, distance), radians=False)
 
     assert np.allclose(lonp[:, -1], end[0])
@@ -105,6 +114,8 @@ def test_run_2d_ll():
 
 def test_run_2d_xy():
     """
+    Test initialization and running of tracpy with projected coordinates.
+
     can we initialize and run tracpy (using rectangle example). Compare final
     location of drifters with known analytic answer. Using x/y coords for
     idealized type runs. Made this simulation information from the other test
@@ -164,13 +175,22 @@ def test_run_2d_xy():
     z0 = 's'  # 'z' 'salt' 's'
     zpar = num_layers-1  # top layer
 
+    usespherical = False
+
+    # Get projection object
+    proj = tracpy.tools.make_proj(setup='galveston', usebasemap=False)
+
+    # Read in grid
+    grid = tracpy.inout.readgrid(grid_filename, proj,
+                                 vert_filename=currents_filename,
+                                 usespherical=usespherical)
+
     # Initialize Tracpy class
-    tp = Tracpy(currents_filename, grid_filename, name=name, tseas=tseas,
+    tp = Tracpy(currents_filename, grid, name=name, tseas=tseas,
                 ndays=ndays, nsteps=nsteps, N=N, ff=ff, ah=ah, av=av,
                 doturb=doturb, do3d=do3d, z0=z0, zpar=zpar,
                 time_units=time_units, dtFromTracmass=dtFromTracmass,
-                usespherical=False)
-    # tp._readgrid()
+                usespherical=usespherical)
 
     xp, yp, zp, t, T0, U, V = tracpy.run.run(tp, date, x0, y0)
 

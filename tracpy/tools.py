@@ -65,8 +65,8 @@ def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
     if itype == 'd_xy2ij':
         # Set up functions for interpolating
         # changing format to use more robust triangulation in grid set up
-        fx = mtri.LinearTriInterpolator(grid['trir'], grid['X'].flatten())
-        fy = mtri.LinearTriInterpolator(grid['trir'], grid['Y'].flatten())
+        fx = mtri.LinearTriInterpolator(grid.trir, grid.X.flatten())
+        fy = mtri.LinearTriInterpolator(grid.trir, grid.Y.flatten())
         # Need to shift indices to move from rho grid of interpolator to
         # arakawa c grid
         xi = fx(x, y) - .5
@@ -74,8 +74,8 @@ def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
 
     elif itype == 'd_ij2xy':
         # Set up functions for interpolating
-        fx = mtri.LinearTriInterpolator(grid['tri'], grid['xr'].flatten())
-        fy = mtri.LinearTriInterpolator(grid['tri'], grid['yr'].flatten())
+        fx = mtri.LinearTriInterpolator(grid.tri, grid.x_rho.flatten())
+        fy = mtri.LinearTriInterpolator(grid.tri, grid.y_rho.flatten())
         # Need to shift indices to move to rho grid of interpolator from
         # arakawa c grid
         xi = fx(x+0.5, y+0.5)
@@ -83,10 +83,8 @@ def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
 
     elif itype == 'd_ll2ij':
         # Set up functions for interpolating
-        fx = mtri.LinearTriInterpolator(grid['trirllrho'],
-                                        grid['X'].flatten())
-        fy = mtri.LinearTriInterpolator(grid['trirllrho'],
-                                        grid['Y'].flatten())
+        fx = mtri.LinearTriInterpolator(grid.trirllrho, grid.X.flatten())
+        fy = mtri.LinearTriInterpolator(grid.trirllrho, grid.Y.flatten())
         # Need to shift indices to move from rho grid of interpolator to
         # arakawa c grid
         xi = fx(x, y) - .5
@@ -94,8 +92,8 @@ def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
 
     elif itype == 'd_ij2ll':
         # Set up functions for interpolating
-        fx = mtri.LinearTriInterpolator(grid['tri'], grid['lonr'].flatten())
-        fy = mtri.LinearTriInterpolator(grid['tri'], grid['latr'].flatten())
+        fx = mtri.LinearTriInterpolator(grid.tri, grid.lon_rho.flatten())
+        fy = mtri.LinearTriInterpolator(grid.tri, grid.lat_rho.flatten())
         # Need to shift indices to move to rho grid of interpolator from
         # arakawa c grid
         xi = fx(x+0.5, y+0.5)
@@ -103,21 +101,21 @@ def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
 
     elif itype == 'm_ij2xy':
         # .5's are to shift from u/v grid to rho grid for interpolator
-        xi = ndimage.map_coordinates(grid['xr'], np.array([x.flatten()+.5,
+        xi = ndimage.map_coordinates(grid.x_rho, np.array([x.flatten()+.5,
                                                            y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(x.shape)
-        yi = ndimage.map_coordinates(grid['yr'], np.array([x.flatten()+.5,
-                                                          y.flatten()+.5]),
+        yi = ndimage.map_coordinates(grid.y_rho, np.array([x.flatten()+.5,
+                                                           y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(y.shape)
 
     elif itype == 'm_ij2ll':
-        xi = ndimage.map_coordinates(grid['lonr'], np.array([x.flatten()+.5,
+        xi = ndimage.map_coordinates(grid.lon_rho, np.array([x.flatten()+.5,
                                                              y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(x.shape)
-        yi = ndimage.map_coordinates(grid['latr'], np.array([x.flatten()+.5,
+        yi = ndimage.map_coordinates(grid.lat_rho, np.array([x.flatten()+.5,
                                                              y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(y.shape)
@@ -264,14 +262,14 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
         * z0 - Fixed z0
     """
 
-    lonr = grid['lonr']
-    latr = grid['latr']
+    lonr = grid.lon_rho
+    latr = grid.lat_rho
 
     # make interpolation function for water depth h.
     # Used to check if float is above the bottom
     if z0 is not None:
         from scipy.interpolate import interp2d
-        h = grid['h']
+        h = grid.h
         hint = interp2d(lonr[:, 1], latr[1, :], h.T, fill_value=np.nan)
 
     # If covering the whole domain, need to exclude points outside domain.
@@ -323,13 +321,13 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
                     z0[jd] = np.nan
 
     # Also nan out points that are masked
-    fmask = grid['trirllrho'].nn_interpolator(grid['mask'].flatten())
+    fmask = grid.trirllrho.nn_interpolator(grid.mask.flatten())
     mask0 = fmask(lon0, lat0)  # mask for lon0/lat0 points
     ind1 = (mask0 == 1.)  # indices select out where points are masked
 
     # If nobays, eliminate points with shallow bathymetry
     if nobays:
-        fh = grid['trirllrho'].nn_interpolator(grid['h'].flatten())
+        fh = grid.trirllrho.nn_interpolator(grid.h.flatten())
         h0 = fh(lon0, lat0)
         ind2 = (h0 > 10.)
     else:
@@ -378,3 +376,77 @@ def seed(lon, lat, dlon=.5, dlat=.5, N=30):
                                          [[dlon**2, 0], [0, dlat**2]],
                                          [N, N])
     return dist[:, :, 0], dist[:, :, 1]
+
+
+def make_proj(setup='nwgom', usebasemap=True, **kwargs):
+    """Convenience function for setting up a projection object.
+
+    This fills in some of the work of setting up a projection to use with a
+    horizontal grid. User can choose between default setups and then change
+    keyword arguments within the setups.
+
+    Args:
+        setup (str): Which default setup to use.
+
+            'nwgom' - for NW Gulf of Mexico, for use with basemap
+            'galveston' - for Galveston Bay, for use with pyproj
+
+        usebasemap (bool): True is use basemap for your projection, with
+            specific keyword arguments. False is to use pyproj for your
+            projection.
+
+    Kwargs:
+        usebasemap (bool): Whether to use load basemap into grid (True) or
+            pyproj (False). Basemap is slower but can be used for plotting,
+            and pyproj is the opposite. Default is False.
+        llcrnrlon (float): Lower left corner longitude, in degrees. This and
+            llcrnrlat, urcrnrlon, urcrnrlat, lat_0, lon_0, and res are only
+            used if usebasemap=True.
+        llcrnrlat (float): Lower left corner latitude.
+        urcrnrlon (float): Upper right corner longitude.
+        urcrnrlat (float): Upper right corner latitude.
+        lat_0 (float): Latitude of center of projection.
+        lon_0 (float): Longitude of center of projection.
+        res (str): Resolution of coastal map used in basemap.
+        zone (int): Zone for utm projection
+
+    Returns:
+        proj: Projection object for convering between geometric and projected
+            coordinates.
+    """
+
+    # Default setups. Can use all of these parameters or can start with them
+    # and replace some individually.
+    if setup == 'nwgom':
+
+        inputs = {'projection': 'lcc', 'llcrnrlon': -98.5, 'llcrnrlat': 22.5,
+                  'urcrnrlon': -87.5, 'urcrnrlat': 31.0, 'lat_0': 30,
+                  'lon_0': -94, 'resolution': 'i', 'area_thresh': 0.}
+
+    elif setup == 'galveston':
+
+        inputs = {'proj': 'utm', 'zone': 15, 'ellps': 'clrk66',
+                  'datum': 'NAD27'}
+
+    else:
+
+        inputs = kwargs
+
+    # If there are any input keyword arguments, use them to replace setup
+    # arguments in inputs dictionary.
+    if kwargs:
+        for key, value in kwargs.items():
+            if key in inputs:  # if key is in inputs, replace it
+                inputs[key] = value
+            else:  # otherwise, error
+                print 'input key is not in inputs dict'
+
+    # Set up projection using inputs dictionary
+    if usebasemap:
+        from mpl_toolkits.basemap import Basemap
+        proj = Basemap(**inputs)
+    else:
+        from pyproj import Proj
+        proj = Proj(**inputs)
+
+    return proj

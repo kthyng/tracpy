@@ -14,13 +14,12 @@ from matplotlib.mlab import find
 class Tracpy(object):
     """TracPy class."""
 
-    def __init__(self, currents_filename, grid_filename=None,
-                 vert_filename=None, nsteps=1, ndays=1, ff=1, tseas=3600.,
-                 ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0, name='test',
-                 dostream=0, N=1, time_units='seconds since 1970-01-01',
-                 dtFromTracmass=None, zparuv=None, tseas_use=None,
-                 usebasemap=False, savell=True, doperiodic=0,
-                 usespherical=True, grid=None):
+    def __init__(self, currents_filename, grid, nsteps=1, ndays=1, ff=1,
+                 tseas=3600., ah=0., av=0., z0='s', zpar=1, do3d=0, doturb=0,
+                 name='test', dostream=0, N=1,
+                 time_units='seconds since 1970-01-01', dtFromTracmass=None,
+                 zparuv=None, tseas_use=None, savell=True, doperiodic=0,
+                 usespherical=True, ellps='WGS84'):
         """Initialize class.
 
         Note: GCM==General Circulation Model, meaning the predicted u/v
@@ -30,11 +29,8 @@ class Tracpy(object):
             currents_filename (str or List[str]): NetCDF file name
              (with extension), list of file names, or OpenDAP url to GCM
              output.
-            grid_filename (Optional[str]): NetCDF grid file name or
-             OpenDAP url to GCM grid. Defaults to None.
-            vert_filename (Optional[str]): If vertical grid information is
-             not included in the grid file, or if all grid info is not in
-             output file, use two. Defaults to None.
+            grid (object): class containing all necessary grid information,
+             as calculated from tracpy.inout.readgrid().
             nsteps (Optional[int]): sets the max time step between GCM model
              outputs between drifter steps. (iter in TRACMASS) Does not
              control the output sampling anymore. The velocity fields are
@@ -111,9 +107,6 @@ class Tracpy(object):
              output at less frequency than is available, probably just for
              testing purposes or matching other models. Should be a multiple
              of tseas (or will be rounded later).
-            usebasemap (Optional[bool]): whether to use basemap for
-             projections in readgrid or not. Not is faster, but using basemap
-             allows for plotting. Default is False.
             savell (Optional[bool]): True to save drifter tracks in lon/lat
              and False to save them in grid coords. Default is True.
             doperiodic (Optional[int]): Whether to use periodic boundary
@@ -127,29 +120,9 @@ class Tracpy(object):
              (lon/lat) coordinates and False for idealized applications where
              it isn't necessary to project from spherical coordinates.
              Default is True.
-            grid: Grid is initialized to None and is found subsequently
-             normally, but can be set with the TracPy object in order to save
-             time when running a series of simulations.
         """
 
         self.currents_filename = currents_filename
-        self.grid_filename = grid_filename
-
-        # If grid_filename is distinct, assume we need a separate
-        # vert_filename for vertical grid info
-        # use what is input or use info from currents_filename
-        if grid_filename is not None:
-            if vert_filename is not None:
-                self.vert_filename = vert_filename
-            else:
-                # there is one input filename
-                if type(currents_filename) == str:
-                    self.vert_filename = currents_filename
-                else:  # we have a list of names
-                    self.vert_filename = currents_filename[0]
-        else:
-            self.vert_filename = vert_filename  # this won't be used though
-
         self.grid = grid
 
         # Initial parameters
@@ -167,7 +140,6 @@ class Tracpy(object):
         self.dostream = dostream
         self.N = N
         self.time_units = time_units
-        self.usebasemap = usebasemap
         self.savell = savell
         self.doperiodic = doperiodic
         self.usespherical = usespherical
@@ -231,21 +203,6 @@ class Tracpy(object):
         self.zrt = None
         self.zwt = None
 
-    def _readgrid(self):
-        """Read in horizontal and vertical grid."""
-
-        # if vertical grid information is not included in the grid file, or
-        # if all grid info is not in output file, use two
-        if self.grid_filename is not None:
-            self.grid = tracpy.inout.readgrid(self.grid_filename,
-                                              self.vert_filename,
-                                              usebasemap=self.usebasemap,
-                                              usespherical=self.usespherical)
-        else:
-            self.grid = tracpy.inout.readgrid(self.currents_filename,
-                                              usebasemap=self.usebasemap,
-                                              usespherical=self.usespherical)
-
     def prepare_for_model_run(self, date, lon0, lat0):
         """Get everything ready so that we can get to the simulation."""
 
@@ -257,10 +214,6 @@ class Tracpy(object):
                                                 self.ff, self.tout,
                                                 self.time_units,
                                                 tstride=self.tstride)
-
-        # Read in grid parameters into dictionary, grid, if haven't already
-        if self.grid is None:
-            self._readgrid()
 
         # Interpolate to get starting positions in grid space
         # convert from assumed input lon/lat coord locations to grid space
@@ -298,41 +251,35 @@ class Tracpy(object):
         yend = np.ones((ia.size, (len(tinds)-1)*self.N+1))*np.nan
         zend = np.ones((ia.size, (len(tinds)-1)*self.N+1))*np.nan
         zp = np.ones((ia.size, (len(tinds)-1)*self.N+1))*np.nan
-        ttend = np.zeros((ia.size, (len(tinds)-1)*self.N+1))
+        ttend = np.ones((ia.size, (len(tinds)-1)*self.N+1))*np.nan
         # initialize all exit flags for in the domain
         flag = np.zeros((ia.size), dtype=np.int)
 
         # Initialize vertical stuff and fluxes
         # Read initial field in - to 'new' variable since will be moved
         # at the beginning of the time loop ahead
-        lx = self.grid['xr'].shape[0]
-        ly = self.grid['xr'].shape[1]
-        lk = self.grid['sc_r'].size
+        lx = self.grid.imt
+        ly = self.grid.jmt
+        lk = self.grid.sc_r.size
+
+        # Now that we have the grid, initialize the info for the two
+        # bounding model steps using the grid size
+        self.uf = np.asfortranarray(np.ones((2, lk-1, ly, lx-1)))*np.nan
+        self.vf = np.asfortranarray(np.ones((2, lk-1, ly-1, lx)))*np.nan
+        self.dzt = np.asfortranarray(np.ones((2, lk-1, ly, lx)))*np.nan
+        self.zrt = np.asfortranarray(np.ones((2, lk-1, ly, lx)))*np.nan
+        self.zwt = np.asfortranarray(np.ones((2, lk, ly, lx)))*np.nan
         if is_string_like(self.z0):  # isoslice case
-            # Now that we have the grid, initialize the info for the two
-            # bounding model steps using the grid size
-            self.uf = np.asfortranarray(np.ones((lx-1, ly, lk-1, 2)))*np.nan
-            self.vf = np.asfortranarray(np.ones((lx, ly-1, lk-1, 2)))*np.nan
-            self.dzt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
-            self.zrt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
-            self.zwt = np.asfortranarray(np.ones((lx, ly, lk, 2)))*np.nan
-            self.uf[:, :, :, 1], self.vf[:, :, :, 1], \
-                self.dzt[:, :, :, 1], self.zrt[:, :, :, 1], \
-                self.zwt[:, :, :, 1] = \
+            self.uf[1, :, :, :], self.vf[1, :, :, :], \
+                self.dzt[1, :, :, :], self.zrt[1, :, :, :], \
+                self.zwt[1, :, :, :] = \
                 tracpy.inout.readfields(tinds[0], self.grid, nc, self.z0,
                                         self.zpar, zparuv=self.zparuv)
 
         else:  # 3d case
-            # Now that we have the grid, initialize the info for the two
-            # bounding model steps using the grid size
-            self.uf = np.asfortranarray(np.ones((lx-1, ly, lk-1, 2)))*np.nan
-            self.vf = np.asfortranarray(np.ones((lx, ly-1, lk-1, 2)))*np.nan
-            self.dzt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
-            self.zrt = np.asfortranarray(np.ones((lx, ly, lk-1, 2)))*np.nan
-            self.zwt = np.asfortranarray(np.ones((lx, ly, lk, 2)))*np.nan
-            self.uf[:, :, :, 1], self.vf[:, :, :, 1], \
-                self.dzt[:, :, :, 1], self.zrt[:, :, :, 1], \
-                self.zwt[:, :, :, 1] = \
+            self.uf[1, :, :, :], self.vf[1, :, :, :], \
+                self.dzt[1, :, :, :], self.zrt[1, :, :, :], \
+                self.zwt[1, :, :, :] = \
                 tracpy.inout.readfields(tinds[0], self.grid, nc)
 
         ## Find zstart0 and ka
@@ -362,7 +309,7 @@ class Tracpy(object):
 
             if self.zpar == 'fromMSL':
                 # print 'zpar==''fromMSL'' not implemented yet...'
-                raise NotImplementedError("zpar==''fromMSL'' not implemented \
+                raise NotImplementedError("zpar==''fromMSL'' not implemented\
                                           yet...")
             #     for i in xrange(ia.size):
             #         # pdb.set_trace()
@@ -383,19 +330,19 @@ class Tracpy(object):
                 # found in grid space as z0 below the z surface for each
                 # drifter
                 for i in xrange(ia.size):
-                    ind = (self.zwt[ia[i], ja[i], :, 1] <= self.z0[i])
+                    ind = (self.zwt[1, :, ja[i], ia[i]] <= self.z0[i])
                     # find value that is just shallower than starting vertical
                     # position
                     ka[i] = find(ind)[-1]
-                    if (self.z0[i] != self.zwt[ia[i], ja[i], ka[i], 1]) and \
-                       (ka[i] != self.grid['km']):  # check this
+                    if (self.z0[i] != self.zwt[1, ka[i], ja[i], ia[i]]) and \
+                       (ka[i] != self.grid.km):  # check this
                         ka[i] = ka[i]+1
                     # Then find the vertical relative position in the grid
                     # cell by adding on the bit of grid cell
                     zstart0[i] = ka[i] - \
-                        abs(self.z0[i]-self.zwt[ia[i], ja[i], ka[i], 1]) \
-                        / abs(self.zwt[ia[i], ja[i], ka[i]-1, 1] -
-                              self.zwt[ia[i], ja[i], ka[i], 1])
+                        abs(self.z0[i]-self.zwt[1, ka[i], ja[i], ia[i]]) \
+                        / abs(self.zwt[1, ka[i]-1, ja[i], ia[i]] -
+                              self.zwt[1, ka[i], ja[i], ia[i]])
 
         # Find initial cell depths to concatenate to beginning of drifter
         # tracks later
@@ -425,21 +372,21 @@ class Tracpy(object):
             T0 = np.ma.masked_where(flag[:] == 1, T0)
 
         # Move previous new time step to old time step info
-        self.uf[:, :, :, 0] = self.uf[:, :, :, 1].copy()
-        self.vf[:, :, :, 0] = self.vf[:, :, :, 1].copy()
-        self.dzt[:, :, :, 0] = self.dzt[:, :, :, 1].copy()
-        self.zrt[:, :, :, 0] = self.zrt[:, :, :, 1].copy()
-        self.zwt[:, :, :, 0] = self.zwt[:, :, :, 1].copy()
+        self.uf[0, :, :, :] = self.uf[1, :, :, :].copy()
+        self.vf[0, :, :, :] = self.vf[1, :, :, :].copy()
+        self.dzt[0, :, :, :] = self.dzt[1, :, :, :].copy()
+        self.zrt[0, :, :, :] = self.zrt[1, :, :, :].copy()
+        self.zwt[0, :, :, :] = self.zwt[1, :, :, :].copy()
 
         # Read stuff in for next time loop
         if is_string_like(self.z0):  # isoslice case
-            self.uf[:, :, :, 1], self.vf[:, :, :, 1], self.dzt[:, :, :, 1], \
-                self.zrt[:, :, :, 1], self.zwt[:, :, :, 1] = \
+            self.uf[1, :, :, :], self.vf[1, :, :, :], self.dzt[1, :, :, :], \
+                self.zrt[1, :, :, :], self.zwt[1, :, :, :] = \
                 tracpy.inout.readfields(tind, self.grid, nc, self.z0,
                                         self.zpar, zparuv=self.zparuv)
         else:  # 3d case
-            self.uf[:, :, :, 1], self.vf[:, :, :, 1], self.dzt[:, :, :, 1], \
-                self.zrt[:, :, :, 1], self.zwt[:, :, :, 1] = \
+            self.uf[1, :, :, :], self.vf[1, :, :, :], self.dzt[1, :, :, :], \
+                self.zrt[1, :, :, :], self.zwt[1, :, :, :] = \
                 tracpy.inout.readfields(tind, self.grid, nc)
 
         # Find the fluxes of the immediately bounding range for the desired
@@ -452,13 +399,13 @@ class Tracpy(object):
         # for earlier bounding flux info
         rp = nsubstep/self.nsubsteps  # weighting for later time step
         rm = 1 - rp  # timing for earlier time step
-        ufsub[:, :, :, 0] = rm*self.uf[:, :, :, 0] + rp*self.uf[:, :, :, 1]
-        vfsub[:, :, :, 0] = rm*self.vf[:, :, :, 0] + rp*self.vf[:, :, :, 1]
+        ufsub[0, :, :, :] = rm*self.uf[0, :, :, :] + rp*self.uf[1, :, :, :]
+        vfsub[0, :, :, :] = rm*self.vf[0, :, :, :] + rp*self.vf[1, :, :, :]
         # for later bounding flux info
         rp = (nsubstep+1)/self.nsubsteps  # weighting for later time step
         rm = 1 - rp  # timing for earlier time step
-        ufsub[:, :, :, 1] = rm*self.uf[:, :, :, 0] + rp*self.uf[:, :, :, 1]
-        vfsub[:, :, :, 1] = rm*self.vf[:, :, :, 0] + rp*self.vf[:, :, :, 1]
+        ufsub[1, :, :, :] = rm*self.uf[0, :, :, :] + rp*self.uf[1, :, :, :]
+        vfsub[1, :, :, :] = rm*self.vf[0, :, :, :] + rp*self.vf[1, :, :, :]
 
         # Change the horizontal indices from python to fortran indexing
         # (vertical are zero-based in tracmass)
@@ -472,37 +419,36 @@ class Tracpy(object):
         FIGURE OUT HOW TO KEEP TRACK OF TIME FOR EACH SET OF LINES
 
         FILL IN
+        Transpose arrays when sent to Fortran.
         """
-
-        # Figure out where in time we are
 
         if T0 is not None:
             xend, yend, zend, flag,\
                 ttend, U, V = tracmass.step(np.ma.compressed(xstart),
                                             np.ma.compressed(ystart),
                                             np.ma.compressed(zstart),
-                                            self.tseas_use, ufsub, vfsub,
+                                            self.tseas_use, ufsub.T, vfsub.T,
                                             self.ff,
-                                            self.grid['kmt'].astype(int),
-                                            self.dzt, self.grid['dxdy'],
-                                            self.grid['dxv'],
-                                            self.grid['dyu'], self.grid['h'],
+                                            self.grid.kmt.astype(int).T,
+                                            self.dzt.T, self.grid.dxdy.T,
+                                            self.grid.dxv.T,
+                                            self.grid.dyu.T, self.grid.h.T,
                                             self.nsteps, self.ah, self.av,
                                             self.do3d, self.doturb,
                                             self.doperiodic, self.dostream,
                                             self.N, t0=np.ma.compressed(T0),
-                                            ut=U, vt=V)
+                                            ut=U.T, vt=V.T)
         else:
             xend, yend, zend, flag,\
                 ttend, U, V = tracmass.step(np.ma.compressed(xstart),
                                             np.ma.compressed(ystart),
                                             np.ma.compressed(zstart),
-                                            self.tseas_use, ufsub, vfsub,
+                                            self.tseas_use, ufsub.T, vfsub.T,
                                             self.ff,
-                                            self.grid['kmt'].astype(int),
-                                            self.dzt, self.grid['dxdy'],
-                                            self.grid['dxv'],
-                                            self.grid['dyu'], self.grid['h'],
+                                            self.grid.kmt.astype(int).T,
+                                            self.dzt.T, self.grid.dxdy.T,
+                                            self.grid.dxv.T,
+                                            self.grid.dyu.T, self.grid.h.T,
                                             self.nsteps, self.ah, self.av,
                                             self.do3d, self.doturb,
                                             self.doperiodic, self.dostream,
@@ -522,7 +468,7 @@ class Tracpy(object):
 
         # Skip calculating real z position if we are doing surface-only
         # drifters anyway
-        if self.z0 != 's' and self.zpar != self.grid['km']-1:
+        if self.z0 != 's' and self.zpar != self.grid.km-1:
 
             # Calculate real z position
             # linear time interpolation constant that is used in tracmass
@@ -531,8 +477,8 @@ class Tracpy(object):
             for n in xrange(self.N):  # loop through time steps
                 # interpolate to a specific output time
                 # pdb.set_trace()
-                zwt = (1.-r[n])*self.zwt[:, :, :, 0] + \
-                       r[n]*self.zwt[:, :, :, 1]
+                zwt = (1.-r[n])*self.zwt[0, :, :, :] + \
+                    r[n]*self.zwt[1, :, :, :]
                 zp, dt = tracpy.tools.interpolate3d(xend, yend, zend, zwt)
         else:
             zp = zend

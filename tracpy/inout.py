@@ -87,10 +87,11 @@ def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
     return nc, tinds
 
 
-def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5,
-             llcrnrlat=22.5, urcrnrlon=-87.5, urcrnrlat=31.0, lat_0=30,
-             lon_0=-94, res='i', usebasemap=False, usespherical=True,
-             zone=15):
+# HAVE DIFFERENT GRID CLASS OPTIONS BETWEEN HERE AND OCTANT TO USE WITHIN
+# READGRID FUNCTION BUT LARGELY REPLACE TO BE MORE ACCURATE AND EASIER.
+
+
+def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     """
     readgrid(loc)
     Kristen Thyng, March 2013
@@ -104,15 +105,13 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5,
 
     Args:
         grid_filename: File name (with extension) where grid information is
-         stored
+            stored
         vert_filename (optional): File name (with extension) where vertical
-         grid information is stored, if not in grid_loc. Can also skip this
-         if don't need vertical grid info. also optional basemap box
-         parameters. Default is for full shelf model.
-        proj: Basemap projection.
-        usebasemap (bool): Whether to use load basemap into grid (True) or
-         pyproj (False). Basemap is slower but can be used for plotting, and
-         pyproj is the opposite. Default is False.
+            grid information is stored, if not in grid_loc. Can also skip
+            this if don't need vertical grid info. also optional prjection
+            box parameters. Default is None.
+        proj: Projection object.
+        usespherical: Use spherical geometric coordinates (lat/lon) or not.
 
     Returns:
      * grid - Dictionary containing all necessary time-independent grid fields
@@ -183,155 +182,156 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5,
 
     # Basemap parameters.
     if usespherical:
-        llcrnrlon = llcrnrlon
-        llcrnrlat = llcrnrlat
-        urcrnrlon = urcrnrlon
-        urcrnrlat = urcrnrlat
-        projection = proj
-        lat_0 = lat_0
-        lon_0 = lon_0
-        resolution = res
-        area_thresh = 0.
-
-        if usebasemap:
-            from mpl_toolkits.basemap import Basemap
-            basemap = Basemap(llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
-                              urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat,
-                              projection=projection, resolution=resolution,
-                              lat_0=lat_0, lon_0=lon_0,
-                              area_thresh=area_thresh)
-        else:
-            from pyproj import Proj
-            # this gives somewhat different differences between projected
-            # coordinates as compared with previous basemap definition for
-            # the default values.
-            basemap = Proj(proj=proj, lat_1=llcrnrlat, lat_2=urcrnrlat,
-                           lat_0=lat_0, lon_0=lon_0, x_0=0, y_0=0,
-                           ellps='clrk66', datum='NAD27', zone=zone)
 
         if keeptime:
             basemaptime = time.time()
             print "basemap time ", basemaptime - starttime
     else:
-        basemap = []
+        proj = []
 
     if usespherical:
-        lonu = gridfile.variables['lon_u'][:]
-        latu = gridfile.variables['lat_u'][:]
-        xu, yu = basemap(lonu, latu)
-        lonv = gridfile.variables['lon_v'][:]
-        latv = gridfile.variables['lat_v'][:]
-        xv, yv = basemap(lonv, latv)
-        lonr = gridfile.variables['lon_rho'][:]
-        latr = gridfile.variables['lat_rho'][:]
-        xr, yr = basemap(lonr, latr)
-        lonpsi = gridfile.variables['lon_psi'][:]
-        latpsi = gridfile.variables['lat_psi'][:]
-        xpsi, ypsi = basemap(lonpsi, latpsi)
+        # lonu = gridfile.variables['lon_u'][:]
+        # latu = gridfile.variables['lat_u'][:]
+        # xu, yu = proj(lonu, latu)
+        # lonv = gridfile.variables['lon_v'][:]
+        # latv = gridfile.variables['lat_v'][:]
+        # xv, yv = proj(lonv, latv)
+        lon_rho = gridfile.variables['lon_rho'][:]
+        lat_rho = gridfile.variables['lat_rho'][:]
+        x_rho, y_rho = proj(lon_rho, lat_rho)
+        # lonpsi = gridfile.variables['lon_psi'][:]
+        # latpsi = gridfile.variables['lat_psi'][:]
+        # xpsi, ypsi = proj(lonpsi, latpsi)
     else:
         # read cartesian data
-        xu = gridfile.variables['x_u'][:]
-        yu = gridfile.variables['y_u'][:]
-        xv = gridfile.variables['x_v'][:]
-        yv = gridfile.variables['y_v'][:]
-        xr = gridfile.variables['x_rho'][:]
-        yr = gridfile.variables['y_rho'][:]
-        xpsi = gridfile.variables['x_psi'][:]
-        ypsi = gridfile.variables['y_psi'][:]
+        # xu = gridfile.variables['x_u'][:]
+        # yu = gridfile.variables['y_u'][:]
+        # xv = gridfile.variables['x_v'][:]
+        # yv = gridfile.variables['y_v'][:]
+        x_rho = gridfile.variables['x_rho'][:]
+        y_rho = gridfile.variables['y_rho'][:]
+        # xpsi = gridfile.variables['x_psi'][:]
+        # ypsi = gridfile.variables['y_psi'][:]
 
-        # assign to spherical arrays
-        lonu, latu = xu, yu
-        lonv, latv = xv, yv
-        lonr, latr = xr, yr
-        lonpsi, latpsi = xpsi, ypsi
+        # # assign to spherical arrays
+        # lonu, latu = xu, yu
+        # lonv, latv = xv, yv
+        lon_rho, lat_rho = x_rho, y_rho
+        # lonpsi, latpsi = xpsi, ypsi
 
-    # Create mask of all active cells if there isn't one already
-    try:
-        mask = gridfile.variables['mask_rho'][:]
-    except KeyError:
-        mask = np.ones_like(xr)
+    # get vertex locations
+    if 'angle' not in gridfile.variables:
+        angle = np.zeros(x_rho.shape)
+    x_vert, y_vert = octant.grid.rho_to_vert(x_rho, y_rho,
+                                             gridfile.variables['pm'][:],
+                                             gridfile.variables['pn'][:],
+                                             angle)
 
-    pm = gridfile.variables['pm'][:]
-    pn = gridfile.variables['pn'][:]
-    h = gridfile.variables['h'][:]
+    lon_vert, lat_vert = proj(x_vert, y_vert, inverse=True)
+
+    # Try octant grid
+    if usespherical:
+        grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
+    else:
+        grid = octant.grid.CGrid(lon_vert, lat_vert, proj)
+
+    # vertical grid info
+    if vert_filename is not None:
+        nc = netCDF.Dataset(vert_filename)
+        grid.vertical(nc)
+    elif 's_w' in gridfile.variables:  # test for presence of vertical info
+        grid.vertical(gridfile)
+    elif vert_filename is None:
+        pass  # don't use vertical grid info
+
+    # # Create mask of all active cells if there isn't one already
+    # try:
+    #     mask = gridfile.variables['mask_rho'][:]
+    # except KeyError:
+    #     mask = np.ones_like(xr)
+
+    # pm = gridfile.variables['pm'][:]
+    # pn = gridfile.variables['pn'][:]
+    # h = gridfile.variables['h'][:]
     if keeptime:
         hgridtime = time.time()
         print "horizontal grid time ", hgridtime - basemaptime
 
     # Vertical grid metrics
     # if this, then given grid file contains vertical grid info
-    if 's_w' in gridfile.variables:
-        sc_r = gridfile.variables['s_w'][:]  # sigma coords, 31 layers
-        # stretching curve in sigma coords, 31 layers
-        Cs_r = gridfile.variables['Cs_w'][:]
-        hc = gridfile.variables['hc'][:]
-        theta_s = gridfile.variables['theta_s'][:]
-        theta_b = gridfile.variables['theta_b'][:]
-        if 'Vtransform' in gridfile.variables:
-            Vtransform = gridfile.variables['Vtransform'][:]
-            Vstretching = gridfile.variables['Vstretching'][:]
-        else:
-            Vtransform = 1
-            Vstretching = 1
-    # Still want vertical grid metrics, but are in separate file
-    elif vert_filename is not None:
-        nc = netCDF.Dataset(vert_filename)
-        if 's_w' in nc.variables:
-            sc_r = nc.variables['s_w'][:]  # sigma coords, 31 layers
-        else:
-            sc_r = nc.variables['sc_w'][:]  # sigma coords, 31 layers
-        # stretching curve in sigma coords, 31 layers
-        Cs_r = nc.variables['Cs_w'][:]
-        hc = nc.variables['hc'][:]
-        theta_s = nc.variables['theta_s'][:]
-        theta_b = nc.variables['theta_b'][:]
-        if 'Vtransform' in nc.variables:
-            Vtransform = nc.variables['Vtransform'][:]
-            Vstretching = nc.variables['Vstretching'][:]
-        else:
-            Vtransform = 1
-            Vstretching = 1
+    # if 's_w' in gridfile.variables:
+    #     sc_r = gridfile.variables['s_w'][:]  # sigma coords, 31 layers
+    #     # stretching curve in sigma coords, 31 layers
+    #     Cs_r = gridfile.variables['Cs_w'][:]
+    #     hc = gridfile.variables['hc'][:]
+    #     theta_s = gridfile.variables['theta_s'][:]
+    #     theta_b = gridfile.variables['theta_b'][:]
+    #     if 'Vtransform' in gridfile.variables:
+    #         Vtransform = gridfile.variables['Vtransform'][:]
+    #         Vstretching = gridfile.variables['Vstretching'][:]
+    #     else:
+    #         Vtransform = 1
+    #         Vstretching = 1
+    # # Still want vertical grid metrics, but are in separate file
+    # elif vert_filename is not None:
+    #     nc = netCDF.Dataset(vert_filename)
+    #     if 's_w' in nc.variables:
+    #         sc_r = nc.variables['s_w'][:]  # sigma coords, 31 layers
+    #     else:
+    #         sc_r = nc.variables['sc_w'][:]  # sigma coords, 31 layers
+    #     # stretching curve in sigma coords, 31 layers
+    #     Cs_r = nc.variables['Cs_w'][:]
+    #     hc = nc.variables['hc'][:]
+    #     theta_s = nc.variables['theta_s'][:]
+    #     theta_b = nc.variables['theta_b'][:]
+    #     if 'Vtransform' in nc.variables:
+    #         Vtransform = nc.variables['Vtransform'][:]
+    #         Vstretching = nc.variables['Vstretching'][:]
+    #     else:
+    #         Vtransform = 1
+    #         Vstretching = 1
 
     if keeptime:
         vgridtime = time.time()
         print "vertical grid time ", vgridtime - hgridtime
 
-    # make arrays in same order as is expected in the fortran code
-    # ROMS expects [time x k x j x i] but tracmass is expecting
-    # [i x j x k x time]
-    # change these arrays to be fortran-directioned instead of python
-    # This is faster than copying arrays. To test: .flags['F_CONTIGUOUS']
-    mask = np.asfortranarray(mask.T)
-    xr = np.asfortranarray(xr.T)
-    yr = np.asfortranarray(yr.T)
-    xu = np.asfortranarray(xu.T)
-    yu = np.asfortranarray(yu.T)
-    xv = np.asfortranarray(xv.T)
-    yv = np.asfortranarray(yv.T)
-    xpsi = np.asfortranarray(xpsi.T)
-    ypsi = np.asfortranarray(ypsi.T)
-    lonr = np.asfortranarray(lonr.T)
-    latr = np.asfortranarray(latr.T)
-    lonu = np.asfortranarray(lonu.T)
-    latu = np.asfortranarray(latu.T)
-    lonv = np.asfortranarray(lonv.T)
-    latv = np.asfortranarray(latv.T)
-    lonpsi = np.asfortranarray(lonpsi.T)
-    latpsi = np.asfortranarray(latpsi.T)
-    pm = np.asfortranarray(pm.T)
-    pn = np.asfortranarray(pn.T)
-    h = np.asfortranarray(h.T)
+    # # make arrays in same order as is expected in the fortran code
+    # # ROMS expects [time x k x j x i] but tracmass is expecting
+    # # [i x j x k x time]
+    # # change these arrays to be fortran-directioned instead of python
+    # # This is faster than copying arrays. To test: .flags['F_CONTIGUOUS']
+    # mask = np.asfortranarray(mask.T)
+    # xr = np.asfortranarray(xr.T)
+    # yr = np.asfortranarray(yr.T)
+    # xu = np.asfortranarray(xu.T)
+    # yu = np.asfortranarray(yu.T)
+    # xv = np.asfortranarray(xv.T)
+    # yv = np.asfortranarray(yv.T)
+    # xpsi = np.asfortranarray(xpsi.T)
+    # ypsi = np.asfortranarray(ypsi.T)
+    # lonr = np.asfortranarray(lonr.T)
+    # latr = np.asfortranarray(latr.T)
+    # lonu = np.asfortranarray(lonu.T)
+    # latu = np.asfortranarray(latu.T)
+    # lonv = np.asfortranarray(lonv.T)
+    # latv = np.asfortranarray(latv.T)
+    # lonpsi = np.asfortranarray(lonpsi.T)
+    # latpsi = np.asfortranarray(latpsi.T)
+    # pm = np.asfortranarray(pm.T)
+    # pn = np.asfortranarray(pn.T)
+    # h = np.asfortranarray(h.T)
 
-    if keeptime:
-        fortranflippingtime = time.time()
-        print "fortran flipping time ", fortranflippingtime - vgridtime
+    # if keeptime:
+    #     fortranflippingtime = time.time()
+    #     print "fortran flipping time ", fortranflippingtime - vgridtime
 
     # Basing this on setupgrid.f95 for rutgersNWA example project from Bror
+    grid.h = gridfile.variables['h'][:]
     # Grid sizes
-    imt = h.shape[0]  # 671
-    jmt = h.shape[1]  # 191
-    if 'sc_r' in dir():
-        km = sc_r.shape[0]-1  # 30 NOT SURE ON THIS ONE YET
+    grid.imt = grid.h.shape[1]  # 191
+    grid.jmt = grid.h.shape[0]  # 671
+    if hasattr(grid, 'sc_r'):
+        grid.km = grid.sc_r.shape[0]-1  # 30 NOT SURE ON THIS ONE YET
 
     if keeptime:
         gridsizetime = time.time()
@@ -341,25 +341,27 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5,
     # This is for rho
     # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
     # grid in index coordinates, without ghost cells
-    Y, X = np.meshgrid(np.arange(jmt), np.arange(imt))
+    grid.Y, grid.X = np.meshgrid(np.arange(grid.jmt), np.arange(grid.imt))
     # Triangulation for grid space to curvilinear space
-    pts = np.column_stack((xr.flatten(), yr.flatten()))
+    pts = np.column_stack((grid.X.flatten(), grid.Y.flatten()))
     tess = Delaunay(pts)
-    tri = mtri.Triangulation(xr.flatten(), yr.flatten(),
-                             tess.simplices.copy())
+    grid.tri = mtri.Triangulation(grid.X.flatten(), grid.Y.flatten(),
+                                  tess.simplices.copy())
 
     # Triangulation for curvilinear space to grid space
     # Have to use SciPy's Triangulation to be more robust.
     # http://matveichev.blogspot.com/2014/02/matplotlibs-tricontour-interesting.html
-    pts = np.column_stack((xr.flatten(), yr.flatten()))
+    pts = np.column_stack((grid.x_rho.flatten(), grid.y_rho.flatten()))
     tess = Delaunay(pts)
-    trir = mtri.Triangulation(xr.flatten(), yr.flatten(),
-                              tess.simplices.copy())
-
-    pts = np.column_stack((lonr.flatten(), latr.flatten()))
-    tess = Delaunay(pts)
-    trirllrho = mtri.Triangulation(lonr.flatten(), latr.flatten(),
+    grid.trir = mtri.Triangulation(grid.x_rho.flatten(),
+                                   grid.y_rho.flatten(),
                                    tess.simplices.copy())
+
+    pts = np.column_stack((grid.lon_rho.flatten(), grid.lat_rho.flatten()))
+    tess = Delaunay(pts)
+    grid.trirllrho = mtri.Triangulation(grid.lon_rho.flatten(),
+                                        grid.lat_rho.flatten(),
+                                        tess.simplices.copy())
 
     if keeptime:
         delaunaytime = time.time()
@@ -367,17 +369,16 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5,
 
     # tracmass ordering.
     # Not sure how to convert this to pm, pn with appropriate shift
-    dxv = 1/pm  # pm is 1/\Delta x at cell centers
-    dyu = 1/pn  # pn is 1/\Delta y at cell centers
+    grid.dxv = 1/grid.pm  # pm is 1/\Delta x at cell centers
+    grid.dyu = 1/grid.pn  # pn is 1/\Delta y at cell centers
 
-    dxdy = dyu*dxv
+    grid.dxdy = grid.dyu*grid.dxv
 
-    # I DON'T THINK THIS IS CORRECT FOR CURVILINEAR GRIDS
     # Change dxv,dyu to be correct u and v grid size after having
     # them be too big for dxdy calculation. This is not in the
     # rutgersNWA example and I am not sure why. [i,j]
-    dxv = 0.5*(dxv[:, :-1]+dxv[:, 1:])
-    dyu = 0.5*(dyu[:-1, :]+dyu[1:, :])
+    grid.dxv = 0.5*(grid.dxv[:-1, :] + grid.dxv[1:, :])
+    grid.dyu = 0.5*(grid.dyu[:, :-1] + grid.dyu[:, 1:])
 
     if keeptime:
         gridmetricstime = time.time()
@@ -385,64 +386,44 @@ def readgrid(grid_filename, vert_filename=None, proj='lcc', llcrnrlon=-98.5,
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example
     # project from Bror
-    if 'sc_r' in dir():
-        mask2 = mask.copy()
-        kmt = np.ones((imt, jmt), order='f')*km
+    if hasattr(grid, 'sc_r'):
+        mask2 = grid.mask.copy()
+        grid.kmt = np.ones((grid.jmt, grid.imt))*grid.km
         ind = (mask2 == 1)
-        ind[0:imt-1, :] = ind[1:imt, :]
+        ind[0:grid.jmt-1, :] = ind[1:grid.jmt, :]
         mask2[ind] = 1
         ind = (mask2 == 1)
-        ind[:, 0:jmt-1] = ind[:, 1:jmt]
+        ind[:, 0:grid.imt-1] = ind[:, 1:grid.imt]
         mask2[ind] = 1
         ind = (mask2 == 0)
-        kmt[ind] = 0
+        grid.kmt[ind] = 0
 
         # Use octant to calculate depths/thicknesses for the appropriate
         # vertical grid parameters have to transform a few back to ROMS
         # coordinates and python ordering for this
-        zwt0 = octant.depths.get_zw(Vtransform, Vstretching, km+1, theta_s,
-                                    theta_b, h.T.copy(order='c'), hc, zeta=0,
-                                    Hscale=3)
-        zrt0 = octant.depths.get_zrho(Vtransform, Vstretching, km, theta_s,
-                                      theta_b, h.T.copy(order='c'), hc,
-                                      zeta=0, Hscale=3)
-        # Change dzt to tracmass/fortran ordering
-        zwt0 = zwt0.T.copy(order='f')
-        zrt0 = zrt0.T.copy(order='f')
+        grid.zwt0 = octant.depths.get_zw(grid.Vtransform, grid.Vstretching,
+                                         grid.km+1, grid.theta_s,
+                                         grid.theta_b, grid.h, grid.hc,
+                                         zeta=0, Hscale=3)
+        grid.zrt0 = octant.depths.get_zrho(grid.Vtransform, grid.Vstretching,
+                                           grid.km, grid.theta_s,
+                                           grid.theta_b, grid.h, grid.hc,
+                                           zeta=0, Hscale=3)
+        # # Change dzt to tracmass/fortran ordering
+        # zwt0 = zwt0.T.copy(order='f')
+        # zrt0 = zrt0.T.copy(order='f')
         # this should be the base grid layer thickness that doesn't change in
         # time because it is for the reference vertical level
-        dzt0 = zwt0[:, :, 1:] - zwt0[:, :, :-1]
+        grid.dzt0 = grid.zwt0[1:, :, :] - grid.zwt0[:-1, :, :]
 
     if keeptime:
         calculatingdepthstime = time.time()
         print "calculating depths time ", calculatingdepthstime - \
             gridmetricstime
 
-    # Fill in grid structure
-    if 'sc_r' in dir():
-        grid = {'imt': imt, 'jmt': jmt, 'km': km, 'dxv': dxv, 'dyu': dyu,
-                'dxdy': dxdy, 'mask': mask, 'kmt': kmt, 'dzt0': dzt0,
-                'zrt0': zrt0, 'zwt0': zwt0, 'pm': pm, 'pn': pn, 'tri': tri,
-                'trir': trir, 'trirllrho': trirllrho, 'xr': xr, 'xu': xu,
-                'xv': xv, 'xpsi': xpsi, 'X': X, 'yr': yr, 'yu': yu, 'yv': yv,
-                'ypsi': ypsi, 'Y': Y, 'lonr': lonr, 'lonu': lonu,
-                'lonv': lonv, 'lonpsi': lonpsi, 'latr': latr, 'latu': latu,
-                'latv': yv, 'latpsi': latpsi, 'Cs_r': Cs_r, 'sc_r': sc_r,
-                'hc': hc, 'h': h, 'theta_s': theta_s, 'theta_b': theta_b,
-                'Vtransform': Vtransform, 'Vstretching': Vstretching,
-                'basemap': basemap}
-    else:
-        grid = {'imt': imt, 'jmt': jmt, 'dxv': dxv, 'dyu': dyu, 'dxdy': dxdy,
-                'mask': mask, 'pm': pm, 'pn': pn, 'tri': tri, 'trir': trir,
-                'trirllrho': trirllrho, 'xr': xr, 'xu': xu, 'xv': xv,
-                'xpsi': xpsi, 'X': X, 'yr': yr, 'yu': yu, 'yv': yv,
-                'ypsi': ypsi, 'Y': Y, 'lonr': lonr, 'lonu': lonu,
-                'lonv': lonv, 'lonpsi': lonpsi, 'latr': latr, 'latu': latu,
-                'latv': yv, 'latpsi': latpsi, 'h': h, 'basemap': basemap}
-
-    if keeptime:
-        griddicttime = time.time()
-        print "saving grid dict time ", griddicttime - calculatingdepthstime
+    # if keeptime:
+    #     griddicttime = time.time()
+    #     print "saving grid dict time ", griddicttime - calculatingdepthstime
 
     gridfile.close()
 
@@ -535,19 +516,19 @@ def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
         else:
             sshread = False
 
-    h = grid['h'].T.copy(order='c')
+    # h = grid['h'].T.copy(order='c')
     # Use octant to calculate depths for the appropriate vertical grid
     # parameters have to transform a few back to ROMS coordinates and python
     # ordering for this
     if sshread:
-        zwt = octant.depths.get_zw(grid['Vtransform'], grid['Vstretching'],
-                                   grid['km']+1, grid['theta_s'],
-                                   grid['theta_b'], h, grid['hc'], zeta=ssh,
+        zwt = octant.depths.get_zw(grid.Vtransform, grid.Vstretching,
+                                   grid.km+1, grid.theta_s,
+                                   grid.theta_b, grid.h, grid.hc, zeta=ssh,
                                    Hscale=3)
     else:  # if ssh isn't available, approximate as 0
-        zwt = octant.depths.get_zw(grid['Vtransform'], grid['Vstretching'],
-                                   grid['km']+1, grid['theta_s'],
-                                   grid['theta_b'], h, grid['hc'], zeta=0,
+        zwt = octant.depths.get_zw(grid.Vtransform, grid.Vstretching,
+                                   grid.km+1, grid.theta_s,
+                                   grid.theta_b, grid.h, grid.hc, zeta=0,
                                    Hscale=3)
 
     # Change dzt to tracmass/fortran ordering
@@ -555,67 +536,65 @@ def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
 
     # also want depths on rho grid
     if sshread:
-        zrt = octant.depths.get_zrho(grid['Vtransform'], grid['Vstretching'],
-                                     grid['km'], grid['theta_s'],
-                                     grid['theta_b'], h, grid['hc'],
+        zrt = octant.depths.get_zrho(grid.Vtransform, grid.Vstretching,
+                                     grid.km, grid.theta_s,
+                                     grid.theta_b, grid.h, grid.hc,
                                      zeta=ssh, Hscale=3)
     else:
-        zrt = octant.depths.get_zrho(grid['Vtransform'], grid['Vstretching'],
-                                     grid['km'], grid['theta_s'],
-                                     grid['theta_b'], h, grid['hc'], zeta=0,
+        zrt = octant.depths.get_zrho(grid.Vtransform, grid.Vstretching,
+                                     grid.km, grid.theta_s,
+                                     grid.theta_b, grid.h, grid.hc, zeta=0,
                                      Hscale=3)
 
-    dzu = .5*(dzt[:, :, 0:grid['imt']-1] + dzt[:, :, 1:grid['imt']])
-    dzv = .5*(dzt[:, 0:grid['jmt']-1, :] + dzt[:, 1:grid['jmt'], :])
+    dzu = .5*(dzt[:, :, 0:grid.imt-1] + dzt[:, :, 1:grid.imt])
+    dzv = .5*(dzt[:, 0:grid.jmt-1, :] + dzt[:, 1:grid.jmt, :])
 
-    # Change order back to ROMS/python for this calculation
-    dyu = grid['dyu'].T.copy(order='c')
-    dxv = grid['dxv'].T.copy(order='c')
+    # # Change order back to ROMS/python for this calculation
+    # dyu = grid.dyu.T.copy(order='c')
+    # dxv = grid.dxv.T.copy(order='c')
 
     # I think I can avoid this loop for the isoslice case
     if z0 is None:  # 3d case
-        uflux1 = u*dzu*dyu
-        vflux1 = v*dzv*dxv
+        uflux1 = u*dzu*grid.dyu
+        vflux1 = v*dzv*grid.dxv
     elif z0 == 's':  # want a specific s level zpar
-        uflux1 = u*dzu[zpar, :, :]*dyu
-        vflux1 = v*dzv[zpar, :, :]*dxv
+        uflux1 = u*dzu[zpar, :, :]*grid.dyu
+        vflux1 = v*dzv[zpar, :, :]*grid.dxv
         dzt = dzt[zpar, :, :]
         zrt = zrt[zpar, :, :]
     elif z0 == 'rho' or z0 == 'salt' or z0 == 'temp':
         # the vertical setup we're selecting an isovalue of
         vert = nc.variables[z0][tind, :, :, :]
         # Calculate flux and then take slice
-        # DOES THIS WORK FOR CURVILINEAR GRID?
-        uflux1 = octant.tools.isoslice(u*dzu*dyu, op.resize(vert, 2), zpar)
-        vflux1 = octant.tools.isoslice(v*dzv*dxv, op.resize(vert, 1), zpar)
+        uflux1 = octant.tools.isoslice(u*dzu*grid.dyu, op.resize(vert, 2), zpar)
+        vflux1 = octant.tools.isoslice(v*dzv*grid.dxv, op.resize(vert, 1), zpar)
         dzt = octant.tools.isoslice(dzt, vert, zpar)
         zrt = octant.tools.isoslice(zrt, vert, zpar)
     elif z0 == 'z':
         # Calculate flux and then take slice
-        # DOES THIS WORK FOR CURVILINEAR GRID?
-        uflux1 = octant.tools.isoslice(u*dzu*dyu, op.resize(zrt, 2), zpar)
-        vflux1 = octant.tools.isoslice(v*dzv*dxv, op.resize(zrt, 1), zpar)
+        uflux1 = octant.tools.isoslice(u*dzu*grid.dyu, op.resize(zrt, 2), zpar)
+        vflux1 = octant.tools.isoslice(v*dzv*grid.dxv, op.resize(zrt, 1), zpar)
         dzt = octant.tools.isoslice(dzt, zrt, zpar)
         zrt = np.ones(uflux1.shape)*zpar  # array of the input desired depth
 
-    # Change all back to tracmass/fortran ordering if being used again
-    # This is faster than copying arrays
-    # Don't bother changing order of these arrays since I have to change it
-    # in run.py anyway (concatenate appears not to preserve ordering)
-    uflux1 = uflux1.T
-    vflux1 = vflux1.T
-    dzt = np.asfortranarray(dzt.T)
-    zrt = np.asfortranarray(zrt.T)
-    if sshread:
-        ssh = np.asfortranarray(ssh.T)
-    zwt = np.asfortranarray(zwt.T)
+    # # Change all back to tracmass/fortran ordering if being used again
+    # # This is faster than copying arrays
+    # # Don't bother changing order of these arrays since I have to change it
+    # # in run.py anyway (concatenate appears not to preserve ordering)
+    # uflux1 = uflux1.T
+    # vflux1 = vflux1.T
+    # dzt = np.asfortranarray(dzt.T)
+    # zrt = np.asfortranarray(zrt.T)
+    # if sshread:
+    #     ssh = np.asfortranarray(ssh.T)
+    # zwt = np.asfortranarray(zwt.T)
 
     # make sure that all fluxes have a placeholder for depth
     if is_string_like(z0):
-        uflux1 = uflux1.reshape(np.append(uflux1.shape, 1))
-        vflux1 = vflux1.reshape(np.append(vflux1.shape, 1))
-        dzt = dzt.reshape(np.append(dzt.shape, 1))
-        zrt = zrt.reshape(np.append(zrt.shape, 1))
+        uflux1 = uflux1.reshape(np.append(1, uflux1.shape))
+        vflux1 = vflux1.reshape(np.append(1, vflux1.shape))
+        dzt = dzt.reshape(np.append(1, dzt.shape))
+        zrt = zrt.reshape(np.append(1, zrt.shape))
 
     return uflux1, vflux1, dzt, zrt, zwt
 

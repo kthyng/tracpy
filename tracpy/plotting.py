@@ -44,26 +44,26 @@ def background(grid=None, ax=None, pars=np.arange(18, 35),
         ax = gca()
 
     # Do plot
-    grid['basemap'].drawcoastlines(ax=ax)
-    grid['basemap'].fillcontinents('0.8', ax=ax)
-    grid['basemap'].drawparallels(pars, dashes=(1, 1),
-                                  linewidth=0.15, labels=parslabels, ax=ax)
-    grid['basemap'].drawmeridians(mers, dashes=(1, 1),
-                                  linewidth=0.15, labels=merslabels, ax=ax)
-    ax.contour(grid['xr'], grid['yr'], grid['h'], hlevs, colors=col,
+    grid.basemap.drawcoastlines(ax=ax)
+    grid.basemap.fillcontinents('0.8', ax=ax)
+    grid.basemap.drawparallels(pars, dashes=(1, 1),
+                               linewidth=0.15, labels=parslabels, ax=ax)
+    grid.basemap.drawmeridians(mers, dashes=(1, 1),
+                               linewidth=0.15, labels=merslabels, ax=ax)
+    ax.contour(grid.x_rho, grid.y_rho, grid.h, hlevs, colors=col,
                linewidths=0.5)
 
     # Outline numerical domain
     # if outline:  # backward compatibility
     #     outline = [1,1,1,1]
-    if outline[0]:
-        ax.plot(grid['xr'][0, :], grid['yr'][0, :], 'k:')
-    if outline[1]:
-        ax.plot(grid['xr'][-1, :], grid['yr'][-1, :], 'k:')
-    if outline[2]:
-        ax.plot(grid['xr'][:, -1], grid['yr'][:, -1], 'k:')
-    if outline[3]:
-        ax.plot(grid['xr'][:, 0], grid['yr'][:, 0], 'k:')
+    if outline[0]:  # left
+        ax.plot(grid.x_rho[:, 0], grid.y_rho[:, 0], 'k:')
+    if outline[1]:  # right
+        ax.plot(grid.x_rho[:, -1], grid.y_rho[:, -1], 'k:')
+    if outline[2]:  # top
+        ax.plot(grid.x_rho[-1, :], grid.y_rho[-1, :], 'k:')
+    if outline[3]:  # bottom
+        ax.plot(grid.x_rho[0, :], grid.y_rho[0, :], 'k:')
 
 
 def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
@@ -102,7 +102,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
 
     if isll:  # if inputs are in lon/lat, change to projected x/y
         # Change positions from lon/lat to x/y
-        xp, yp = grid['basemap'](lonp, latp)
+        xp, yp = grid.basemap(lonp, latp)
         # Need to retain nan's since basemap changes them to values
         ind = np.isnan(lonp)
         xp[ind] = np.nan
@@ -131,10 +131,10 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
 
         # Info for 2d histogram
         H, xedges, yedges = np.histogram2d(xpc, ypc,
-                                           range=[[grid['xr'].min(),
-                                                   grid['xr'].max()],
-                                                  [grid['yr'].min(),
-                                                   grid['yr'].max()]],
+                                           range=[[grid.x_rho.min(),
+                                                   grid.x_rho.max()],
+                                                  [grid.y_rho.min(),
+                                                   grid.y_rho.max()]],
                                            bins=bins)
 
         # Contour Plot
@@ -167,10 +167,10 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
 
         # Info for 2d histogram
         H, xedges, yedges = np.histogram2d(xpc, ypc,
-                                           range=[[grid['xr'].min(),
-                                                   grid['xr'].max()],
-                                                  [grid['yr'].min(),
-                                                   grid['yr'].max()]],
+                                           range=[[grid.x_rho.min(),
+                                                   grid.x_rho.max()],
+                                                  [grid.y_rho.min(),
+                                                   grid.y_rho.max()]],
                                            bins=bins, weights=weights)
 
         # Pcolor plot
@@ -219,8 +219,8 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         else:
             C = C*np.ones(len(xpc))*100
         hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0],
-                    extent=(grid['xpsi'].min(), grid['xpsi'].max(),
-                            grid['ypsi'].min(), grid['ypsi'].max()),
+                    extent=(grid.xpsi.min(), grid.xpsi.max(),
+                            grid.ypsi.min(), grid.ypsi.max()),
                     reduce_C_function=sum, vmax=vmax, axes=ax, bins=binscale)
 
         # Set x and y limits
@@ -269,10 +269,10 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
 
     elif which == 'hist2d':
 
-        hist2d(xpc, ypc, bins=40, range=[[grid['xr'].min(),
-                                          grid['xr'].max()],
-                                         [grid['yr'].min(),
-                                          grid['yr'].max()]], normed=True)
+        hist2d(xpc, ypc, bins=40, range=[[grid.x_rho.min(),
+                                          grid.x_rho.max()],
+                                         [grid.y_rho.min(),
+                                          grid.y_rho.max()]], normed=True)
         set_cmap('YlOrRd')
         # Set x and y limits
         if xlims is not None:
@@ -320,7 +320,7 @@ def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
         ax = ax
 
     # Change positions from lon/lat to x/y
-    xp, yp = grid['basemap'](lonp, latp)
+    xp, yp = grid.basemap(lonp, latp)
     # Need to retain nan's since basemap changes them to values
     ind = np.isnan(lonp)
     xp[ind] = np.nan
@@ -427,7 +427,7 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     else:
         fig = fig
     background(grid=grid)
-    c = contourf(grid['xpsi'], grid['ypsi'], Splot, cmap=colormap,
+    c = contourf(grid.xpsi, grid.ypsi, Splot, cmap=colormap,
                  extend='max', levels=levs)
     title(Title)
 

@@ -82,6 +82,7 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
             timer.addtime('4: Processing after model step')
 
     nc.close()
+    import pdb; pdb.set_trace()
 
     lonp, latp, zp, ttend, T0, U, V = tp.finishSimulation(ttend, t0save,
                                                           xend, yend, zp, T0,

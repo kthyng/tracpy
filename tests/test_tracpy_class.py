@@ -12,73 +12,82 @@ import numpy as np
 # For niceties with file locations and such
 here = os.path.dirname(__file__)
 
+
 def test_init():
     '''
-    Make sure that we can initialize the class.
-    '''
-    
-    tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'))
+    Initialize class without vertical grid information.
 
-    assert True
-
-def test_initWithGridSource():
-    '''
-    Make sure we can initialize with a grid source location
-    '''
-    
-    tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'), grid_filename=os.path.join(here, 'input', 'grid.nc'))
-
-    assert True
-
-def test_readgrid():
-    '''
-    Test for initializing grid without vertical grid information.
+    Make sure that we can initialize the class with a grid and without
+    vertical grid information.
     '''
 
-    tp = Tracpy(os.path.join(here, 'input', 'grid.nc'))
-    tp._readgrid()
+    # Get projection object
+    proj = tracpy.tools.make_proj(setup='galveston', usebasemap=False)
+
+    # Read in grid
+    grid_filename = os.path.join(here, 'input', 'grid.nc')
+    currents_filename = os.path.join(here, 'input', 'ocean_his_0001.nc')
+    grid = tracpy.inout.readgrid(grid_filename, proj)
+
+    tp = Tracpy(currents_filename, grid)
 
     assert True
 
     assert tp.grid
+
+    # make sure there isn't a value for a vertical grid parameter
+    assert not hasattr(grid, 'sc_r')
+
 
 def test_readgridWithVertical():
     '''
     Test for initializing grid and saving vertical grid information.
     '''
 
-    tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'),
-                os.path.join(here, 'input', 'grid.nc'))
-    tp._readgrid()
+    # Get projection object
+    proj = tracpy.tools.make_proj(setup='galveston', usebasemap=False)
+
+    # Read in grid
+    grid_filename = os.path.join(here, 'input', 'grid.nc')
+    currents_filename = os.path.join(here, 'input', 'ocean_his_0001.nc')
+    grid = tracpy.inout.readgrid(grid_filename, proj,
+                                 vert_filename=currents_filename)
+
+    tp = Tracpy(currents_filename, grid)
 
     assert True
 
     assert tp.grid
 
-    assert tp.grid['Vtransform'] # make sure vertical info is in there
+    # make sure there is a value for a vertical grid parameter
+    assert hasattr(grid, 'sc_r')
+
 
 def test_prepareForSimulation():
     '''
     Test initial steps to get ready for a simulation.
     '''
 
+    # Get projection object
+    proj = tracpy.tools.make_proj(setup='galveston', usebasemap=False)
+
+    # Read in grid
+    grid_filename = os.path.join(here, 'input', 'grid.nc')
+    currents_filename = os.path.join(here, 'input', 'ocean_his_0001.nc')
+    grid = tracpy.inout.readgrid(grid_filename, proj,
+                                 vert_filename=currents_filename)
+
+    tp = Tracpy(currents_filename, grid)
+
     date = datetime.datetime(2013, 12, 19, 0)
     lon0 = [-123., -123.]
     lat0 = [48.55, 48.75]
-    tp = Tracpy(os.path.join(here, 'input', 'ocean_his_0001.nc'), grid_filename=os.path.join(here, 'input', 'grid.nc'))
 
-    tinds, nc, t0save, xend, yend, zend, zp, ttend, flag = tp.prepare_for_model_run(date, lon0, lat0)
+    tinds, nc, t0save, xend, yend, zend, zp, ttend, flag \
+        = tp.prepare_for_model_run(date, lon0, lat0)
 
     assert True
 
     assert tp.uf is not None
 
-    assert np.sum(np.isnan(tp.uf[:,:,:,0])) == tp.uf[:,:,:,0].size
-
-def test_timestep():
-    '''
-    Test for moving between time indices and datetime.
-    FILL IN
-    '''
-
-    pass
+    assert np.sum(np.isnan(tp.uf[0, :, :, :])) == tp.uf[0, :, :, :].size
