@@ -66,8 +66,8 @@ def test_run_2d_ll():
     doturb = 0
 
     # two particles (starting positions)
-    lon0 = [[-123.]]
-    lat0 = [[48.55]]
+    lon0 = [-123., -123.]
+    lat0 = [48.55, 48.75]
 
     do3d = 0  # flag to set to 2-d
 
@@ -77,7 +77,7 @@ def test_run_2d_ll():
     usespherical = True
 
     # Get projection object
-    proj = tracpy.tools.make_proj(setup='nwgom', usebasemap=True)
+    proj = tracpy.tools.make_proj(setup='galveston', usebasemap=False)
 
     # Read in grid
     grid = tracpy.inout.readgrid(grid_filename, proj,

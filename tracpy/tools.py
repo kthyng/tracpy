@@ -101,21 +101,21 @@ def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
 
     elif itype == 'm_ij2xy':
         # .5's are to shift from u/v grid to rho grid for interpolator
-        xi = ndimage.map_coordinates(grid.x_rho, np.array([x.flatten()+.5,
+        xi = ndimage.map_coordinates(grid.x_rho.T, np.array([x.flatten()+.5,
                                                            y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(x.shape)
-        yi = ndimage.map_coordinates(grid.y_rho, np.array([x.flatten()+.5,
+        yi = ndimage.map_coordinates(grid.y_rho.T, np.array([x.flatten()+.5,
                                                            y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(y.shape)
 
     elif itype == 'm_ij2ll':
-        xi = ndimage.map_coordinates(grid.lon_rho, np.array([x.flatten()+.5,
+        xi = ndimage.map_coordinates(grid.lon_rho.T, np.array([x.flatten()+.5,
                                                              y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(x.shape)
-        yi = ndimage.map_coordinates(grid.lat_rho, np.array([x.flatten()+.5,
+        yi = ndimage.map_coordinates(grid.lat_rho.T, np.array([x.flatten()+.5,
                                                              y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(y.shape)
