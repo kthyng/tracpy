@@ -379,7 +379,6 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     pts = np.column_stack((grid.x_rho.flatten(), grid.y_rho.flatten()))
     tess = Delaunay(pts)
     grid.trir = mtri.Triangulation(grid.x_rho.flatten(),grid.y_rho.flatten(),tess.simplices.copy())
-    import pdb; pdb.set_trace()
 
     pts = np.column_stack((grid.lon_rho.flatten(), grid.lat_rho.flatten()))
     tess = Delaunay(pts)
