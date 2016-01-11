@@ -102,21 +102,21 @@ def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
     elif itype == 'm_ij2xy':
         # .5's are to shift from u/v grid to rho grid for interpolator
         xi = ndimage.map_coordinates(grid.x_rho.T, np.array([x.flatten()+.5,
-                                                           y.flatten()+.5]),
+                                                             y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(x.shape)
         yi = ndimage.map_coordinates(grid.y_rho.T, np.array([x.flatten()+.5,
-                                                           y.flatten()+.5]),
+                                                             y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(y.shape)
 
     elif itype == 'm_ij2ll':
         xi = ndimage.map_coordinates(grid.lon_rho.T, np.array([x.flatten()+.5,
-                                                             y.flatten()+.5]),
+                                                               y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(x.shape)
         yi = ndimage.map_coordinates(grid.lat_rho.T, np.array([x.flatten()+.5,
-                                                             y.flatten()+.5]),
+                                                               y.flatten()+.5]),
                                      order=order, mode=mode,
                                      cval=cval).reshape(y.shape)
 
@@ -390,6 +390,7 @@ def make_proj(setup='nwgom', usebasemap=True, **kwargs):
 
             'nwgom' - for NW Gulf of Mexico, for use with basemap
             'galveston' - for Galveston Bay, for use with pyproj
+            'nwgom-pyproj' - for NW Gulf of Mexico, for use without basemap
 
         usebasemap (bool): True is use basemap for your projection, with
             specific keyword arguments. False is to use pyproj for your
@@ -423,10 +424,22 @@ def make_proj(setup='nwgom', usebasemap=True, **kwargs):
                   'urcrnrlon': -87.5, 'urcrnrlat': 31.0, 'lat_0': 30,
                   'lon_0': -94, 'resolution': 'i', 'area_thresh': 0.}
 
+        usebasemap = True
+
     elif setup == 'galveston':
 
         inputs = {'proj': 'utm', 'zone': 15, 'ellps': 'clrk66',
                   'datum': 'NAD27'}
+
+        usebasemap = False
+
+    elif setup == 'nwgom-pyproj':
+
+        inputs = {'proj': 'lcc', 'ellps': 'clrk66', 'datum': 'NAD27',
+                  'lat_1': 22.5, 'lat_2': 31.0, 'lat_0': 30, 'lon_0': -94,
+                  'x_0': 0, 'y_0': 0}
+
+        usebasemap = False
 
     else:
 

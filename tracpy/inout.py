@@ -180,14 +180,14 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     # except KeyError:
     #     usespherical = False
 
-    # Basemap parameters.
-    if usespherical:
+    # # Basemap parameters.
+    # if usespherical:
 
-        if keeptime:
-            basemaptime = time.time()
-            print "basemap time ", basemaptime - starttime
-    else:
-        proj = []
+    #     if keeptime:
+    #         basemaptime = time.time()
+    #         print "basemap time ", basemaptime - starttime
+    # else:
+    #     proj = []
 
     if usespherical:
         # lonu = gridfile.variables['lon_u'][:]
@@ -216,7 +216,7 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
         # # assign to spherical arrays
         # lonu, latu = xu, yu
         # lonv, latv = xv, yv
-        lon_rho, lat_rho = x_rho, y_rho
+        # lon_rho, lat_rho = x_rho, y_rho
         # lonpsi, latpsi = xpsi, ypsi
 
     # get vertex locations
@@ -226,23 +226,49 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
                                              gridfile.variables['pm'][:],
                                              gridfile.variables['pn'][:],
                                              angle)
-
     lon_vert, lat_vert = proj(x_vert, y_vert, inverse=True)
 
     # Try octant grid
     if usespherical:
         grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
     else:
-        grid = octant.grid.CGrid(lon_vert, lat_vert, proj)
+        # grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
+        grid = octant.grid.CGrid(x_vert, y_vert)
+        # Add into grid spherical coord variables so they are avaiable as
+        # expected for the code but set them equal to the projected coords.
+        # Make this better in the future.
+        grid.lon_rho = grid.x_rho
+        grid.lat_rho = grid.y_rho
+        grid.lon_psi = grid.x_psi
+        grid.lat_psi = grid.y_psi
+        grid.lon_u = grid.x_u
+        grid.lat_u = grid.y_u
+        grid.lon_v = grid.x_v
+        grid.lat_v = grid.y_v
 
     # vertical grid info
-    if vert_filename is not None:
-        nc = netCDF.Dataset(vert_filename)
-        grid.vertical(nc)
-    elif 's_w' in gridfile.variables:  # test for presence of vertical info
-        grid.vertical(gridfile)
-    elif vert_filename is None:
-        pass  # don't use vertical grid info
+    if (vert_filename is not None) or ('s_w' in gridfile.variables):
+        if 's_w' in gridfile.variables:  # test for presence of vertical info
+            nc = gridfile
+        else:
+            nc = netCDF.Dataset(vert_filename)
+
+        if 's_w' in nc.variables:
+            grid.sc_r = nc.variables['s_w'][:]  # sigma coords, 31 layers
+        else:
+            grid.c_r = nc.variables['sc_w'][:]  # sigma coords, 31 layers
+        # stretching curve in sigma coords, 31 layers
+        grid.Cs_r = nc.variables['Cs_w'][:]
+        grid.hc = nc.variables['hc'][:]
+        grid.theta_s = nc.variables['theta_s'][:]
+        grid.theta_b = nc.variables['theta_b'][:]
+        if 'Vtransform' in nc.variables:
+            grid.Vtransform = nc.variables['Vtransform'][:]
+            grid.Vstretching = nc.variables['Vstretching'][:]
+        else:
+            grid.Vtransform = 1
+            grid.Vstretching = 1
+
 
     # # Create mask of all active cells if there isn't one already
     # try:
@@ -341,21 +367,19 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     # This is for rho
     # X goes from 0 to imt-1 and Y goes from 0 to jmt-1
     # grid in index coordinates, without ghost cells
-    grid.X, grid.Y = np.meshgrid(np.arange(grid.jmt), np.arange(grid.imt))
+    grid.X, grid.Y = np.meshgrid(np.arange(grid.imt), np.arange(grid.jmt))
     # Triangulation for grid space to curvilinear space
     pts = np.column_stack((grid.X.flatten(), grid.Y.flatten()))
     tess = Delaunay(pts)
     grid.tri = mtri.Triangulation(grid.X.flatten(), grid.Y.flatten(),
                                   tess.simplices.copy())
-
     # Triangulation for curvilinear space to grid space
     # Have to use SciPy's Triangulation to be more robust.
     # http://matveichev.blogspot.com/2014/02/matplotlibs-tricontour-interesting.html
     pts = np.column_stack((grid.x_rho.flatten(), grid.y_rho.flatten()))
     tess = Delaunay(pts)
-    grid.trir = mtri.Triangulation(grid.x_rho.flatten(),
-                                   grid.y_rho.flatten(),
-                                   tess.simplices.copy())
+    grid.trir = mtri.Triangulation(grid.x_rho.flatten(),grid.y_rho.flatten(),tess.simplices.copy())
+    import pdb; pdb.set_trace()
 
     pts = np.column_stack((grid.lon_rho.flatten(), grid.lat_rho.flatten()))
     tess = Delaunay(pts)

@@ -264,11 +264,11 @@ class Tracpy(object):
 
         # Now that we have the grid, initialize the info for the two
         # bounding model steps using the grid size
-        self.uf = np.asfortranarray(np.ones((2, lk-1, ly, lx-1)))*np.nan
-        self.vf = np.asfortranarray(np.ones((2, lk-1, ly-1, lx)))*np.nan
-        self.dzt = np.asfortranarray(np.ones((2, lk-1, ly, lx)))*np.nan
-        self.zrt = np.asfortranarray(np.ones((2, lk-1, ly, lx)))*np.nan
-        self.zwt = np.asfortranarray(np.ones((2, lk, ly, lx)))*np.nan
+        self.uf = np.ones((2, lk-1, ly, lx-1))*np.nan
+        self.vf = np.ones((2, lk-1, ly-1, lx))*np.nan
+        self.dzt = np.ones((2, lk-1, ly, lx))*np.nan
+        self.zrt = np.ones((2, lk-1, ly, lx))*np.nan
+        self.zwt = np.ones((2, lk, ly, lx))*np.nan
         if is_string_like(self.z0):  # isoslice case
             self.uf[1, :, :, :], self.vf[1, :, :, :], \
                 self.dzt[1, :, :, :], self.zrt[1, :, :, :], \

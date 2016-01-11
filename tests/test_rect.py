@@ -8,7 +8,6 @@ import tracpy
 import tracpy.calcs
 from tracpy.tracpy_class import Tracpy
 import os
-import time
 import datetime
 import numpy as np
 import pyproj
@@ -130,12 +129,6 @@ def test_run_2d_xy():
 
     name = 'test_run_2d_xy'
 
-    start = time.time()
-
-    # grd = tracpy.inout.readgrid(grid_filename, vert_filename=currents_filename)
-
-    print "building grid took:", time.time() - start
-
     # Start date in date time formatting
     date = datetime.datetime(2013, 12, 19, 0)
 
@@ -178,7 +171,7 @@ def test_run_2d_xy():
     usespherical = False
 
     # Get projection object
-    proj = tracpy.tools.make_proj(setup='galveston', usebasemap=False)
+    proj = tracpy.tools.make_proj(setup='nwgom-pyproj', usebasemap=False)
 
     # Read in grid
     grid = tracpy.inout.readgrid(grid_filename, proj,
