@@ -171,7 +171,7 @@ def test_run_2d_xy():
     usespherical = False
 
     # Get projection object
-    proj = tracpy.tools.make_proj(setup='nwgom-pyproj', usebasemap=False)
+    proj = tracpy.tools.make_proj(setup='galveston')
 
     # Read in grid
     grid = tracpy.inout.readgrid(grid_filename, proj,
@@ -188,9 +188,9 @@ def test_run_2d_xy():
     xp, yp, zp, t, T0, U, V = tracpy.run.run(tp, date, x0, y0)
 
     ## check the results:
-    print xp.shape
+    # print xp.shape
     print xp
-    print yp
+    # print yp
 
     #eastward current, latitude should not change:
     assert np.allclose(y0, yp.T)

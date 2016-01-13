@@ -23,6 +23,7 @@ import op
 import os
 import tracpy
 from matplotlib.mlab import find
+from matplotlib.tri import TriAnalyzer
 
 
 def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
@@ -169,26 +170,6 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     # netCDF._set_default_format(format='NETCDF3_64BIT')
     gridfile = netCDF.Dataset(grid_filename)
 
-    # # Read in whether grid is spherical or not
-    # try:
-    #     usesphericaltemp = gridfile.variables['spherical'][:]
-    #     if usesphericaltemp == 'T':
-    #         usespherical = True
-    #     else:
-    #         usespherical = False
-    # # Assume not lon/lat if spherical flag is not in grid file
-    # except KeyError:
-    #     usespherical = False
-
-    # # Basemap parameters.
-    # if usespherical:
-
-    #     if keeptime:
-    #         basemaptime = time.time()
-    #         print "basemap time ", basemaptime - starttime
-    # else:
-    #     proj = []
-
     if usespherical:
         # lonu = gridfile.variables['lon_u'][:]
         # latu = gridfile.variables['lat_u'][:]
@@ -199,9 +180,9 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
         lon_rho = gridfile.variables['lon_rho'][:]
         lat_rho = gridfile.variables['lat_rho'][:]
         x_rho, y_rho = proj(lon_rho, lat_rho)
-        # lonpsi = gridfile.variables['lon_psi'][:]
-        # latpsi = gridfile.variables['lat_psi'][:]
-        # xpsi, ypsi = proj(lonpsi, latpsi)
+        # lon_psi = gridfile.variables['lon_psi'][:]
+        # lat_psi = gridfile.variables['lat_psi'][:]
+        # x_psi, y_psi = proj(lon_psi, lat_psi)
     else:
         # read cartesian data
         # xu = gridfile.variables['x_u'][:]
@@ -210,8 +191,8 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
         # yv = gridfile.variables['y_v'][:]
         x_rho = gridfile.variables['x_rho'][:]
         y_rho = gridfile.variables['y_rho'][:]
-        # xpsi = gridfile.variables['x_psi'][:]
-        # ypsi = gridfile.variables['y_psi'][:]
+        # x_psi = gridfile.variables['x_psi'][:]
+        # y_psi = gridfile.variables['y_psi'][:]
 
         # # assign to spherical arrays
         # lonu, latu = xu, yu
@@ -226,10 +207,10 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
                                              gridfile.variables['pm'][:],
                                              gridfile.variables['pn'][:],
                                              angle)
-    lon_vert, lat_vert = proj(x_vert, y_vert, inverse=True)
 
     # Try octant grid
     if usespherical:
+        lon_vert, lat_vert = proj(x_vert, y_vert, inverse=True)
         grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
     else:
         # grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
@@ -269,16 +250,6 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
             grid.Vtransform = 1
             grid.Vstretching = 1
 
-
-    # # Create mask of all active cells if there isn't one already
-    # try:
-    #     mask = gridfile.variables['mask_rho'][:]
-    # except KeyError:
-    #     mask = np.ones_like(xr)
-
-    # pm = gridfile.variables['pm'][:]
-    # pn = gridfile.variables['pn'][:]
-    # h = gridfile.variables['h'][:]
     if keeptime:
         hgridtime = time.time()
         print "horizontal grid time ", hgridtime - basemaptime
@@ -378,13 +349,29 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     # http://matveichev.blogspot.com/2014/02/matplotlibs-tricontour-interesting.html
     pts = np.column_stack((grid.x_rho.flatten(), grid.y_rho.flatten()))
     tess = Delaunay(pts)
-    grid.trir = mtri.Triangulation(grid.x_rho.flatten(),grid.y_rho.flatten(),tess.simplices.copy())
+    grid.trir = mtri.Triangulation(grid.x_rho.flatten(),
+                                   grid.y_rho.flatten(),
+                                   tess.simplices.copy())
+    # For the two triangulations that are not integer based, need to
+    # preprocess the mask to get rid of potential flat triangles at the
+    # boundaries
+    # http://matplotlib.org/1.3.1/api/tri_api.html#matplotlib.tri.TriAnalyzer
+    # Hopefully these will work for other cases too: for the xy spherical
+    # unit test cases, I needed these both for the triangulation to be valid.
+    mask = TriAnalyzer(grid.trir).get_flat_tri_mask(0.01, rescale=True)
+    grid.trir.set_mask(mask)
+    mask = TriAnalyzer(grid.trir).get_flat_tri_mask(0.01, rescale=False)
+    grid.trir.set_mask(mask)
 
     pts = np.column_stack((grid.lon_rho.flatten(), grid.lat_rho.flatten()))
     tess = Delaunay(pts)
     grid.trirllrho = mtri.Triangulation(grid.lon_rho.flatten(),
                                         grid.lat_rho.flatten(),
                                         tess.simplices.copy())
+    mask = TriAnalyzer(grid.trirllrho).get_flat_tri_mask(0.01, rescale=True)
+    grid.trirllrho.set_mask(mask)
+    mask = TriAnalyzer(grid.trirllrho).get_flat_tri_mask(0.01, rescale=False)
+    grid.trirllrho.set_mask(mask)
 
     if keeptime:
         delaunaytime = time.time()
