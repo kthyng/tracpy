@@ -171,50 +171,77 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     gridfile = netCDF.Dataset(grid_filename)
 
     if usespherical:
-        # lonu = gridfile.variables['lon_u'][:]
-        # latu = gridfile.variables['lat_u'][:]
-        # xu, yu = proj(lonu, latu)
-        # lonv = gridfile.variables['lon_v'][:]
-        # latv = gridfile.variables['lat_v'][:]
-        # xv, yv = proj(lonv, latv)
-        lon_rho = gridfile.variables['lon_rho'][:]
-        lat_rho = gridfile.variables['lat_rho'][:]
-        x_rho, y_rho = proj(lon_rho, lat_rho)
-        # lon_psi = gridfile.variables['lon_psi'][:]
-        # lat_psi = gridfile.variables['lat_psi'][:]
-        # x_psi, y_psi = proj(lon_psi, lat_psi)
-    else:
-        # read cartesian data
-        # xu = gridfile.variables['x_u'][:]
-        # yu = gridfile.variables['y_u'][:]
-        # xv = gridfile.variables['x_v'][:]
-        # yv = gridfile.variables['y_v'][:]
-        x_rho = gridfile.variables['x_rho'][:]
-        y_rho = gridfile.variables['y_rho'][:]
-        # x_psi = gridfile.variables['x_psi'][:]
-        # y_psi = gridfile.variables['y_psi'][:]
+        try:
+            lon_vert = gridfile.variables['lon_vert'][:]
+            lat_vert = gridfile.variables['lat_vert'][:]
+        except:
+            lon_rho = gridfile.variables['lon_rho'][:]
+            lat_rho = gridfile.variables['lat_rho'][:]
+            x_rho, y_rho = proj(lon_rho, lat_rho)
 
-        # # assign to spherical arrays
-        # lonu, latu = xu, yu
-        # lonv, latv = xv, yv
-        # lon_rho, lat_rho = x_rho, y_rho
-        # lonpsi, latpsi = xpsi, ypsi
+            # get vertex locations
+            try:
+                angle = gridfile.variables['angle'][:]
+            except:
+                angle = np.zeros(x_rho.shape)
+            x_vert, y_vert = octant.grid.rho_to_vert(x_rho, y_rho,
+                                                     gridfile.variables['pm'][:],
+                                                     gridfile.variables['pn'][:],
+                                                     angle)
+            lon_vert, lat_vert = proj(x_vert, y_vert, inverse=True)
 
-    # get vertex locations
-    if 'angle' not in gridfile.variables:
-        angle = np.zeros(x_rho.shape)
-    x_vert, y_vert = octant.grid.rho_to_vert(x_rho, y_rho,
-                                             gridfile.variables['pm'][:],
-                                             gridfile.variables['pn'][:],
-                                             angle)
+        try:
+            mask_rho = gridfile.variables['mask'][:]
+        except:
+            mask_rho = gridfile.variables['mask_rho'][:]
 
-    # Try octant grid
-    if usespherical:
-        lon_vert, lat_vert = proj(x_vert, y_vert, inverse=True)
+        # # Need to apply a mask to verts for it to go through grid
+        # # make up vert mask to send to octant
+        # # Assume rho mask is same as vert mask and extend on one side
+        # # this could be incorrect for some cases
+        # mask_vert = np.empty((mask_rho.shape[0]+1, mask_rho.shape[1]+1))
+        # mask_vert[:-1, :-1] = mask_rho.copy()
+        # mask_vert[-1, :-1] = mask_rho[-1, :].copy()
+        # mask_vert[:-1, -1] = mask_rho[:, -1].copy()
+        # mask_vert[-1, -1] = mask_rho[-1, -1]  # corner
+        # lon_vert = np.ma.masked_where(mask_vert == 0, lon_vert)
+        # lat_vert = np.ma.masked_where(mask_vert == 0, lat_vert)
+
         grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
-    else:
-        # grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
+        grid.mask_rho = mask_rho
+    else:  # read cartesian data
+        try:
+            x_vert = gridfile.variables['x_vert'][:]
+            y_vert = gridfile.variables['y_vert'][:]
+        except:
+            x_rho = gridfile.variables['x_rho'][:]
+            y_rho = gridfile.variables['y_rho'][:]
+
+            # get vertex locations
+            try:
+                angle = gridfile.variables['angle'][:]
+            except:
+                angle = np.zeros(x_rho.shape)
+            x_vert, y_vert = octant.grid.rho_to_vert(x_rho, y_rho,
+                                                     gridfile.variables['pm'][:],
+                                                     gridfile.variables['pn'][:],
+                                                     angle)
+
+        # # Need to apply a mask to verts for it to go through grid
+        # # make up vert mask to send to octant
+        # # Assume rho mask is same as vert mask and extend on one side
+        # # this could be incorrect for some cases
+        # mask_vert = np.empty((mask_rho.shape[0]+1, mask_rho.shape[1]+1))
+        # mask_vert[:-1, :-1] = mask_rho.copy()
+        # mask_vert[-1, :-1] = mask_rho[-1, :].copy()
+        # mask_vert[:-1, -1] = mask_rho[:, -1].copy()
+        # mask_vert[-1, -1] = mask_rho[-1, -1]  # corner
+        # x_vert = np.ma.masked_where(mask_vert == 0, x_vert)
+        # y_vert = np.ma.masked_where(mask_vert == 0, y_vert)
+
         grid = octant.grid.CGrid(x_vert, y_vert)
+        grid.mask_rho = mask_rho
+
         # Add into grid spherical coord variables so they are avaiable as
         # expected for the code but set them equal to the projected coords.
         # Make this better in the future.
