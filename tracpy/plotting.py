@@ -18,7 +18,7 @@ import tools
 def background(grid=None, ax=None, pars=np.arange(18, 35),
                mers=np.arange(-100, -80),
                hlevs=np.hstack(([10, 20], np.arange(50, 500, 50))),
-               col='lightgrey', fig=None, outline=[1, 1, 0, 1],
+               col='lightgrey', halpha=1, fig=None, outline=[1, 1, 0, 1],
                merslabels=[0, 0, 0, 1], parslabels=[1, 0, 0, 0]):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
@@ -51,7 +51,7 @@ def background(grid=None, ax=None, pars=np.arange(18, 35),
     grid.proj.drawmeridians(mers, dashes=(1, 1),
                                linewidth=0.15, labels=merslabels, ax=ax)
     ax.contour(grid.x_rho, grid.y_rho, grid.h, hlevs, colors=col,
-               linewidths=0.5)
+               linewidths=0.5, alpha=halpha)
 
     # Outline numerical domain
     # if outline:  # backward compatibility
