@@ -227,20 +227,16 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
                                                      gridfile.variables['pn'][:],
                                                      angle)
 
-        # # Need to apply a mask to verts for it to go through grid
-        # # make up vert mask to send to octant
-        # # Assume rho mask is same as vert mask and extend on one side
-        # # this could be incorrect for some cases
-        # mask_vert = np.empty((mask_rho.shape[0]+1, mask_rho.shape[1]+1))
-        # mask_vert[:-1, :-1] = mask_rho.copy()
-        # mask_vert[-1, :-1] = mask_rho[-1, :].copy()
-        # mask_vert[:-1, -1] = mask_rho[:, -1].copy()
-        # mask_vert[-1, -1] = mask_rho[-1, -1]  # corner
-        # x_vert = np.ma.masked_where(mask_vert == 0, x_vert)
-        # y_vert = np.ma.masked_where(mask_vert == 0, y_vert)
-
         grid = octant.grid.CGrid(x_vert, y_vert)
-        grid.mask_rho = mask_rho
+
+        try:
+            mask_rho = gridfile.variables['mask'][:]
+            grid.mask_rho = mask_rho
+        # except KeyError as 'mask':
+        #     mask_rho = gridfile.variables['mask_rho'][:]
+        #     grid.mask_rho = mask_rho
+        except KeyError:
+            print('No mask.')
 
         # Add into grid spherical coord variables so they are avaiable as
         # expected for the code but set them equal to the projected coords.
