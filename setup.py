@@ -43,7 +43,7 @@ print tracmass_mod
 
 setup(
     name = "tracpy",
-    version = "0.01",
+    version = "1.0",
     author = "Kristen Thyng",
     author_email = "",
     description = ("python wrappers around TRACMASS"),

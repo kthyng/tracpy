@@ -7,7 +7,7 @@ Created on Tue Sep  4 13:42:38 2012
 Various operations
 """
 
-from numpy import *
+import numpy as np
 
 
 def resize(A, dim):
@@ -24,13 +24,13 @@ def resize(A, dim):
 
     # B is A but rolled such that the dimension that is to be resized is in
     # the 0 position
-    B = rollaxis(A, dim)
+    B = np.rollaxis(A, dim)
 
     # Do averaging
     B = 0.5*(B[0:-1]+B[1:])
 
     # Roll back to original
-    return rollaxis(B, 0, dim+1)
+    return np.rollaxis(B, 0, dim+1)
 
 
 def rotate(ucurv, vcurv, angle):
@@ -49,8 +49,8 @@ def rotate(ucurv, vcurv, angle):
         * v - true north v velocity
     """
 
-    u = ucurv*cos(angle)-vcurv*sin(angle)
-    v = ucurv*sin(angle)+vcurv*cos(angle)
+    u = ucurv*np.cos(angle) - vcurv*np.sin(angle)
+    v = ucurv*np.sin(angle) + vcurv*np.cos(angle)
     return u, v
 
 
@@ -68,9 +68,9 @@ def find_nearest_index(xr, yr, x0, y0):
         * ind - index of pt in vec
     """
 
-    d = sqrt((xr-x0)**2 + (yr-y0)**2)
+    d = np.sqrt((xr-x0)**2 + (yr-y0)**2)
 
     # index in flattened array of closest point/smallest distance
     ind = d.argmin()
-    J, I = unravel_index(ind, d.shape)  # index in 2d array
+    J, I = np.unravel_index(ind, d.shape)  # index in 2d array
     return J, I

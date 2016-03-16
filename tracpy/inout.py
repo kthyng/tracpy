@@ -18,12 +18,10 @@ from scipy.spatial import Delaunay
 import matplotlib.tri as mtri
 import octant
 import time
-from matplotlib.pyplot import *
 import op
 import os
 import tracpy
 from matplotlib.mlab import find
-from matplotlib.tri import TriAnalyzer
 
 
 def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
@@ -49,11 +47,6 @@ def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
         * nc - NetCDF object for relevant files
         * tinds - Indices of outputs to use from fname files
     """
-
-    # # This addresses an issue in netCDF4 that was then fixed, but
-    # # this line makes updating unnecessary. Issue described here:
-    # # http://code.google.com/p/netcdf4-python/issues/detail?id=170
-    # netCDF._set_default_format(format='NETCDF3_64BIT')
 
     # For thredds server where all information is available in one place
     # or for a single file
@@ -86,10 +79,6 @@ def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
         tinds = range(istart, istart-tout, -tstride)
 
     return nc, tinds
-
-
-# HAVE DIFFERENT GRID CLASS OPTIONS BETWEEN HERE AND OCTANT TO USE WITHIN
-# READGRID FUNCTION BUT LARGELY REPLACE TO BE MORE ACCURATE AND EASIER.
 
 
 def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
@@ -157,17 +146,8 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     ordering
     """
 
-    keeptime = 0  # do timing for readgrid
-    if keeptime:
-        starttime = time.time()
-
     # Read in grid parameters and find x and y in domain on different grids
     # use full dataset to get grid information
-    # This addresses an issue in netCDF4 that was then fixed, but
-    # this line makes updating unnecessary. Issue described here:
-    # http://code.google.com/p/netcdf4-python/issues/detail?id=170
-    # Newer netCDF is complaining about this line so let's try without it.
-    # netCDF._set_default_format(format='NETCDF3_64BIT')
     gridfile = netCDF.Dataset(grid_filename)
 
     if usespherical:
@@ -194,18 +174,6 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
             mask_rho = gridfile.variables['mask'][:]
         except:
             mask_rho = gridfile.variables['mask_rho'][:]
-
-        # # Need to apply a mask to verts for it to go through grid
-        # # make up vert mask to send to octant
-        # # Assume rho mask is same as vert mask and extend on one side
-        # # this could be incorrect for some cases
-        # mask_vert = np.empty((mask_rho.shape[0]+1, mask_rho.shape[1]+1))
-        # mask_vert[:-1, :-1] = mask_rho.copy()
-        # mask_vert[-1, :-1] = mask_rho[-1, :].copy()
-        # mask_vert[:-1, -1] = mask_rho[:, -1].copy()
-        # mask_vert[-1, -1] = mask_rho[-1, -1]  # corner
-        # lon_vert = np.ma.masked_where(mask_vert == 0, lon_vert)
-        # lat_vert = np.ma.masked_where(mask_vert == 0, lat_vert)
 
         grid = octant.grid.CGrid_geo(lon_vert, lat_vert, proj)
         grid.mask_rho = mask_rho
@@ -273,78 +241,6 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
             grid.Vtransform = 1
             grid.Vstretching = 1
 
-    if keeptime:
-        hgridtime = time.time()
-        print "horizontal grid time ", hgridtime - basemaptime
-
-    # Vertical grid metrics
-    # if this, then given grid file contains vertical grid info
-    # if 's_w' in gridfile.variables:
-    #     sc_r = gridfile.variables['s_w'][:]  # sigma coords, 31 layers
-    #     # stretching curve in sigma coords, 31 layers
-    #     Cs_r = gridfile.variables['Cs_w'][:]
-    #     hc = gridfile.variables['hc'][:]
-    #     theta_s = gridfile.variables['theta_s'][:]
-    #     theta_b = gridfile.variables['theta_b'][:]
-    #     if 'Vtransform' in gridfile.variables:
-    #         Vtransform = gridfile.variables['Vtransform'][:]
-    #         Vstretching = gridfile.variables['Vstretching'][:]
-    #     else:
-    #         Vtransform = 1
-    #         Vstretching = 1
-    # # Still want vertical grid metrics, but are in separate file
-    # elif vert_filename is not None:
-    #     nc = netCDF.Dataset(vert_filename)
-    #     if 's_w' in nc.variables:
-    #         sc_r = nc.variables['s_w'][:]  # sigma coords, 31 layers
-    #     else:
-    #         sc_r = nc.variables['sc_w'][:]  # sigma coords, 31 layers
-    #     # stretching curve in sigma coords, 31 layers
-    #     Cs_r = nc.variables['Cs_w'][:]
-    #     hc = nc.variables['hc'][:]
-    #     theta_s = nc.variables['theta_s'][:]
-    #     theta_b = nc.variables['theta_b'][:]
-    #     if 'Vtransform' in nc.variables:
-    #         Vtransform = nc.variables['Vtransform'][:]
-    #         Vstretching = nc.variables['Vstretching'][:]
-    #     else:
-    #         Vtransform = 1
-    #         Vstretching = 1
-
-    if keeptime:
-        vgridtime = time.time()
-        print "vertical grid time ", vgridtime - hgridtime
-
-    # # make arrays in same order as is expected in the fortran code
-    # # ROMS expects [time x k x j x i] but tracmass is expecting
-    # # [i x j x k x time]
-    # # change these arrays to be fortran-directioned instead of python
-    # # This is faster than copying arrays. To test: .flags['F_CONTIGUOUS']
-    # mask = np.asfortranarray(mask.T)
-    # xr = np.asfortranarray(xr.T)
-    # yr = np.asfortranarray(yr.T)
-    # xu = np.asfortranarray(xu.T)
-    # yu = np.asfortranarray(yu.T)
-    # xv = np.asfortranarray(xv.T)
-    # yv = np.asfortranarray(yv.T)
-    # xpsi = np.asfortranarray(xpsi.T)
-    # ypsi = np.asfortranarray(ypsi.T)
-    # lonr = np.asfortranarray(lonr.T)
-    # latr = np.asfortranarray(latr.T)
-    # lonu = np.asfortranarray(lonu.T)
-    # latu = np.asfortranarray(latu.T)
-    # lonv = np.asfortranarray(lonv.T)
-    # latv = np.asfortranarray(latv.T)
-    # lonpsi = np.asfortranarray(lonpsi.T)
-    # latpsi = np.asfortranarray(latpsi.T)
-    # pm = np.asfortranarray(pm.T)
-    # pn = np.asfortranarray(pn.T)
-    # h = np.asfortranarray(h.T)
-
-    # if keeptime:
-    #     fortranflippingtime = time.time()
-    #     print "fortran flipping time ", fortranflippingtime - vgridtime
-
     # Basing this on setupgrid.f95 for rutgersNWA example project from Bror
     grid.h = gridfile.variables['h'][:]
     # Grid sizes
@@ -352,10 +248,6 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     grid.jmt = grid.h.shape[0]  # 671
     if hasattr(grid, 'sc_r'):
         grid.km = grid.sc_r.shape[0]-1  # 30 NOT SURE ON THIS ONE YET
-
-    if keeptime:
-        gridsizetime = time.time()
-        print "grid size time ", gridsizetime - fortranflippingtime
 
     # Index grid, for interpolation between real and grid space
     # This is for rho
@@ -381,9 +273,9 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     # http://matplotlib.org/1.3.1/api/tri_api.html#matplotlib.tri.TriAnalyzer
     # Hopefully these will work for other cases too: for the xy spherical
     # unit test cases, I needed these both for the triangulation to be valid.
-    mask = TriAnalyzer(grid.trir).get_flat_tri_mask(0.01, rescale=True)
+    mask = mtri.TriAnalyzer(grid.trir).get_flat_tri_mask(0.01, rescale=True)
     grid.trir.set_mask(mask)
-    mask = TriAnalyzer(grid.trir).get_flat_tri_mask(0.01, rescale=False)
+    mask = mtri.TriAnalyzer(grid.trir).get_flat_tri_mask(0.01, rescale=False)
     grid.trir.set_mask(mask)
 
     pts = np.column_stack((grid.lon_rho.flatten(), grid.lat_rho.flatten()))
@@ -391,14 +283,10 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     grid.trirllrho = mtri.Triangulation(grid.lon_rho.flatten(),
                                         grid.lat_rho.flatten(),
                                         tess.simplices.copy())
-    mask = TriAnalyzer(grid.trirllrho).get_flat_tri_mask(0.01, rescale=True)
+    mask = mtri.TriAnalyzer(grid.trirllrho).get_flat_tri_mask(0.01, rescale=True)
     grid.trirllrho.set_mask(mask)
-    mask = TriAnalyzer(grid.trirllrho).get_flat_tri_mask(0.01, rescale=False)
+    mask = mtri.TriAnalyzer(grid.trirllrho).get_flat_tri_mask(0.01, rescale=False)
     grid.trirllrho.set_mask(mask)
-
-    if keeptime:
-        delaunaytime = time.time()
-        print "delaunay time ", delaunaytime - gridsizetime
 
     # tracmass ordering.
     # Not sure how to convert this to pm, pn with appropriate shift
@@ -412,10 +300,6 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     # rutgersNWA example and I am not sure why. [i,j]
     grid.dxv = 0.5*(grid.dxv[:-1, :] + grid.dxv[1:, :])
     grid.dyu = 0.5*(grid.dyu[:, :-1] + grid.dyu[:, 1:])
-
-    if keeptime:
-        gridmetricstime = time.time()
-        print "grid metrics time ", gridmetricstime - delaunaytime
 
     # Adjust masking according to setupgrid.f95 for rutgersNWA example
     # project from Bror
@@ -442,21 +326,10 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
                                            grid.km, grid.theta_s,
                                            grid.theta_b, grid.h, grid.hc,
                                            zeta=0, Hscale=3)
-        # # Change dzt to tracmass/fortran ordering
-        # zwt0 = zwt0.T.copy(order='f')
-        # zrt0 = zrt0.T.copy(order='f')
+
         # this should be the base grid layer thickness that doesn't change in
         # time because it is for the reference vertical level
         grid.dzt0 = grid.zwt0[1:, :, :] - grid.zwt0[:-1, :, :]
-
-    if keeptime:
-        calculatingdepthstime = time.time()
-        print "calculating depths time ", calculatingdepthstime - \
-            gridmetricstime
-
-    # if keeptime:
-    #     griddicttime = time.time()
-    #     print "saving grid dict time ", griddicttime - calculatingdepthstime
 
     gridfile.close()
 
@@ -549,7 +422,6 @@ def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
         else:
             sshread = False
 
-    # h = grid['h'].T.copy(order='c')
     # Use octant to calculate depths for the appropriate vertical grid
     # parameters have to transform a few back to ROMS coordinates and python
     # ordering for this
@@ -582,10 +454,6 @@ def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
     dzu = .5*(dzt[:, :, 0:grid.imt-1] + dzt[:, :, 1:grid.imt])
     dzv = .5*(dzt[:, 0:grid.jmt-1, :] + dzt[:, 1:grid.jmt, :])
 
-    # # Change order back to ROMS/python for this calculation
-    # dyu = grid.dyu.T.copy(order='c')
-    # dxv = grid.dxv.T.copy(order='c')
-
     # I think I can avoid this loop for the isoslice case
     if z0 is None:  # 3d case
         uflux1 = u*dzu*grid.dyu
@@ -610,20 +478,8 @@ def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
         dzt = octant.tools.isoslice(dzt, zrt, zpar)
         zrt = np.ones(uflux1.shape)*zpar  # array of the input desired depth
 
-    # # Change all back to tracmass/fortran ordering if being used again
-    # # This is faster than copying arrays
-    # # Don't bother changing order of these arrays since I have to change it
-    # # in run.py anyway (concatenate appears not to preserve ordering)
-    # uflux1 = uflux1.T
-    # vflux1 = vflux1.T
-    # dzt = np.asfortranarray(dzt.T)
-    # zrt = np.asfortranarray(zrt.T)
-    # if sshread:
-    #     ssh = np.asfortranarray(ssh.T)
-    # zwt = np.asfortranarray(zwt.T)
-
     # make sure that all fluxes have a placeholder for depth
-    if is_string_like(z0):
+    if isinstance(z0, str):
         uflux1 = uflux1.reshape(np.append(1, uflux1.shape))
         vflux1 = vflux1.reshape(np.append(1, vflux1.shape))
         dzt = dzt.reshape(np.append(1, dzt.shape))

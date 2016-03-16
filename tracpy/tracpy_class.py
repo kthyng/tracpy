@@ -6,7 +6,6 @@ TracPy class
 
 import tracpy
 import numpy as np
-from matplotlib.pyplot import is_string_like
 import tracmass
 from matplotlib.mlab import find
 
@@ -269,7 +268,7 @@ class Tracpy(object):
         self.dzt = np.ones((2, lk-1, ly, lx))*np.nan
         self.zrt = np.ones((2, lk-1, ly, lx))*np.nan
         self.zwt = np.ones((2, lk, ly, lx))*np.nan
-        if is_string_like(self.z0):  # isoslice case
+        if isinstance(self.z0, str):  # isoslice case
             self.uf[1, :, :, :], self.vf[1, :, :, :], \
                 self.dzt[1, :, :, :], self.zrt[1, :, :, :], \
                 self.zwt[1, :, :, :] = \
@@ -287,7 +286,7 @@ class Tracpy(object):
         # which goes from 0 to km since the vertical velocities are defined
         # at the vertical cell edges. A drifter's grid cell is vertically
         # bounded above by the kth level and below by the (k-1)th level
-        if is_string_like(self.z0):  # then doing a 2d isoslice
+        if isinstance(self.z0, str):  # then doing a 2d isoslice
             # there is only one vertical grid cell, but with two vertically-
             # bounding edges, 0 and 1, so the initial ka value is 1 for all
             # isoslice drifters.
@@ -379,7 +378,7 @@ class Tracpy(object):
         self.zwt[0, :, :, :] = self.zwt[1, :, :, :].copy()
 
         # Read stuff in for next time loop
-        if is_string_like(self.z0):  # isoslice case
+        if isinstance(self.z0, str):  # isoslice case
             self.uf[1, :, :, :], self.vf[1, :, :, :], self.dzt[1, :, :, :], \
                 self.zrt[1, :, :, :], self.zwt[1, :, :, :] = \
                 tracpy.inout.readfields(tind, self.grid, nc, self.z0,

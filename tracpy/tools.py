@@ -12,10 +12,10 @@ Functions include:
 """
 
 import numpy as np
-from matplotlib.mlab import *
 from scipy import ndimage
 import time
 import matplotlib.tri as mtri
+from matplotlib.mlab import Path, find
 
 
 def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
@@ -321,7 +321,7 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
                     z0[jd] = np.nan
 
     # Also nan out points that are masked
-    fmask = grid.trirllrho.nn_interpolator(grid.mask.flatten())
+    fmask = mtri.LinearTriInterpolator(grid.trirllrho, grid.mask.flatten())
     mask0 = fmask(lon0, lat0)  # mask for lon0/lat0 points
     ind1 = (mask0 == 1.)  # indices select out where points are masked
 

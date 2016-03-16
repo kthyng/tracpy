@@ -2,12 +2,12 @@
 Plotting routines for tracking.
 """
 
-import matplotlib as mpl
-# set matplotlib to use the backend that does not require a windowing system
-mpl.use("Agg")
+# import matplotlib as mpl
+# # set matplotlib to use the backend that does not require a windowing system
+# mpl.use("Agg")
 import numpy as np
-from matplotlib.mlab import *
-from matplotlib.pyplot import *
+# from matplotlib.mlab import *
+import matplotlib.pyplot as plt
 import inout
 import os
 import matplotlib.ticker as ticker
@@ -38,17 +38,17 @@ def background(grid=None, ax=None, pars=np.arange(18, 35),
         grid = inout.readgrid(loc)
 
     if fig is None:
-        fig = gcf()
+        fig = plt.gcf()
 
     if ax is None:
-        ax = gca()
+        ax = plt.gca()
 
     # Do plot
-    grid.basemap.drawcoastlines(ax=ax)
-    grid.basemap.fillcontinents('0.8', ax=ax)
-    grid.basemap.drawparallels(pars, dashes=(1, 1),
+    grid.proj.drawcoastlines(ax=ax)
+    grid.proj.fillcontinents('0.8', ax=ax)
+    grid.proj.drawparallels(pars, dashes=(1, 1),
                                linewidth=0.15, labels=parslabels, ax=ax)
-    grid.basemap.drawmeridians(mers, dashes=(1, 1),
+    grid.proj.drawmeridians(mers, dashes=(1, 1),
                                linewidth=0.15, labels=merslabels, ax=ax)
     ax.contour(grid.x_rho, grid.y_rho, grid.h, hlevs, colors=col,
                linewidths=0.5)
@@ -102,7 +102,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
 
     if isll:  # if inputs are in lon/lat, change to projected x/y
         # Change positions from lon/lat to x/y
-        xp, yp = grid.basemap(lonp, latp)
+        xp, yp = grid.proj(lonp, latp)
         # Need to retain nan's since basemap changes them to values
         ind = np.isnan(lonp)
         xp[ind] = np.nan
@@ -112,7 +112,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         yp = latp
 
     if fig is None:
-        fig = figure(figsize=(11, 10))
+        fig = plt.figure(figsize=(11, 10))
     else:
         fig = fig
     background(grid)  # Plot coastline and such
@@ -120,7 +120,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
     if tind == 'final':
         # Find final positions of drifters
         xpc, ypc = tools.find_final(xp, yp)
-    elif is_numlike(tind):
+    elif isinstance(tind, int):
         xpc = xp[:, tind]
         ypc = yp[:, tind]
     else:  # just plot what is input if some other string
@@ -145,15 +145,15 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         # locator.create_dummy_axis()
         # locator.set_bounds(0,1)#d.min(),d.max())
         # levs = locator()
-        con = contourf(XE, YE, d.T, N)  # ,levels=levs)#(0,15,30,45,60,75,90,105,120))
+        con = fig.contourf(XE, YE, d.T, N)  # ,levels=levs)#(0,15,30,45,60,75,90,105,120))
         con.set_cmap('YlOrRd')
 
         if Title is not None:
-            set_title(Title)
+            plt.set_title(Title)
 
         # Horizontal colorbar below plot
         cax = fig.add_axes([0.3725, 0.25, 0.48, 0.02])  # colorbar axes
-        cb = colorbar(con, cax=cax, orientation='horizontal')
+        cb = fig.colorbar(con, cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
         # Save figure into a local directory called figures. Make directory
@@ -161,7 +161,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         if not os.path.exists('figures'):
             os.makedirs('figures')
 
-        savefig('figures/' + fname + 'histcon.png', bbox_inches='tight')
+        fig.savefig('figures/' + fname + 'histcon.png', bbox_inches='tight')
 
     elif which == 'pcolor':
 
@@ -182,20 +182,20 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
             # or, provide some other weighting
             C = (H.T/C)*100
 
-        p = pcolor(xedges, yedges, C, cmap='YlOrRd')
+        p = plt.pcolor(xedges, yedges, C, cmap='YlOrRd')
 
         if Title is not None:
-            set_title(Title)
+            plt.set_title(Title)
 
         # Set x and y limits
         if xlims is not None:
-            xlim(xlims)
+            plt.xlim(xlims)
         if ylims is not None:
-            ylim(ylims)
+            plt.ylim(ylims)
 
         # Horizontal colorbar below plot
         cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02])  # colorbar axes
-        cb = colorbar(p, cax=cax, orientation='horizontal')
+        cb = fig.colorbar(p, cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
         # Save figure into a local directory called figures. Make directory
@@ -203,13 +203,13 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         if not os.path.exists('figures'):
             os.makedirs('figures')
 
-        savefig('figures/' + fname + 'histpcolor.png', bbox_inches='tight')
+        fig.savefig('figures/' + fname + 'histpcolor.png', bbox_inches='tight')
         # savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
     elif which == 'hexbin':
 
         if ax is None:
-            ax = gca()
+            ax = plt.gca()
         else:
             ax = ax
 
@@ -218,16 +218,16 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
             C = np.ones(len(xpc))*(1./len(xpc))*100
         else:
             C = C*np.ones(len(xpc))*100
-        hb = hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0],
-                    extent=(grid.xpsi.min(), grid.xpsi.max(),
-                            grid.ypsi.min(), grid.ypsi.max()),
+        hb = plt.hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0],
+                    extent=(grid.x_psi.min(), grid.x_psi.max(),
+                            grid.y_psi.min(), grid.y_psi.max()),
                     reduce_C_function=sum, vmax=vmax, axes=ax, bins=binscale)
 
         # Set x and y limits
         if xlims is not None:
-            xlim(xlims)
+            plt.xlim(xlims)
         if ylims is not None:
-            ylim(ylims)
+            plt.ylim(ylims)
 
         if Title is not None:
             ax.set_title(Title)
@@ -256,7 +256,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
 
         # # Horizontal colorbar below plot
         # cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02]) # colorbar axes
-        cb = colorbar(cax=cax, orientation='horizontal')
+        cb = fig.colorbar(hb, cax=cax, orientation='horizontal')
         cb.set_label(Label)
 
         # Save figure into a local directory called figures. Make directory
@@ -264,16 +264,16 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         if not os.path.exists('figures'):
             os.makedirs('figures')
 
-        savefig('figures/' + fname + 'histhexbin.png', bbox_inches='tight')
+        fig.savefig('figures/' + fname + 'histhexbin.png', bbox_inches='tight')
         # savefig('figures/' + fname + 'histhexbin.pdf',bbox_inches='tight')
 
     elif which == 'hist2d':
 
-        hist2d(xpc, ypc, bins=40, range=[[grid.x_rho.min(),
+        plt.hist2d(xpc, ypc, bins=40, range=[[grid.x_rho.min(),
                                           grid.x_rho.max()],
                                          [grid.y_rho.min(),
                                           grid.y_rho.max()]], normed=True)
-        set_cmap('YlOrRd')
+        plt.set_cmap('YlOrRd')
         # Set x and y limits
         if xlims is not None:
             xlim(xlims)
@@ -282,7 +282,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
 
         # Horizontal colorbar below plot
         cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02])  # colorbar axes
-        cb = colorbar(cax=cax, orientation='horizontal')
+        cb = fig.colorbar(cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
         # Save figure into a local directory called figures. Make directory
@@ -290,7 +290,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         if not os.path.exists('figures'):
             os.makedirs('figures')
 
-        savefig('figures/' + fname + 'hist2d.png', bbox_inches='tight')
+        fig.savefig('figures/' + fname + 'hist2d.png', bbox_inches='tight')
         # savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
 
@@ -310,17 +310,17 @@ def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
         grid = inout.readgrid(loc)
 
     if fig is None:
-        figure(figsize=(12, 10))
+        fig = plt.figure(figsize=(12, 10))
     else:
         fig = fig
 
     if ax is None:
-        ax = gca()
+        ax = plt.gca()
     else:
         ax = ax
 
     # Change positions from lon/lat to x/y
-    xp, yp = grid.basemap(lonp, latp)
+    xp, yp = grid.proj(lonp, latp)
     # Need to retain nan's since basemap changes them to values
     ind = np.isnan(lonp)
     xp[ind] = np.nan
@@ -350,11 +350,11 @@ def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
     # ax = gca()
     xtext = 0.45
     ytext = 0.18
-    text(xtext, ytext, 'starting location', fontsize=16, color='green',
+    ax.text(xtext, ytext, 'starting location', fontsize=16, color='green',
          alpha=.8, transform=ax.transAxes)
-    text(xtext, ytext-.03, 'track', fontsize=16, color='grey',
+    ax.text(xtext, ytext-.03, 'track', fontsize=16, color='grey',
          transform=ax.transAxes)
-    text(xtext, ytext-.03*2, 'ending location', fontsize=16, color='red',
+    ax.text(xtext, ytext-.03*2, 'ending location', fontsize=16, color='red',
          transform=ax.transAxes)
     # xtext, ytext = grid['basemap'](-94,24) # text location
     # text(xtext,ytext,'starting location',fontsize=16,color='green',alpha=.8)
@@ -380,7 +380,7 @@ def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
     if not os.path.exists('figures'):
         os.makedirs('figures')
 
-    savefig('figures/' + fname + 'tracks.png', bbox_inches='tight')
+    fig.savefig('figures/' + fname + 'tracks.png', bbox_inches='tight')
     # savefig('figures/' + fname + 'tracks.pdf',bbox_inches='tight')
 
 
@@ -423,13 +423,13 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     levs = locator()
 
     if fig is None:
-        fig = figure(figsize=(11, 10))
+        fig = plt.figure(figsize=(11, 10))
     else:
         fig = fig
     background(grid=grid)
-    c = contourf(grid.xpsi, grid.ypsi, Splot, cmap=colormap,
+    c = fig.contourf(grid.xpsi, grid.ypsi, Splot, cmap=colormap,
                  extend='max', levels=levs)
-    title(Title)
+    plt.title(Title)
 
     # # Add initial drifter location (all drifters start at the same location)
     # lon0 = lon0.mean()
@@ -438,7 +438,7 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     # plot(x0, y0, 'go', markersize=10)
 
     if ax is None:
-        ax = gca()
+        ax = plt.gca()
     else:
         ax = ax
     # Want colorbar at the given location relative to axis so this works
@@ -463,11 +463,11 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     cax = fig.add_axes(fig_coords)
     # cax = fig.add_axes([0.39, 0.25, 0.49, 0.02])
     # cax = fig.add_axes([0.49, 0.25, 0.39, 0.02])
-    cb = colorbar(cax=cax, orientation='horizontal')
+    cb = fig.colorbar(cax=cax, orientation='horizontal')
     cb.set_label('Normalized drifter transport (%)')
 
     if extraname is None:
-        savefig('figures/' + name + '/transport', bbox_inches='tight')
+        fig.savefig('figures/' + name + '/transport', bbox_inches='tight')
     else:
-        savefig('figures/' + name + '/' + extraname + 'transport',
+        fig.savefig('figures/' + name + '/' + extraname + 'transport',
                 bbox_inches='tight')
