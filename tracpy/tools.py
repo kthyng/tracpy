@@ -414,6 +414,10 @@ def make_proj(setup='nwgom', usebasemap=True, **kwargs):
     Returns:
         proj: Projection object for convering between geometric and projected
             coordinates.
+
+    Example usage:
+        proj = tracpy.tools.make_proj('nwgom', usebasemap=True,
+                                      **{'llcrnrlon': -98, 'llcrnrlat': 26})
     """
 
     # Default setups. Can use all of these parameters or can start with them
