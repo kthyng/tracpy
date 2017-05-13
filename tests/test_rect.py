@@ -145,10 +145,10 @@ def test_run_2d_xy():
     # Controls the sampling frequency of the drifter tracks.
     N = 4
 
-    # This allows the user to call to TRACMASS for a different period of time
-    # than between 2 model outputs
-    # Just testing to try new loop, should have same behavior as before
-    dtFromTracmass = tseas/2.
+    # # This allows the user to call to TRACMASS for a different period of time
+    # # than between 2 model outputs
+    # # Just testing to try new loop, should have same behavior as before
+    # dtFromTracmass = tseas/2.
 
     # Use ff = 1 for forward in time and ff = -1 for backward in time.
     ff = 1  # will work for ff=1 or ff=-1 since checks by distance traveled
@@ -182,7 +182,7 @@ def test_run_2d_xy():
     tp = Tracpy(currents_filename, grid, name=name, tseas=tseas,
                 ndays=ndays, nsteps=nsteps, N=N, ff=ff, ah=ah, av=av,
                 doturb=doturb, do3d=do3d, z0=z0, zpar=zpar,
-                time_units=time_units, dtFromTracmass=dtFromTracmass,
+                time_units=time_units,
                 usespherical=usespherical)
 
     xp, yp, zp, t, T0, U, V = tracpy.run.run(tp, date, x0, y0)
