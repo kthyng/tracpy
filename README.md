@@ -4,16 +4,43 @@
 
 Fortran core of TRACMASS + Python wrapping around the outside.
 
+## Set up for TracPy
+
+I recommend setting up a good python environment for this work, as follows:
+
+1. Install miniconda:
+ * download file from Continuum
+ * `bash [download file]`
+1. Set `conda-forge` to be highest-priority channel (this helps the geography libraries like cartopy that connect to the geos library be all consistent)
+ * `conda config --add channels conda-forge --force`
+1. Create environment called "tracpy" (some of the listed packages are required and some are just suggested because they are useful)
+ * `conda create --name tracpy python=3.6 cartopy matplotlib ipython netCDF4 fiona shapely pandas xarray cmocean jupyter scipy numpy seaborn --yes`
+1. Need to also have `octant`:
+ * `git clone https://github.com/hetland/octant.git`
+ * `cd octant`
+ * `pip install -e .`
+1. Make sure you installed `tracpy`:
+ * `pip install -e .`
+1. To use environment:
+ * `source activate tracpy`
+1. To stop using environment (in a given terminal window):
+ * `source deactivate`
+1. To install more packages later:
+ * `conda install [package name]`
+1. Run the manual in `/docs` with `jupyter notebook`
+
+
+If you want to install locally, you can generally use the `--user` flag (e.g. `pip install --user .`).
 
 ## To get the code
 
 1. Make your new TracPy directory and change directories into it.
-1. Clone the TracPy repository from GitHub. 
-In the command prompt, type: 
+1. Clone the TracPy repository from GitHub.
+In the command prompt, type:
 `git clone https://github.com/kthyng/tracpy.git`
 1. Install the package globally:
 `pip install -e .`
-This makes the package an editable install so that it can be updated with future additions to TracPy. Note that a required package is [octant](https://github.com/hetland/octant). To instead install the package locally: 
+This makes the package an editable install so that it can be updated with future additions to TracPy. Note that a required package is [octant](https://github.com/hetland/octant). To instead install the package locally:
 `pip install --user .`
 
 
@@ -23,10 +50,10 @@ This makes the package an editable install so that it can be updated with future
 1. Update your GitHub repository.
 `git pull`
 1. Edit your install of TracPy.
-`pip install -e .` 
+`pip install -e .`
 or
 `pip install --force-reinstall -e .`
-or, for local installation: 
+or, for local installation:
 `pip install --ignore-installed --user .`
 
 
