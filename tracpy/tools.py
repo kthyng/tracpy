@@ -337,7 +337,7 @@ def check_points(lon0, lat0, grid, z0=None, nobays=False):
 
     L = len(ind2.ravel())
     Lnan = sum(ind2.ravel())
-    print L - Lnan, '/', L, ' drifters NaN-ed out.'
+    print(L - Lnan, '/', L, ' drifters NaN-ed out.')
 
     lon0 = lon0[ind2].flatten()
     lat0 = lat0[ind2].flatten()
@@ -456,7 +456,7 @@ def make_proj(setup='nwgom', usebasemap=True, **kwargs):
             if key in inputs:  # if key is in inputs, replace it
                 inputs[key] = value
             else:  # otherwise, error
-                print 'input key is not in inputs dict'
+                print('input key is not in inputs dict')
 
     # Set up projection using inputs dictionary
     if usebasemap:

@@ -47,12 +47,12 @@ class Time(object):
     def write(self):
         """Write out all available times."""
 
-        print "Total run time: %f (seconds)" % self.total
-        print "---------------------------------------------"
-        print "Time spent on:"
+        print("Total run time: %f (seconds)" % self.total)
+        print("---------------------------------------------")
+        print("Time spent on:")
 
         for key in sorted(self.times.keys()):
-            print "\t%s \t\t%4.4f (%4.4f%%)" % \
-                     (key, self.times[key], (self.times[key]/self.total)*100)
+            print("\t%s \t\t%4.4f (%4.4f%%)" %
+                     (key, self.times[key], (self.times[key]/self.total)*100))
 
-        print "============================================="
+        print("=============================================")

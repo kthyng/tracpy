@@ -789,12 +789,11 @@ def save_ll2grid(name, grid, loc=None):
     # Convert to grid coords
     x, y, dt = tracpy.tools.interpolate2d(lonp, latp, grid, 'd_ll2ij')
     del(lonp, latp, grid)
-    print dt
 
     if 'loc' in d.variables:
         loc = d.variables['loc'][:]
     else:
-        print 'will use input loc value for saving to file'
+        print('will use input loc value for saving to file')
 
     # save new file
     # transport calculation included

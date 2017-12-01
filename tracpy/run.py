@@ -43,7 +43,7 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
     # Loop through model outputs.
     for j, tind in enumerate(tinds[:-1]):
 
-        print 'Using GCM model output index ', j
+        print('Using GCM model output index ', j)
 
         # Loop through substeps in call to TRACMASS in case we want to add on
         # windage, etc, for each step
@@ -89,11 +89,11 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
 
     timer.addtime('5: Processing after simulation')
 
-    print "============================================="
-    print ""
-    print "Simulation name: ", tp.name
-    print ""
-    print "============================================="
+    print("=============================================")
+    print("")
+    print("Simulation name: ", tp.name)
+    print("")
+    print("=============================================")
 
     timer.write()
 
