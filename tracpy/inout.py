@@ -11,6 +11,7 @@ Contains:
     save_ll2grid
 """
 
+from __future__ import absolute_import
 import netCDF4 as netCDF
 import glob
 import numpy as np
@@ -18,7 +19,7 @@ from scipy.spatial import Delaunay
 import matplotlib.tri as mtri
 import octant
 import time
-import op
+from . import op
 import os
 import tracpy
 from matplotlib.mlab import find

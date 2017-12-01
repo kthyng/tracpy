@@ -1,10 +1,10 @@
 '''
-tracpy is a wrapper written in Python for using Tracmass, a particle 
+tracpy is a wrapper written in Python for using Tracmass, a particle
 tracking system written in Fortran. Tracmass was written by other
 researchers and is available online.
 
-See README.md for an overview on instructions and the iPython 
-notebook manual.ipynb for instructions on use. A user manual for 
+See README.md for an overview on instructions and the iPython
+notebook manual.ipynb for instructions on use. A user manual for
 Tracmass is available online.
 
 Modules available in tracpy include:
@@ -34,10 +34,14 @@ Modules available in tracmass include:
 * vertvel.f95
 '''
 
-import inout
-import op
-# import plotting
-import run
-import tools
+from . import inout, op, run, tools
+
+__all__ = ['inout',
+           'op',
+           'run',
+           'tools',
+           'calcs',
+           'plotting',
+           'time_class']
 
 __authors__ = ['Kristen Thyng <kthyng@tamu.edu>']

@@ -2,17 +2,18 @@
 Plotting routines for tracking.
 """
 
+from __future__ import absolute_import
 # import matplotlib as mpl
 # # set matplotlib to use the backend that does not require a windowing system
 # mpl.use("Agg")
 import numpy as np
 # from matplotlib.mlab import *
 import matplotlib.pyplot as plt
-import inout
+from . import inout
 import os
 import matplotlib.ticker as ticker
-import op
-import tools
+from . import op
+from . import tools
 
 
 def background(grid=None, ax=None, pars=np.arange(18, 35),

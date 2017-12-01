@@ -6,7 +6,7 @@ TracPy class
 
 import tracpy
 import numpy as np
-import tracmass
+from . import tracmass
 from matplotlib.mlab import find
 
 

@@ -2,9 +2,11 @@
 Main run script for TracPy system.
 '''
 
+from __future__ import absolute_import
 
 import numpy as np
 from tracpy.time_class import Time
+# from . import tracpy.time_class as Time
 
 
 def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
