@@ -39,7 +39,7 @@ tracmass_mod = Extension(name = "tracmass",
 #            "tracpy/tools.py",
 #            ]
 
-print tracmass_mod
+print(tracmass_mod)
 
 setup(
     name = "tracpy",
@@ -54,7 +54,7 @@ setup(
                  ],
     packages = ["tracpy"],
     # py_modules = modules,
-    ext_package='tracpy', 
+    ext_package='tracpy',
     ext_modules = [tracmass_mod],
     scripts = [],
     )
