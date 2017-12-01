@@ -12,66 +12,92 @@ import matplotlib.pyplot as plt
 from . import inout
 import os
 import matplotlib.ticker as ticker
+import matplotlib as mpl
 from . import op
 from . import tools
+import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import matplotlib.ticker as mticker
+import cartopy.feature as cfeature
+import cmocean.cm as cmo
 
+pc = ccrs.PlateCarree()
 
-def background(grid=None, ax=None, pars=np.arange(18, 35),
+def background(grid, proj=ccrs.Mercator(), ax=None, pars=np.arange(18, 35),
                mers=np.arange(-100, -80),
                hlevs=np.hstack(([10, 20], np.arange(50, 500, 50))),
+               extent=[-98, -87.5, 22.8, 30.5],
                col='lightgrey', halpha=1, fig=None, outline=[1, 1, 0, 1],
-               merslabels=[0, 0, 0, 1], parslabels=[1, 0, 0, 0]):
+               res='110m', plotstates=True, fontsize=14):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
 
     Args:
+        proj
+        extent: west lon, east lon, south lat, north lat for axes bounds
         pars: parallels to plot
         mers: meridians to plot
         hlevs: which depth contours to plot
         outline: west, east, north, south lines (left, right, top, bottom)
+        res: 10m, 50m, 110m
     """
 
-    # matplotlib.rcParams.update({'font.size': 18})#,'font.weight': 'bold'})
-
-    if grid is None:
-        loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
-        grid = inout.readgrid(loc)
+    mpl.rcParams.update({'font.size': fontsize})#,'font.weight': 'bold'})
+    land = cfeature.NaturalEarthFeature('physical', 'land', res,
+                                        edgecolor='face',
+                                        facecolor=cfeature.COLORS['land'])
+    states = cfeature.NaturalEarthFeature('cultural',
+                                          name='admin_1_states_provinces_lines',
+                                          scale=res, facecolor='none')
 
     if fig is None:
-        fig = plt.gcf()
+        fig = plt.figure(figsize=(9.4, 7.7), dpi=100)
 
     if ax is None:
-        ax = plt.gca()
+        ax = fig.add_subplot(111, projection=proj)
+
+    ax.set_extent(extent, pc)
+    gl = ax.gridlines(linewidth=0.2, color='gray', alpha=0.5, linestyle='-', draw_labels=True)
+    # the following two make the labels look like lat/lon format
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabels_bottom = False  # turn off labels where you don't want them
+    gl.ylabels_right = False
+
+    # plot isobaths
+    ax.contour(grid.lon_rho, grid.lat_rho, grid.h, hlevs, colors='0.6',
+               transform=pc, linewidths=0.5, alpha=halpha)
 
     # Do plot
-    grid.proj.drawcoastlines(ax=ax)
-    grid.proj.fillcontinents('0.8', ax=ax)
-    grid.proj.drawparallels(pars, dashes=(1, 1),
-                               linewidth=0.15, labels=parslabels, ax=ax)
-    grid.proj.drawmeridians(mers, dashes=(1, 1),
-                               linewidth=0.15, labels=merslabels, ax=ax)
-    ax.contour(grid.x_rho, grid.y_rho, grid.h, hlevs, colors=col,
-               linewidths=0.5, alpha=halpha)
+    ax.add_feature(land, facecolor='0.8')
+    ax.coastlines(resolution=res)  # coastline resolution options are '110m', '50m', '10m'
+    if plotstates:
+        ax.add_feature(states, edgecolor='0.2')
+    ax.add_feature(cfeature.BORDERS, linestyle='-', edgecolor='0.2')
 
     # Outline numerical domain
     # if outline:  # backward compatibility
     #     outline = [1,1,1,1]
     if outline[0]:  # left
-        ax.plot(grid.x_rho[:, 0], grid.y_rho[:, 0], 'k:')
+        ax.plot(grid.lon_rho[:, 0], grid.lat_rho[:, 0], 'k:', transform=pc)
     if outline[1]:  # right
-        ax.plot(grid.x_rho[:, -1], grid.y_rho[:, -1], 'k:')
+        ax.plot(grid.lon_rho[:, -1], grid.lat_rho[:, -1], 'k:', transform=pc)
     if outline[2]:  # top
-        ax.plot(grid.x_rho[-1, :], grid.y_rho[-1, :], 'k:')
+        ax.plot(grid.lon_rho[-1, :], grid.lat_rho[-1, :], 'k:', transform=pc)
     if outline[3]:  # bottom
-        ax.plot(grid.x_rho[0, :], grid.y_rho[0, :], 'k:')
+        ax.plot(grid.lon_rho[0, :], grid.lat_rho[0, :], 'k:', transform=pc)
+
+    return ax
 
 
-def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
-         fig=None, ax=None, bins=(40, 40), N=10, grid=None, xlims=None,
+def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
+         fig=None, ax=None, bins=(40, 40), N=10, xlims=None,
          ylims=None, C=None, Title=None, weights=None,
-         Label='Final drifter location (%)', isll=True, binscale=None):
+         Label='Final drifter location (%)', binscale=None):
     """
+    WARNING: THIS HAS NOT BEEN UPDATED AND WILL NOT CURRENTLY RUN.
+
     Plot histogram of given track data at time index tind.
 
     Args:
@@ -89,34 +115,21 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         grid (Optional): grid as read in by inout.readgrid()
         xlims (Optional): value limits on the x axis
         ylims (Optional): value limits on the y axis
-        isll: Default True. Inputs are in lon/lat. If False, assume they
-         are in projected coords.
 
     Note:
         Currently assuming we are plotting the final location of each drifter
         regardless of tind.
     """
 
-    if grid is None:
-        loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
-        grid = inout.readgrid(loc)
-
-    if isll:  # if inputs are in lon/lat, change to projected x/y
-        # Change positions from lon/lat to x/y
-        xp, yp = grid.proj(lonp, latp)
-        # Need to retain nan's since basemap changes them to values
-        ind = np.isnan(lonp)
-        xp[ind] = np.nan
-        yp[ind] = np.nan
-    else:
-        xp = lonp
-        yp = latp
+    # Change positions from lon/lat to x/y for analysis
+    xp, yp = grid.proj(lonp, latp)
+    # Need to retain nan's since basemap changes them to values
+    ind = np.isnan(lonp)
+    xp[ind] = np.nan
+    yp[ind] = np.nan
 
     if fig is None:
         fig = plt.figure(figsize=(11, 10))
-    else:
-        fig = fig
-    background(grid)  # Plot coastline and such
 
     if tind == 'final':
         # Find final positions of drifters
@@ -295,8 +308,7 @@ def hist(lonp, latp, fname, tind='final', which='contour', vmax=None,
         # savefig('figures/' + fname + 'histpcolor.pdf',bbox_inches='tight')
 
 
-def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
-           mers=None, pars=None):
+def tracks(lonp, latp, fname, grid, fig=None, ax=None, Title=None):
     """
     Plot tracks as lines with starting points in green and ending points in
     red.
@@ -306,43 +318,22 @@ def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
         fname: Plot name to save
     """
 
-    if grid is None:
-        loc = 'http://barataria.tamu.edu:8080/thredds/dodsC/NcML/txla_nesting6.nc'
-        grid = inout.readgrid(loc)
-
     if fig is None:
         fig = plt.figure(figsize=(12, 10))
-    else:
-        fig = fig
 
     if ax is None:
         ax = plt.gca()
-    else:
-        ax = ax
-
-    # Change positions from lon/lat to x/y
-    xp, yp = grid.proj(lonp, latp)
-    # Need to retain nan's since basemap changes them to values
-    ind = np.isnan(lonp)
-    xp[ind] = np.nan
-    yp[ind] = np.nan
-
-    if mers is not None:
-        # Plot coastline and such
-        background(grid, ax=ax, mers=mers, pars=pars)
-    else:
-        background(grid, ax=ax)  # Plot coastline and such
 
     # Starting marker
-    ax.plot(xp[:, 0], yp[:, 0], 'o', color='g', markersize=3,
-            label='_nolegend_', alpha=0.4)
+    ax.plot(lonp[:, 0], latp[:, 0], 'o', color='g', markersize=3,
+            label='_nolegend_', alpha=0.4, transform=pc)
 
     # Plot tracks
-    ax.plot(xp.T, yp.T, '-', color='grey', linewidth=.2)
+    ax.plot(lonp.T, latp.T, '-', color='grey', linewidth=.2, transform=pc)
 
     # Find final positions of drifters
-    xpc, ypc = tools.find_final(xp, yp)
-    ax.plot(xpc, ypc, 'o', color='r', label='_nolegend_')
+    lonpc, latpc = tools.find_final(lonp, latp)
+    ax.plot(lonpc, latpc, 'o', color='r', label='_nolegend_', transform=pc)
 
     if Title is not None:
         ax.set_title(Title)
@@ -357,24 +348,6 @@ def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
          transform=ax.transAxes)
     ax.text(xtext, ytext-.03*2, 'ending location', fontsize=16, color='red',
          transform=ax.transAxes)
-    # xtext, ytext = grid['basemap'](-94,24) # text location
-    # text(xtext,ytext,'starting location',fontsize=16,color='green',alpha=.8)
-    # text(xtext,ytext-30000,'track',fontsize=16,color='grey')#,alpha=.8)
-    # text(xtext,ytext-60000,'ending location',fontsize=16,color='red')#,alpha=.8)
-
-    # # get psi mask from rho mask
-    # # maskp = grid['mask'][1:,1:]*grid['mask'][:-1,1:]* \
-    # #               grid['mask'][1:,:-1]*grid['mask'][:-1,:-1]
-    # # ind = maskp
-    # # ind[ind==0] = np.nan
-    # # plot(grid['xpsi']*ind,grid['ypsi']*ind,'k', \
-    # #         (grid['xpsi']*ind).T,(grid['ypsi']*ind).T,'k')
-    # plot(grid['xpsi'],grid['ypsi'],'k', \
-    #       (grid['xpsi']).T,(grid['ypsi']).T,'k')
-
-    # 16 is (lower) one that is near islands, 41 is higher one
-
-    # show()
 
     # Save figure into a local directory called figures. Make directory if it
     # doesn't exist.
@@ -382,7 +355,6 @@ def tracks(lonp, latp, fname, grid=None, fig=None, ax=None, Title=None,
         os.makedirs('figures')
 
     fig.savefig('figures/' + fname + 'tracks.png', bbox_inches='tight')
-    # savefig('figures/' + fname + 'tracks.pdf',bbox_inches='tight')
 
 
 def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,

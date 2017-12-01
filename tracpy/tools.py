@@ -192,7 +192,7 @@ def find_final(xp, yp, ind=-1):
     # Make this a separate function later
     xpc = []
     ypc = []
-    for idrift in xrange(xp.shape[0]):
+    for idrift in range(xp.shape[0]):
         # Find last non-nan and make sure it is in the desired month start
         # time
         ind3 = ~np.isnan(xp[idrift, :])

@@ -49,7 +49,7 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
 
         # Loop through substeps in call to TRACMASS in case we want to add on
         # windage, etc, for each step
-        for nsubstep in xrange(tp.nsubsteps):
+        for nsubstep in range(tp.nsubsteps):
 
             xstart, ystart, zstart, ufsub, vfsub, T0 = \
                 tp.prepare_for_model_step(tinds[j+1], nc, flag, xend, yend,
