@@ -350,7 +350,7 @@ def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1,
         latp = latp[:, ::tstride]
         tp = tp[::tstride]
 
-    print 'time for fixing timing: ', time.time()-tstart
+    print('time for fixing timing: ', time.time()-tstart)
 
     # Calculate relative dispersion
     tstart = time.time()
@@ -369,7 +369,7 @@ def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1,
         nnans = nnans + ~np.isnan(dist)
     D2 = D2.squeeze()/nnans  # len(pairs) # average over all pairs
 
-    print 'time for finding numerical D: ', time.time()-tstart
+    print('time for finding numerical D: ', time.time()-tstart)
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -425,7 +425,7 @@ def abs_dispersion(lonp, latp, squared=True):
             D2 = np.nansum(np.vstack([D2, dist]), axis=0)
         nnans = nnans + ~np.isnan(dist)  # save these for averaging
     D2 = D2.squeeze()/nnans  # average over all pairs
-    print 'time for finding a: ', time.time()-tstart
+    print('time for finding a: ', time.time()-tstart)
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -483,7 +483,7 @@ def path(lonp, latp, squared=True):
             D2 = np.nansum(np.vstack([D2, dist]), axis=0)
         nnans = nnans + ~np.isnan(dist)  # save these for averaging
     D2 = D2.squeeze()/nnans  # average over all pairs
-    print 'time for finding s: ', time.time()-tstart
+    print('time for finding s: ', time.time()-tstart)
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -548,7 +548,7 @@ def moment1(xp):
     nnans = np.sum(~np.isnan(dists), axis=0)
     M = np.nansum(dists, axis=0)/nnans
 
-    print 'time for finding M: ', time.time()-tstart
+    print('time for finding M: ', time.time()-tstart)
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -586,7 +586,7 @@ def moment2(xp, M1):
     nnans = np.sum(~np.isnan(dists), axis=0) - 1
     M2 = np.nansum(dists, axis=0)/nnans
 
-    print 'time for finding M: ', time.time()-tstart
+    print('time for finding M: ', time.time()-tstart)
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -626,7 +626,7 @@ def moment3(xp, M1):
     denom = (np.nansum(dist**2, axis=0)/nnans)**(3/2)
     M3 = num/denom
 
-    print 'time for finding M: ', time.time()-tstart
+    print('time for finding M: ', time.time()-tstart)
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -667,7 +667,7 @@ def moment4(xp, M1):
     # denom = np.nansum(dist**2, axis=0)**2
     M4 = num/denom
 
-    print 'time for finding M: ', time.time()-tstart
+    print('time for finding M: ', time.time()-tstart)
 
     # # Distances squared, separately; times; number of non-nans for this set
     # np.savez(name[:-3] + 'D2.npz', D2=D2, t=t, nnans=nnans)
@@ -780,7 +780,7 @@ def run_fsle(Files):
 
         # logic for looping through more than 1 drifter at once
         while driftercount < ndrifters:
-            print 'drifter ' + str(driftercount) + ' of ' + str(ndrifters)
+            print('drifter ' + str(driftercount) + ' of ' + str(ndrifters))
             tSavetemp = calc_fsle(lonp[driftercount:driftercount+ddrifter, :],
                                   latp[driftercount:driftercount+ddrifter, :], tp)
             ind = ~np.isnan(tSavetemp)
@@ -790,4 +790,4 @@ def run_fsle(Files):
 
         # Save fsle for each file/area combination, NOT averaged
         np.savez(fname, dSave=dSave, tSave=tSave, nnans=nnans)
-        print 'saved file', fname
+        print('saved file', fname)
