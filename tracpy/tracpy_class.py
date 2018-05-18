@@ -240,10 +240,10 @@ class Tracpy(object):
         xstart0 = xstart0[ind2]
         ystart0 = ystart0[ind2]
 
-        if 'time' in nc.variables:
-            dates = nc.variables['time'][:]
-        elif 'ocean_time' in nc.variables:
+        if 'ocean_time' in nc.variables:
             dates = nc.variables['ocean_time'][:]
+        elif 'time' in nc.variables:
+            dates = nc.variables['time'][:]
         # time at start of drifter test from file in seconds since 1970-01-01
         # add this on at the end since it is big
         t0save = dates[tinds[0]]
