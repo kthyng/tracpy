@@ -76,10 +76,10 @@ def test_proj_iteration():
         # convert back and forth
         lon_rho2, lat_rho2 = grid.proj(grid.x_rho, grid.y_rho, inverse=True)
 
-        print grid.lat_rho[0, :]
-        print lat_rho2[0, :]
-        print grid.lon_rho[0, :]
-        print lon_rho2[0, :]
+        print(grid.lat_rho[0, :])
+        print(lat_rho2[0, :])
+        print(grid.lon_rho[0, :])
+        print(lon_rho2[0, :])
 
         assert np.allclose(grid.lat_rho, lat_rho2)
         assert np.allclose(grid.lon_rho, lon_rho2)
