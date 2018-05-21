@@ -347,7 +347,7 @@ def readgrid(grid_filename, proj, vert_filename=None, usespherical=True):
     return grid
 
 
-def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
+def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None, sinkarrows=None):
     """
     readfields()
     Kristen Thyng, March 2013
@@ -436,6 +436,12 @@ def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
             sshread = True
         else:
             sshread = False
+
+    # static velocity field to add into model output
+    if sinkarrows is not None:
+        iu, jv = sinkarrows
+        u += iu
+        v += jv
 
     # Use octant to calculate depths for the appropriate vertical grid
     # parameters have to transform a few back to ROMS coordinates and python

@@ -18,7 +18,7 @@ class Tracpy(object):
                  name='test', dostream=0, N=1,
                  time_units='seconds since 1970-01-01', dtFromTracmass=None,
                  zparuv=None, tseas_use=None, savell=True, doperiodic=0,
-                 usespherical=True, ellps='WGS84'):
+                 usespherical=True, ellps='WGS84', sinkarrows=None):
         """Initialize class.
 
         Note: GCM==General Circulation Model, meaning the predicted u/v
@@ -119,6 +119,7 @@ class Tracpy(object):
              (lon/lat) coordinates and False for idealized applications where
              it isn't necessary to project from spherical coordinates.
              Default is True.
+            sinkarrows  set as [iu, jv] for static velocities to be added to u,v fields
         """
 
         self.currents_filename = currents_filename
@@ -142,6 +143,11 @@ class Tracpy(object):
         self.savell = savell
         self.doperiodic = doperiodic
         self.usespherical = usespherical
+
+        if sinkarrows is not None:
+            self.sinkarrows = sinkarrows
+        else:
+            self.sinkarrows = None
 
         # if loopsteps is None and nsteps is not None:
         #     # Use nsteps in TRACMASS and have inner loop collapse
@@ -201,6 +207,7 @@ class Tracpy(object):
         self.dzt = None
         self.zrt = None
         self.zwt = None
+
 
     def prepare_for_model_run(self, date, lon0, lat0):
         """Get everything ready so that we can get to the simulation."""
@@ -279,13 +286,13 @@ class Tracpy(object):
                 self.dzt[1, :, :, :], self.zrt[1, :, :, :], \
                 self.zwt[1, :, :, :] = \
                 tracpy.inout.readfields(tinds[0], self.grid, nc, self.z0,
-                                        self.zpar, zparuv=self.zparuv)
+                                        self.zpar, zparuv=self.zparuv, sinkarrows=self.sinkarrows)
 
         else:  # 3d case
             self.uf[1, :, :, :], self.vf[1, :, :, :], \
                 self.dzt[1, :, :, :], self.zrt[1, :, :, :], \
                 self.zwt[1, :, :, :] = \
-                tracpy.inout.readfields(tinds[0], self.grid, nc)
+                tracpy.inout.readfields(tinds[0], self.grid, nc, sinkarrows=self.sinkarrows)
 
         ## Find zstart0 and ka
         # The k indices and z grid ratios should be on a wflux vertical grid,
@@ -388,11 +395,11 @@ class Tracpy(object):
             self.uf[1, :, :, :], self.vf[1, :, :, :], self.dzt[1, :, :, :], \
                 self.zrt[1, :, :, :], self.zwt[1, :, :, :] = \
                 tracpy.inout.readfields(tind, self.grid, nc, self.z0,
-                                        self.zpar, zparuv=self.zparuv)
+                                        self.zpar, zparuv=self.zparuv, sinkarrows=self.sinkarrows)
         else:  # 3d case
             self.uf[1, :, :, :], self.vf[1, :, :, :], self.dzt[1, :, :, :], \
                 self.zrt[1, :, :, :], self.zwt[1, :, :, :] = \
-                tracpy.inout.readfields(tind, self.grid, nc)
+                tracpy.inout.readfields(tind, self.grid, nc, sinkarrows=self.sinkarrows)
 
         # Find the fluxes of the immediately bounding range for the desired
         # time step, which can be less than 1 model output
