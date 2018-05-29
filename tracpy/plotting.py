@@ -24,11 +24,11 @@ import cmocean.cm as cmo
 pc = ccrs.PlateCarree()
 
 def background(grid, proj=ccrs.Mercator(), ax=None, pars=np.arange(18, 35),
-               mers=np.arange(-100, -80),
+               mers=np.arange(-100, -80), figsize=None,
                hlevs=np.hstack(([10, 20], np.arange(50, 500, 50))),
                extent=[-98, -87.5, 22.8, 30.5],
                col='lightgrey', halpha=1, fig=None, outline=[1, 1, 0, 1],
-               res='110m', plotstates=True, fontsize=14):
+               res='50m', plotstates=True, fontsize=14):
     """
     Plot basic TXLA shelf background: coastline, bathymetry, meridians, etc
     Can optionally input grid (so it doesn't have to be loaded again)
@@ -51,8 +51,10 @@ def background(grid, proj=ccrs.Mercator(), ax=None, pars=np.arange(18, 35),
                                           name='admin_1_states_provinces_lines',
                                           scale=res, facecolor='none')
 
-    if fig is None:
+    if fig is None and figsize is None:
         fig = plt.figure(figsize=(9.4, 7.7), dpi=100)
+    elif fig is None and figsize is not None:
+        fig = plt.figure(figsize=figsize, dpi=100)
 
     if ax is None:
         ax = fig.add_subplot(111, projection=proj)
@@ -88,20 +90,21 @@ def background(grid, proj=ccrs.Mercator(), ax=None, pars=np.arange(18, 35),
     if outline[3]:  # bottom
         ax.plot(grid.lon_rho[0, :], grid.lat_rho[0, :], 'k:', transform=pc)
 
-    return ax
+    return fig, ax
 
 
-def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
+def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
          fig=None, ax=None, bins=(40, 40), N=10, xlims=None,
-         ylims=None, C=None, Title=None, weights=None,
-         Label='Final drifter location (%)', binscale=None):
+         ylims=None, C=None, Title=None, weights=None, cmap=None,
+         Label='Final drifter location (%)', binscale=None,
+         cbcoords=[0.35, 0.25, 0.6, 0.02],
+         crsproj=ccrs.LambertConformal()):
     """
-    WARNING: THIS HAS NOT BEEN UPDATED AND WILL NOT CURRENTLY RUN.
-
+    update
     Plot histogram of given track data at time index tind.
 
     Args:
-        lonp,latp: Drifter track positions in lon/lat [time x ndrifters]
+        xp,xp: Drifter track positions in projected coordinates [ndrifters x time]
         fname: Plot name to save
         tind (Optional): Default is 'final', in which case the final
          position of each drifter in the array is found and plotted.
@@ -119,17 +122,29 @@ def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
     Note:
         Currently assuming we are plotting the final location of each drifter
         regardless of tind.
+
+    Example usage:
+        import tracpy
+        import tracpy.plotting
+        import netCDF4 as netCDF
+        proj = tracpy.tools.make_proj('nwgom-pyproj')
+        grid = tracpy.inout.readgrid([gridlocation], proj)
+        nc = netCDF.Dataset([trackfile.gc.nz])
+        xg = nc['xg'][:]; yg = nc['yg'][:]
+        xp, yp, _ = tracpy.tools.interpolate2d(xg, yg, grid, 'm_ij2xy')
+        tracpy.plotting.hist(xp, yp, fname, grid)
     """
 
-    # Change positions from lon/lat to x/y for analysis
-    xp, yp = grid.proj(lonp, latp)
-    # Need to retain nan's since basemap changes them to values
-    ind = np.isnan(lonp)
-    xp[ind] = np.nan
-    yp[ind] = np.nan
+    # # Change positions from lon/lat to x/y for analysis
+    # xp, yp = grid.proj(lonp, latp)
+    # # Need to retain nan's since basemap changes them to values
+    # ind = np.isnan(lonp)
+    # xp[ind] = np.nan
+    # yp[ind] = np.nan
 
     if fig is None:
-        fig = plt.figure(figsize=(11, 10))
+        fig = plt.figure(figsize=(10,8))
+        ax = fig.add_subplot(111)
 
     if tind == 'final':
         # Find final positions of drifters
@@ -140,6 +155,9 @@ def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
     else:  # just plot what is input if some other string
         xpc = xp.flatten()
         ypc = yp.flatten()
+
+    if cmap is None:
+        cmap = 'YlOrRd'
 
     if which == 'contour':
 
@@ -159,14 +177,14 @@ def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
         # locator.create_dummy_axis()
         # locator.set_bounds(0,1)#d.min(),d.max())
         # levs = locator()
-        con = fig.contourf(XE, YE, d.T, N)  # ,levels=levs)#(0,15,30,45,60,75,90,105,120))
-        con.set_cmap('YlOrRd')
+        con = ax.contourf(XE, YE, d.T, N, transform=crsproj)  # ,levels=levs)#(0,15,30,45,60,75,90,105,120))
+        con.set_cmap(cmap)
 
         if Title is not None:
-            plt.set_title(Title)
+            ax.set_title(Title)
 
         # Horizontal colorbar below plot
-        cax = fig.add_axes([0.3725, 0.25, 0.48, 0.02])  # colorbar axes
+        cax = fig.add_axes(cbcoords)  # colorbar axes
         cb = fig.colorbar(con, cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
@@ -196,19 +214,19 @@ def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
             # or, provide some other weighting
             C = (H.T/C)*100
 
-        p = plt.pcolor(xedges, yedges, C, cmap='YlOrRd')
+        p = ax.pcolormesh(xedges, yedges, C, cmap=cmap, transform=crsproj)
 
         if Title is not None:
-            plt.set_title(Title)
+            ax.set_title(Title)
 
         # Set x and y limits
         if xlims is not None:
-            plt.xlim(xlims)
+            ax.set_xlim(xlims)
         if ylims is not None:
-            plt.ylim(ylims)
+            ax.set_ylim(ylims)
 
         # Horizontal colorbar below plot
-        cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02])  # colorbar axes
+        cax = fig.add_axes(cbcoords)  # colorbar axes
         cb = fig.colorbar(p, cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
@@ -232,16 +250,17 @@ def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
             C = np.ones(len(xpc))*(1./len(xpc))*100
         else:
             C = C*np.ones(len(xpc))*100
-        hb = plt.hexbin(xpc, ypc, C=C, cmap='YlOrRd', gridsize=bins[0],
+        hb = ax.hexbin(xpc, ypc, C=C, cmap=cmap, gridsize=bins[0],
                     extent=(grid.x_psi.min(), grid.x_psi.max(),
                             grid.y_psi.min(), grid.y_psi.max()),
-                    reduce_C_function=sum, vmax=vmax, axes=ax, bins=binscale)
+                    reduce_C_function=sum, vmax=vmax, axes=ax, bins=binscale,
+                    transform=crsproj)
 
         # Set x and y limits
         if xlims is not None:
-            plt.xlim(xlims)
+            ax.set_xlim(xlims)
         if ylims is not None:
-            plt.ylim(ylims)
+            ax.set_ylim(ylims)
 
         if Title is not None:
             ax.set_title(Title)
@@ -252,11 +271,11 @@ def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
         # transformations:
         # http://matplotlib.org/users/transforms_tutorial.html
         # axis: [x_left, y_bottom, width, height]
-        ax_coords = [0.35, 0.25, 0.6, 0.02]
+        # ax_coords = [0.35, 0.25, 0.6, 0.02]
         # display: [x_left,y_bottom,x_right,y_top]
-        disp_coords = ax.transAxes.transform([(ax_coords[0], ax_coords[1]),
-                                              (ax_coords[0]+ax_coords[2],
-                                               ax_coords[1]+ax_coords[3])])
+        disp_coords = ax.transAxes.transform([(cbcoords[0], cbcoords[1]),
+                                              (cbcoords[0]+cbcoords[2],
+                                               cbcoords[1]+cbcoords[3])])
         # inverter object to go from display coords to figure coords
         inv = fig.transFigure.inverted()
         # figure: [x_left,y_bottom,x_right,y_top]
@@ -283,19 +302,19 @@ def hist(lonp, latp, fname, grid, tind='final', which='contour', vmax=None,
 
     elif which == 'hist2d':
 
-        plt.hist2d(xpc, ypc, bins=40, range=[[grid.x_rho.min(),
+        ax.hist2d(xpc, ypc, bins=40, range=[[grid.x_rho.min(),
                                           grid.x_rho.max()],
                                          [grid.y_rho.min(),
                                           grid.y_rho.max()]], normed=True)
-        plt.set_cmap('YlOrRd')
+        plt.set_cmap(cmap)
         # Set x and y limits
         if xlims is not None:
-            xlim(xlims)
+            ax.set_xlim(xlims)
         if ylims is not None:
-            ylim(ylims)
+            ax.set_ylim(ylims)
 
         # Horizontal colorbar below plot
-        cax = fig.add_axes([0.3775, 0.25, 0.48, 0.02])  # colorbar axes
+        cax = fig.add_axes(cbcoords)  # colorbar axes
         cb = fig.colorbar(cax=cax, orientation='horizontal')
         cb.set_label('Final drifter location (percent)')
 
@@ -400,7 +419,7 @@ def transport(name, fmod=None, Title=None, dmax=None, N=7, extraname=None,
     else:
         fig = fig
     background(grid=grid)
-    c = fig.contourf(grid.xpsi, grid.ypsi, Splot, cmap=colormap,
+    c = fig.contourf(grid.xpsi, grid.ypsi, Splot, cmap=cmap,
                  extend='max', levels=levs)
     plt.title(Title)
 
