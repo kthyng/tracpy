@@ -254,7 +254,7 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
                     extent=(grid.x_psi.min(), grid.x_psi.max(),
                             grid.y_psi.min(), grid.y_psi.max()),
                     reduce_C_function=sum, vmax=vmax, axes=ax, bins=binscale,
-                    transform=crsproj)
+                    transform=crsproj, linewidths=0.2)
 
         # Set x and y limits
         if xlims is not None:
