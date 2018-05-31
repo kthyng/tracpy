@@ -97,7 +97,7 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
          fig=None, ax=None, bins=(40, 40), N=10, xlims=None,
          ylims=None, C=None, Title=None, weights=None, cmap=None,
          Label='Final drifter location (%)', binscale=None,
-         cbcoords=[0.35, 0.25, 0.6, 0.02],
+         cbcoords=[0.35, 0.25, 0.6, 0.02], H=None,
          crsproj=ccrs.LambertConformal()):
     """
     update
@@ -198,12 +198,13 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
     elif which == 'pcolor':
 
         # Info for 2d histogram
-        H, xedges, yedges = np.histogram2d(xpc, ypc,
-                                           range=[[grid.x_rho.min(),
-                                                   grid.x_rho.max()],
-                                                  [grid.y_rho.min(),
-                                                   grid.y_rho.max()]],
-                                           bins=bins, weights=weights)
+        if H is None:
+            H, xedges, yedges = np.histogram2d(xpc, ypc,
+                                               range=[[grid.x_rho.min(),
+                                                       grid.x_rho.max()],
+                                                      [grid.y_rho.min(),
+                                                       grid.y_rho.max()]],
+                                               bins=bins, weights=weights)
 
         # Pcolor plot
         # C is the z value plotted, and is normalized by the total number of
