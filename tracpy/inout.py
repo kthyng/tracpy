@@ -500,7 +500,7 @@ def readfields(tind, grid, nc, z0=None, zpar=None, zparuv=None):
         dzt = dzt.reshape(np.append(1, dzt.shape))
         zrt = zrt.reshape(np.append(1, zrt.shape))
 
-    return uflux1.filled(0), vflux1.filled(0), dzt.filled(0), zrt.filled(0), zwt.filled(0)
+    return uflux1, vflux1, dzt, zrt, zwt
 
 
 def savetracks(xin, yin, zpin, tpin, name, nstepsin, Nin, ffin, tseasin,
