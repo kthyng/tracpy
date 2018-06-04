@@ -65,11 +65,11 @@ def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
     # dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units)
     # The calendar definition extends dates to before the year 1582 for use
     # with idealized simulations without meaningful dates.
-    if 'time' in nc.variables:
-        dates = netCDF.num2date(nc.variables['time'][:], time_units,
+    if 'ocean_time' in nc.variables:
+        dates = netCDF.num2date(nc.variables['ocean_time'][:], nc.variables['ocean_time'].units,
                                 calendar='proleptic_gregorian')
-    elif 'ocean_time' in nc.variables:
-        dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units,
+    elif 'time' in nc.variables:
+        dates = netCDF.num2date(nc.variables['time'][:], nc.variables['time'].units,
                                 calendar='proleptic_gregorian')
     # time index with time value just below date (relative to file ifile)
     istart = find(dates <= date)[-1]

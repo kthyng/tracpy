@@ -260,7 +260,8 @@ class Tracpy(object):
         yend = np.ones((ia.size, (len(tinds)-1)*self.N+1))*np.nan
         zend = np.ones((ia.size, (len(tinds)-1)*self.N+1))*np.nan
         zp = np.ones((ia.size, (len(tinds)-1)*self.N+1))*np.nan
-        ttend = np.ones((ia.size, (len(tinds)-1)*self.N+1))
+        ttend = np.zeros((ia.size, (len(tinds)-1)*self.N+1))
+        # ttend = np.ones((ia.size, (len(tinds)-1)*self.N+1))
         # initialize all exit flags for in the domain
         flag = np.zeros((ia.size), dtype=np.int)
 
