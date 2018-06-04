@@ -735,7 +735,7 @@ def loadtransport(name, fmod=None):
         Files = glob.glob('tracks/' + name + '/*.nc')
     elif type(fmod) == list and len(fmod) > 1:
         Files = []
-        for i in xrange(len(fmod)):
+        for i in range(len(fmod)):
             Files = Files + glob.glob('tracks/' + fmod[i])
     else:
         Files = glob.glob('tracks/' + name + '/' + fmod + '.nc')

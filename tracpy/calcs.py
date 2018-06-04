@@ -196,7 +196,7 @@ def rel_dispersion(lonp, latp, r=[0, 1], squared=True, spherical=True):
     # than r.
     # Then exclude repeated pairs. And calculate initial distances.
     pairs = []
-    for idrifter in xrange(lonp.shape[0]):
+    for idrifter in range(lonp.shape[0]):
         # dist contains all of the distances from other unchecked drifters
         # for each drifter
         dist = get_dist(lonp[idrifter, 0], lonp[idrifter+1:, 0],
@@ -217,7 +217,7 @@ def rel_dispersion(lonp, latp, r=[0, 1], squared=True, spherical=True):
     # pairs = []
     # # # save pairs to save time since they are always the same
     # # if not os.path.exists('tracks/pairs.npz'):
-    # for idrifter in xrange(lonp.shape[0]):
+    # for idrifter in range(lonp.shape[0]):
     #     ind = find(dist[idrifter,:]<=r)
     #     for i in ind:
     #         if ID[idrifter] != ID[i]:
@@ -239,7 +239,7 @@ def rel_dispersion(lonp, latp, r=[0, 1], squared=True, spherical=True):
     D2 = np.ones(lonp.shape[1])*np.nan
     # to collect number of non-nans over all drifters and time steps
     nnans = np.zeros(lonp.shape[1])
-    for ipair in xrange(len(pairs)):
+    for ipair in range(len(pairs)):
 
         # calculate distance in time
         dist = get_dist(lonp[pairs[ipair][0], :], lonp[pairs[ipair][1], :],
@@ -359,7 +359,7 @@ def rel_dispersion_comp(lonpc, latpc, tpc, lonp, latp, tp, r=1,
     # to collect number of non-nans over all drifters for a time
     nnans = np.zeros(lonp.shape[1])
     # loop through drifters, time is in array, axis=1
-    for i in xrange(lonp.shape[0]):
+    for i in range(lonp.shape[0]):
         dist = get_dist(lonpc[i, :], lonp[i, :],
                         latpc[i, :], latp[i, :])
         if squared:
@@ -412,7 +412,7 @@ def abs_dispersion(lonp, latp, squared=True):
     D2 = np.ones(lonp.shape[1])*np.nan
     # to collect number of non-nans over all drifters and time steps
     nnans = np.zeros(lonp.shape[1])
-    for idrifter in xrange(lonp.shape[0]):
+    for idrifter in range(lonp.shape[0]):
 
         # calculate distance in time
         dist = get_dist(lonp[idrifter, 0], lonp[idrifter, :],
@@ -469,7 +469,7 @@ def path(lonp, latp, squared=True):
     D2 = np.ones(lonp.shape[1]-1)*np.nan
     # to collect number of non-nans over all drifters and time steps
     nnans = np.zeros(lonp.shape[1]-1)
-    for idrifter in xrange(lonp.shape[0]):
+    for idrifter in range(lonp.shape[0]):
 
         # calculate distance in time
         dist = get_dist(lonp[idrifter, 1:], lonp[idrifter, :-1],
@@ -680,11 +680,11 @@ def calc_fsle(lonp, latp, tp, alpha=np.sqrt(2)):
     ndrifters = lonp.shape[0]
     ntime = lonp.shape[1]
 
-    dist = np.empty((np.cumsum(xrange(ndrifters))[-1], ntime))
+    dist = np.empty((np.cumsum(range(ndrifters))[-1], ntime))
     driftercount = 0  # holds index in dist for drifters
 
     # Construct drifters into [distance x time] in dist
-    for idrifter in xrange(ndrifters):
+    for idrifter in range(ndrifters):
 
         # lonpc = lonp[idrifter,:]
         # latpc = latp[idrifter,:]

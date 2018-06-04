@@ -334,7 +334,7 @@ class Tracpy(object):
                 # In this case, the starting z values of the drifters are
                 # found in grid space as z0 below the z surface for each
                 # drifter
-                for i in xrange(ia.size):
+                for i in range(ia.size):
                     ind = (self.zwt[1, :, ja[i], ia[i]] <= self.z0[i])
                     # find value that is just shallower than starting vertical
                     # position
@@ -479,7 +479,7 @@ class Tracpy(object):
             # linear time interpolation constant that is used in tracmass
             r = np.linspace(1./self.N, 1, self.N)
 
-            for n in xrange(self.N):  # loop through time steps
+            for n in range(self.N):  # loop through time steps
                 # interpolate to a specific output time
                 # pdb.set_trace()
                 zwt = (1.-r[n])*self.zwt[0, :, :, :] + \
