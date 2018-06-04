@@ -97,7 +97,7 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
          fig=None, ax=None, bins=(40, 40), N=10, xlims=None,
          ylims=None, C=None, Title=None, weights=None, cmap=None,
          Label='Final drifter location (%)', binscale=None,
-         cbcoords=[0.35, 0.25, 0.6, 0.02], H=None,
+         cbcoords=[0.35, 0.25, 0.6, 0.02], H=None, xedges=None, yedges=None,
          crsproj=ccrs.LambertConformal()):
     """
     update
@@ -146,7 +146,9 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
         fig = plt.figure(figsize=(10,8))
         ax = fig.add_subplot(111)
 
-    if tind == 'final':
+    if xp is None:
+        pass
+    elif tind == 'final':
         # Find final positions of drifters
         xpc, ypc = tools.find_final(xp, yp)
     elif isinstance(tind, int):
@@ -205,6 +207,15 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
                                                       [grid.y_rho.min(),
                                                        grid.y_rho.max()]],
                                                bins=bins, weights=weights)
+        else:
+            pass
+            # # just for the edges
+            # _, xedges, yedges = np.histogram2d(xpc, ypc,
+            #                                    range=[[grid.x_rho.min(),
+            #                                            grid.x_rho.max()],
+            #                                           [grid.y_rho.min(),
+            #                                            grid.y_rho.max()]],
+            #                                    bins=bins, weights=weights)
 
         # Pcolor plot
         # C is the z value plotted, and is normalized by the total number of
