@@ -229,8 +229,9 @@ class Tracpy(object):
         # Do z a little lower down
 
         # Initialize seed locations
-        ia = np.ceil(xstart0)
-        ja = np.ceil(ystart0)
+        # these will be used as indices so must be ints
+        ia = np.ceil(xstart0).astype(int)
+        ja = np.ceil(ystart0).astype(int)
 
         # don't use nan's
         # pdb.set_trace()
@@ -309,7 +310,7 @@ class Tracpy(object):
         else:   # 3d case
             # Convert initial real space vertical locations to grid space
             # first find indices of grid cells vertically
-            ka = np.ones(ia.size)*np.nan
+            ka = np.ones(ia.size, dtype=int)*-999  # need int placeholder
             zstart0 = np.ones(ia.size)*np.nan
 
             if self.zpar == 'fromMSL':

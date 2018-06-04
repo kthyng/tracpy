@@ -143,22 +143,21 @@ def test_interpolation():
     # There is a shift between the rho grid and the grid space grid because
     # of the staggered layout. Grid space counts from the u/v grid and
     # therefore is a little different from the rho grid.
-    assert np.allclose(X, grid.x_rho[2, 3] - 0.5)
-    assert np.allclose(Y, grid.y_rho[2, 3] - 0.5)
+    assert np.allclose(X, grid.x_rho[2, 3] + 0.5)
+    assert np.allclose(Y, grid.y_rho[2, 3] + 0.5)
 
     # grid space to projected coordinates, delaunay
     x, y, _ = tracpy.tools.interpolate2d(grid.X[2, 3], grid.Y[2, 3], grid,
                                          'd_ij2xy')
-
-    assert np.allclose(x, grid.X[2, 3] + 0.5)
-    assert np.allclose(y, grid.Y[2, 3] + 0.5)
+    assert np.allclose(x, grid.X[2, 3] - 0.5)
+    assert np.allclose(y, grid.Y[2, 3] - 0.5)
 
     # grid space to projected coordinates, map_coords
     x, y, _ = tracpy.tools.interpolate2d(grid.X[2, 3], grid.Y[2, 3], grid,
                                          'm_ij2xy')
 
-    assert np.allclose(x, grid.X[2, 3] + 0.5)
-    assert np.allclose(y, grid.Y[2, 3] + 0.5)
+    assert np.allclose(x, grid.X[2, 3] - 0.5)
+    assert np.allclose(y, grid.Y[2, 3] - 0.5)
 
 
 # def test_interpolation():
