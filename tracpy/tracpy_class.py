@@ -241,6 +241,14 @@ class Tracpy(object):
         xstart0 = xstart0[ind2]
         ystart0 = ystart0[ind2]
 
+        # check for point being masked
+        # only keep unmasked drifter locations
+        unmasked = np.where(self.grid.mask_rho[ja, ia] == 1)[0]
+        ia = ia[unmasked]
+        ja = ja[unmasked]
+        xstart0 = xstart0[unmasked]
+        ystart0 = ystart0[unmasked]
+
         if 'ocean_time' in nc.variables:
             dates = nc.variables['ocean_time'][:]
         elif 'time' in nc.variables:
