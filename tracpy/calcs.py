@@ -103,7 +103,12 @@ def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
     # Need to know grid location of everything
     # h does not change in time so need to interpolate differently
     if varin == 'h':
-        varp = ndimage.map_coordinates(var, np.array([yp.flatten(),
+        # var.filled(np.nan) is used so that land values which have huge fill
+        # values in the masked array `var` result in nan's when used instead of
+        # huge values. This will nan out more values than necessary, but will
+        # not return the giant land mask values.
+        # https://github.com/scipy/scipy/issues/1682
+        varp = ndimage.map_coordinates(var.filled(np.nan), np.array([yp.flatten(),
                                        xp.flatten()]),
                                        order=1,
                                        mode='nearest').reshape(xp.shape)
@@ -113,7 +118,7 @@ def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
         # time indices
         tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
         tgtemp = tg.reshape((1, tg.shape[0])).repeat(xp.shape[0], axis=0)
-        varp = ndimage.map_coordinates(var, np.array([tgtemp.flatten(),
+        varp = ndimage.map_coordinates(var.filled(np.nan), np.array([tgtemp.flatten(),
                                        yp.flatten(), xp.flatten()]),
                                        order=1,
                                        mode='nearest').reshape(xp.shape)
