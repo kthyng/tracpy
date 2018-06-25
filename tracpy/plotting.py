@@ -96,7 +96,7 @@ def background(grid, proj=ccrs.Mercator(), ax=None, pars=np.arange(18, 35),
 def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
          fig=None, ax=None, bins=(40, 40), N=10, xlims=None,
          ylims=None, C=None, Title=None, weights=None, cmap=None,
-         Label='Final drifter location (%)', binscale=None,
+         Label='Final drifter location (%)', binscale=None, logscale=False,
          cbcoords=[0.35, 0.25, 0.6, 0.02], H=None, xedges=None, yedges=None,
          crsproj=ccrs.LambertConformal()):
     """
@@ -226,7 +226,11 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
             # or, provide some other weighting
             C = (H.T/C)*100
 
-        p = ax.pcolormesh(xedges, yedges, C, cmap=cmap, transform=crsproj)
+        if logscale:
+            p = ax.pcolormesh(xedges, yedges, C, cmap=cmap, transform=crsproj,
+                              norm=mpl.colors.LogNorm(vmin=1e-3, vmax=100))
+        else:
+            p = ax.pcolormesh(xedges, yedges, C, cmap=cmap, transform=crsproj)
 
         if Title is not None:
             ax.set_title(Title)
