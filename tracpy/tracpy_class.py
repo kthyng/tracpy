@@ -482,7 +482,9 @@ class Tracpy(object):
 
         # Skip calculating real z position if we are doing surface-only
         # drifters anyway
-        if self.z0 != 's' and self.zpar != self.grid.km-1:
+
+        if self.z0 != 's' and self.savell:
+        # if self.z0 != 's' and self.zpar != self.grid.km-1:
 
             # Calculate real z position
             # linear time interpolation constant that is used in tracmass
@@ -493,6 +495,8 @@ class Tracpy(object):
                 # pdb.set_trace()
                 zwt = (1.-r[n])*self.zwt[0, :, :, :] + \
                     r[n]*self.zwt[1, :, :, :]
+                # mask out land
+                zwt = np.ma.masked_where(zwt>1e30, zwt)
                 zp, dt = tracpy.tools.interpolate3d(xend, yend, zend, zwt)
         else:
             zp = zend

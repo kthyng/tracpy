@@ -162,7 +162,7 @@ def interpolate3d(x, y, z, zin, order=1, mode='nearest', cval=0.):
     # Shift of .5 is assuming that input x/y are on a staggered grid frame
     # (counting from the cell edge and across the cell) but that the z values
     # are at the cell center, or rho locations.
-    zi = ndimage.map_coordinates(zin, np.array([x.flatten()+.5,
+    zi = ndimage.map_coordinates(zin.filled(np.nan), np.array([x.flatten()+.5,
                                                 y.flatten()+.5,
                                                 z.flatten()]),
                                  order=order, mode=mode,
