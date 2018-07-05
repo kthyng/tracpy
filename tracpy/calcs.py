@@ -68,7 +68,10 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
 
     # 4D variables
     if varin in ('u', 'v', 'salt', 'temp'):
-        var = nc.variables[varin][tinds, -1, :, :]
+        # load in block of model output that includes drifter tracks
+        # HAVE Z, Y, X MIN/MAX CHANGE WITH TIME CHUNK IN LOOP
+        var = nc.variables[varin][tinds, -1, int(yg.min()):int(yg.max())+2, int(xg.min()):int(xg.max())+2]
+        # var = nc.variables[varin][tinds, -1, :, :]
 
     # 3D variables
     elif varin in ('zeta'):
@@ -115,6 +118,7 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
     else:
         # Make time into a "grid coordinate" that goes from 0 to number of
         # time indices
+        # THESE MIGHT BE BACKWARD IN TIME
         tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
         tgtemp = tg.reshape((1, tg.shape[0])).repeat(xg.shape[0], axis=0)
         # # var.filled(np.nan) is used so that land values which have huge fill
@@ -126,6 +130,21 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
         #                                yg.flatten(), xg.flatten()]),
         #                                order=1,
         #                                mode='nearest').reshape(xg.shape)
+
+        # loop over chunks of time
+        # tcount = 0
+        # # WILL THIS WORK BACKWARD AND FORWARD?
+        # while tcount < tinds[-1]:
+        #     tcount += 10
+
+        # need indices for the model output (var) AND separately for drifter tracks
+
+        ind = ndimage.distance_transform_edt(var.mask, return_distances=False, return_indices=True)
+        varp = ndimage.map_coordinates(var[tuple(ind)], np.array([tgtemp.flatten(),
+                                       yg.flatten(), xg.flatten()]),
+                                       order=1,
+                                       mode='nearest').reshape(xg.shape)
+
 
         # instead of filling var array mask with nan's, extrapolate out nearest
         # neighbor value. Distance is by number of cells not euclidean distance.
