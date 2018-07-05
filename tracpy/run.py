@@ -68,8 +68,8 @@ def run(tp, date, lon0, lat0, T0=None, U=None, V=None):
                 yend_temp,\
                 zend_temp,\
                 flag[ind],\
-                ttend_temp, U, V = tp.step(xstart, ystart, zstart, ufsub,
-                                           vfsub, T0, U, V)
+                ttend_temp, U, V = tp.step(xstart, ystart, zstart, ufsub.filled(0),
+                                           vfsub.filled(0), T0, U, V)
 
             timer.addtime('3: Stepping, using TRACMASS   ')
 

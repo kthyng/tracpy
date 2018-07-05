@@ -10,7 +10,7 @@ import time
 import tracpy
 
 
-def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
+def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
     """
     Calculate the given property, varin, along the input drifter tracks. This
     property can be changing in time and space.
@@ -19,7 +19,7 @@ def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
         Currently assuming surface tracks.
 
     Args:
-        xp, yp (array): Horizontal drifter position in grid coordinates
+        xg, yg (array): Horizontal drifter position in grid coordinates
          [ndrift, ntime]
         tp (array): Times for drifter [ntime]
         varin (str): Variable to calculate. Available options are: u, v,
@@ -57,7 +57,11 @@ def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
                       netCDF.num2date(tp[0], units))[-1]
         iend = find(netCDF.num2date(t, units) >=
                     netCDF.num2date(tp[-1], units))[0]
-        tinds = np.arange(istart, iend)
+        if istart < iend:  # forward in time
+            dd = 1
+        else:  # backward
+            dd = -1
+        tinds = np.arange(istart, iend, dd)
 
     # Read in model information. Try reading it all in the for time, y, and
     # x and then interpolating from there.
@@ -74,55 +78,63 @@ def Var(xp, yp, tp, varin, nc, units='seconds since 1970-01-01'):
     elif varin in ('h'):
         var = nc.variables[varin][:, :]
 
-    # Grid location of var. xp and yp are on staggered grids, counting from
+    # Grid location of var. xg and yg are on staggered grids, counting from
     # the cell edge and inward. Want to match the grid locations of these and
     # var.
     # varin on ugrid
     if varin in ('u'):
-        # xp correctly align with the u grid in the x direction, so that xp
+        # xg correctly align with the u grid in the x direction, so that xg
         # is at the cell center
         # this shifts the drifter y grid locations from the edge of the cell
         # to the center
-        yp = yp - 0.5
+        yg = yg - 0.5
 
     # varin on vgrid
     elif varin in ('v'):
         # this shifts the drifter x grid locations from the edge of the cell
         # to the center
-        xp = xp - 0.5
-        # yp correctly align with the v grid in the y direction, so that yp
+        xg = xg - 0.5
+        # yg correctly align with the v grid in the y direction, so that yg
         # is at the cell center
 
     # varin on rho grid
     elif varin in ('salt', 'temp', 'zeta', 'h'):
-        # shift both xp and yp to cell center from edge
-        xp = xp - 0.5
-        yp = yp - 0.5
+        # shift both xg and yg to cell center from edge
+        xg = xg - 0.5
+        yg = yg - 0.5
 
     # Interpolate var to tracks. varp is the variable along the tracks
     # Need to know grid location of everything
     # h does not change in time so need to interpolate differently
     if varin == 'h':
-        # var.filled(np.nan) is used so that land values which have huge fill
-        # values in the masked array `var` result in nan's when used instead of
-        # huge values. This will nan out more values than necessary, but will
-        # not return the giant land mask values.
-        # https://github.com/scipy/scipy/issues/1682
-        varp = ndimage.map_coordinates(var.filled(np.nan), np.array([yp.flatten(),
-                                       xp.flatten()]),
+        varp = ndimage.map_coordinates(var, np.array([yg.flatten(),
+                                       xg.flatten()]),
                                        order=1,
-                                       mode='nearest').reshape(xp.shape)
+                                       mode='nearest').reshape(xg.shape)
     # these variables change in time
     else:
         # Make time into a "grid coordinate" that goes from 0 to number of
         # time indices
         tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
-        tgtemp = tg.reshape((1, tg.shape[0])).repeat(xp.shape[0], axis=0)
-        varp = ndimage.map_coordinates(var.filled(np.nan), np.array([tgtemp.flatten(),
-                                       yp.flatten(), xp.flatten()]),
+        tgtemp = tg.reshape((1, tg.shape[0])).repeat(xg.shape[0], axis=0)
+        # # var.filled(np.nan) is used so that land values which have huge fill
+        # # values in the masked array `var` result in nan's when used instead of
+        # # huge values. This will nan out more values than necessary, but will
+        # # not return the giant land mask values.
+        # # https://github.com/scipy/scipy/issues/1682
+        # varp = ndimage.map_coordinates(var.filled(np.nan), np.array([tgtemp.flatten(),
+        #                                yg.flatten(), xg.flatten()]),
+        #                                order=1,
+        #                                mode='nearest').reshape(xg.shape)
+
+        # instead of filling var array mask with nan's, extrapolate out nearest
+        # neighbor value. Distance is by number of cells not euclidean distance.
+        # https://stackoverflow.com/questions/3662361/fill-in-missing-values-with-nearest-neighbour-in-python-numpy-masked-arrays
+        ind = ndimage.distance_transform_edt(var.mask, return_distances=False, return_indices=True)
+        varp = ndimage.map_coordinates(var[tuple(ind)], np.array([tgtemp.flatten(),
+                                       yg.flatten(), xg.flatten()]),
                                        order=1,
-                                       mode='nearest').reshape(xp.shape)
-    # print 'time for finding ' + var + ': ', time.time()-tstart
+                                       mode='nearest').reshape(xg.shape)
 
     return varp
 

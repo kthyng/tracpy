@@ -148,9 +148,7 @@ def interpolate3d(x, y, z, zin, order=1, mode='nearest', cval=0.):
          interpolation, it just uses the value of the nearest cell if the
          point lies outside the grid. The default is to treat the values
          outside the grid as zero, which can cause some edge effects if
-         you're interpolating points near the edge. The "order" kwarg
-         controls the order of the splines used. The default is cubic
-         splines, order=3
+         you're interpolating points near the edge.
 
     Returns:
         * zi - Interpolated values
@@ -162,8 +160,12 @@ def interpolate3d(x, y, z, zin, order=1, mode='nearest', cval=0.):
     # Shift of .5 is assuming that input x/y are on a staggered grid frame
     # (counting from the cell edge and across the cell) but that the z values
     # are at the cell center, or rho locations.
-    zi = ndimage.map_coordinates(zin.filled(np.nan), np.array([x.flatten()+.5,
-                                                y.flatten()+.5,
+    # instead of filling var array mask with nan's, extrapolate out nearest
+    # neighbor value. Distance is by number of cells not euclidean distance.
+    # https://stackoverflow.com/questions/3662361/fill-in-missing-values-with-nearest-neighbour-in-python-numpy-masked-arrays
+    ind = ndimage.distance_transform_edt(zin.mask, return_distances=False, return_indices=True)
+    zi = ndimage.map_coordinates(zin[tuple(ind)].T, np.array([x.flatten()-0.5,
+                                                y.flatten()-0.5,
                                                 z.flatten()]),
                                  order=order, mode=mode,
                                  cval=cval).reshape(z.shape)

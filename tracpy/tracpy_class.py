@@ -425,6 +425,10 @@ class Tracpy(object):
         # (vertical are zero-based in tracmass)
         xstart, ystart = tracpy.tools.convert_indices('py2f', xstart, ystart)
 
+        # make flux fields masked arrays
+        ufsub = np.ma.masked_where(ufsub>1e30, ufsub)
+        vfsub = np.ma.masked_where(vfsub>1e30, vfsub)
+
         return xstart, ystart, zstart, ufsub, vfsub, T0
 
     def step(self, xstart, ystart, zstart, ufsub, vfsub, T0, U, V):
