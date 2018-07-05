@@ -227,8 +227,10 @@ def hist(xp, yp, proj, fname, grid, tind='final', which='contour', vmax=None,
             C = (H.T/C)*100
 
         if logscale:
+            if vmax is None:
+                vmax = 100
             p = ax.pcolormesh(xedges, yedges, C, cmap=cmap, transform=crsproj,
-                              norm=mpl.colors.LogNorm(vmin=1e-3, vmax=100))
+                              norm=mpl.colors.LogNorm(vmin=1e-3, vmax=vmax))
         else:
             p = ax.pcolormesh(xedges, yedges, C, cmap=cmap, transform=crsproj)
 
