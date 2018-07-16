@@ -138,14 +138,6 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
         #     tcount += 10
 
         # need indices for the model output (var) AND separately for drifter tracks
-
-        ind = ndimage.distance_transform_edt(var.mask, return_distances=False, return_indices=True)
-        varp = ndimage.map_coordinates(var[tuple(ind)], np.array([tgtemp.flatten(),
-                                       yg.flatten(), xg.flatten()]),
-                                       order=1,
-                                       mode='nearest').reshape(xg.shape)
-
-
         # instead of filling var array mask with nan's, extrapolate out nearest
         # neighbor value. Distance is by number of cells not euclidean distance.
         # https://stackoverflow.com/questions/3662361/fill-in-missing-values-with-nearest-neighbour-in-python-numpy-masked-arrays
