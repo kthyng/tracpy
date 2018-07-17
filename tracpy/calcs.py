@@ -52,34 +52,16 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
 
     # Time indices for the drifter track points
     if varin != 'h':  # don't need time for h
-        t = nc.variables['ocean_time'][:]  # model times
-        istart = find(netCDF.num2date(t, units) <=
-                      netCDF.num2date(tp[0], units))[-1]
-        iend = find(netCDF.num2date(t, units) >=
-                    netCDF.num2date(tp[-1], units))[0]
+        t = nc.variables['ocean_time']  # model times
+        dates = netCDF.num2date(t[:], t.units)
+        tpdates = netCDF.num2date(tp, units)
+        istart = np.where(dates <= tpdates[0])[0][-1]
+        iend = np.where(dates >= tpdates[-1])[0][0]
         if istart < iend:  # forward in time
             dd = 1
         else:  # backward
             dd = -1
-        tinds = np.arange(istart, iend, dd)
-
-    # Read in model information. Try reading it all in the for time, y, and
-    # x and then interpolating from there.
-
-    # 4D variables
-    if varin in ('u', 'v', 'salt', 'temp'):
-        # load in block of model output that includes drifter tracks
-        # HAVE Z, Y, X MIN/MAX CHANGE WITH TIME CHUNK IN LOOP
-        var = nc.variables[varin][tinds, -1, int(yg.min()):int(yg.max())+2, int(xg.min()):int(xg.max())+2]
-        # var = nc.variables[varin][tinds, -1, :, :]
-
-    # 3D variables
-    elif varin in ('zeta'):
-        var = nc.variables[varin][tinds, :, :]
-
-    # 2D variables
-    elif varin in ('h'):
-        var = nc.variables[varin][:, :]
+        # tinds = np.arange(istart, iend, dd)
 
     # Grid location of var. xg and yg are on staggered grids, counting from
     # the cell edge and inward. Want to match the grid locations of these and
@@ -106,6 +88,24 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
         xg = xg - 0.5
         yg = yg - 0.5
 
+    # Read in model information. Try reading it all in the for time, y, and
+    # x and then interpolating from there.
+
+    # 4D variables
+    if varin in ('u', 'v', 'salt', 'temp'):
+        # load in block of model output that includes drifter tracks
+        # HAVE Z, Y, X MIN/MAX CHANGE WITH TIME CHUNK IN LOOP
+        var = nc.variables[varin][istart:iend+1:dd, -1, int(yg.min()):int(yg.max())+2, int(xg.min()):int(xg.max())+2]
+        # var = nc.variables[varin][tinds, -1, :, :]
+
+    # 3D variables
+    elif varin in ('zeta'):
+        var = nc.variables[varin][istart:iend:dd, :, :]
+
+    # 2D variables
+    elif varin in ('h'):
+        var = nc.variables[varin][:, :]
+
     # Interpolate var to tracks. varp is the variable along the tracks
     # Need to know grid location of everything
     # h does not change in time so need to interpolate differently
@@ -118,9 +118,12 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
     else:
         # Make time into a "grid coordinate" that goes from 0 to number of
         # time indices
-        # THESE MIGHT BE BACKWARD IN TIME
-        tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
-        tgtemp = tg.reshape((1, tg.shape[0])).repeat(xg.shape[0], axis=0)
+        if dd == 1:  # forward in time
+            tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
+        elif dd == -1:  # backward in time
+            tg = ((tp-tp[-1])/(tp[0]-tp[-1]))*var.shape[0]
+        # tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
+        tgtemp = tg.reshape((1, tg.shape[0])).repeat(np.atleast_2d(xg).shape[0], axis=0)
         # # var.filled(np.nan) is used so that land values which have huge fill
         # # values in the masked array `var` result in nan's when used instead of
         # # huge values. This will nan out more values than necessary, but will
