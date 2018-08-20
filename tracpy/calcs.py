@@ -10,7 +10,7 @@ import time
 import tracpy
 
 
-def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
+def Var(xg, yg, tp, varin, nc, dt=50, units='seconds since 1970-01-01'):
     """
     Calculate the given property, varin, along the input drifter tracks. This
     property can be changing in time and space.
@@ -27,6 +27,7 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
         nc: Netcdf file object where the model output can be accessed which
          includes all necessary times units. For time conversion, not used
          for depths.
+        dt: number of model outputs to read in per loop, is limited by memory
 
     Returns:
         * varp - Variable along the drifter track
@@ -50,18 +51,28 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
 
     tstart = time.time()
 
+    # make xg, yg 2d if needed, assume 1d because only 1 drifter
+    if xg.ndim == 1:
+        xg = xg[np.newaxis,:]
+        yg = yg[np.newaxis,:]
+
     # Time indices for the drifter track points
     if varin != 'h':  # don't need time for h
         t = nc.variables['ocean_time']  # model times
         dates = netCDF.num2date(t[:], t.units)
         tpdates = netCDF.num2date(tp, units)
-        istart = np.where(dates <= tpdates[0])[0][-1]
-        iend = np.where(dates >= tpdates[-1])[0][0]
-        if istart < iend:  # forward in time
+        if tpdates[1] > tpdates[0]:  # forward in time
+            istart = np.where(dates <= tpdates[0])[0][-1]
+            iend = np.where(dates >= tpdates[-1])[0][0]
             dd = 1
+            # dt = 50  # dt is for how many model output time steps to read in
+            iend += 1  # so that iend is inclusive with final pt forward
         else:  # backward
+            istart = np.where(dates >= tpdates[0])[0][0]
+            iend = np.where(dates <= tpdates[-1])[0][-1]
             dd = -1
-        # tinds = np.arange(istart, iend, dd)
+            dt = -1*dt  # dt is for how many model output time steps to read in
+            iend -= 1  # so that iend is inclusive with final pt backward
 
     # Grid location of var. xg and yg are on staggered grids, counting from
     # the cell edge and inward. Want to match the grid locations of these and
@@ -91,64 +102,84 @@ def Var(xg, yg, tp, varin, nc, units='seconds since 1970-01-01'):
     # Read in model information. Try reading it all in the for time, y, and
     # x and then interpolating from there.
 
-    # 4D variables
-    if varin in ('u', 'v', 'salt', 'temp'):
-        # load in block of model output that includes drifter tracks
-        # HAVE Z, Y, X MIN/MAX CHANGE WITH TIME CHUNK IN LOOP
-        var = nc.variables[varin][istart:iend+1:dd, -1, int(yg.min()):int(yg.max())+2, int(xg.min()):int(xg.max())+2]
-        # var = nc.variables[varin][tinds, -1, :, :]
-
-    # 3D variables
-    elif varin in ('zeta'):
-        var = nc.variables[varin][istart:iend:dd, :, :]
-
-    # 2D variables
-    elif varin in ('h'):
-        var = nc.variables[varin][:, :]
-
-    # Interpolate var to tracks. varp is the variable along the tracks
-    # Need to know grid location of everything
-    # h does not change in time so need to interpolate differently
     if varin == 'h':
+        # h does not change in time so need to interpolate differently
+        var = nc.variables[varin][:, :]
         varp = ndimage.map_coordinates(var, np.array([yg.flatten(),
                                        xg.flatten()]),
                                        order=1,
                                        mode='nearest').reshape(xg.shape)
-    # these variables change in time
+
+
     else:
-        # Make time into a "grid coordinate" that goes from 0 to number of
-        # time indices
-        if dd == 1:  # forward in time
-            tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
-        elif dd == -1:  # backward in time
-            tg = ((tp-tp[-1])/(tp[0]-tp[-1]))*var.shape[0]
-        # tg = ((tp-tp[0])/(tp[-1]-tp[0]))*var.shape[0]
-        tgtemp = tg.reshape((1, tg.shape[0])).repeat(np.atleast_2d(xg).shape[0], axis=0)
-        # # var.filled(np.nan) is used so that land values which have huge fill
-        # # values in the masked array `var` result in nan's when used instead of
-        # # huge values. This will nan out more values than necessary, but will
-        # # not return the giant land mask values.
-        # # https://github.com/scipy/scipy/issues/1682
-        # varp = ndimage.map_coordinates(var.filled(np.nan), np.array([tgtemp.flatten(),
-        #                                yg.flatten(), xg.flatten()]),
-        #                                order=1,
-        #                                mode='nearest').reshape(xg.shape)
 
-        # loop over chunks of time
-        # tcount = 0
-        # # WILL THIS WORK BACKWARD AND FORWARD?
-        # while tcount < tinds[-1]:
-        #     tcount += 10
+        # conversion between model output time indices and drifter time indices.
+        # they just need to match
+        dt_drifter = abs(tp[1] - tp[0])  # drifter time step in seconds
+        assert 'seconds' in nc['ocean_time'].units, 'not sure about model output time units'
+        dt_model = nc['ocean_time'][1] - nc['ocean_time'][0]  # assume seconds
 
-        # need indices for the model output (var) AND separately for drifter tracks
-        # instead of filling var array mask with nan's, extrapolate out nearest
-        # neighbor value. Distance is by number of cells not euclidean distance.
-        # https://stackoverflow.com/questions/3662361/fill-in-missing-values-with-nearest-neighbour-in-python-numpy-masked-arrays
-        ind = ndimage.distance_transform_edt(var.mask, return_distances=False, return_indices=True)
-        varp = ndimage.map_coordinates(var[tuple(ind)], np.array([tgtemp.flatten(),
-                                       yg.flatten(), xg.flatten()]),
-                                       order=1,
-                                       mode='nearest').reshape(xg.shape)
+        import pandas as pd
+
+        tpdatesp = [pd.Timestamp(tpdate) for tpdate in tpdates]
+        datesp = [pd.Timestamp(date) for date in dates]
+        index = pd.Index(tpdates)
+
+        varp = np.empty(xg.shape)
+
+        # looping over model output (not drifters directly)
+        for ist in range(istart,iend,dt):
+
+            # 4D variables
+            if varin in ('u', 'v', 'salt', 'temp'):
+                # load in block of model output that includes drifter tracks
+                var = nc.variables[varin][ist:ist+dt:dd, -1, :,:]
+
+            # 3D variables
+            elif varin in ('zeta'):
+                var = nc.variables[varin][ist:ist+dt:dd, :, :]
+
+            # Interpolate var to tracks. varp is the variable along the tracks
+            # Need to know grid location of everything
+            if dd==1:
+                istarttp = np.where(dates[ist] <= index)[0][0]
+                iendtp = np.where(index <= dates[ist+dt])[0][-1]
+            elif dd==-1:
+                istarttp = np.where(dates[ist] >= index)[0][0]
+                iendtp = np.where(index >= dates[ist+dt])[0][-1]
+
+            # Make time into a "grid coordinate" that goes between 0 to number of
+            # time indices but accounts for the fact that model output may start
+            # earlier and end later
+            tstart = abs((index[istarttp] - dates[ist]).total_seconds()/dt_model)
+            # both are in seconds to find
+            # dt is shifted for 0 indexing
+            tend = abs((dt*dt_model - (dates[ist+dt] - index[iendtp]).total_seconds())/dt_model)
+            tgstep = dt_drifter/dt_model
+            tgend = tend/tgstep + (dt_drifter/dt_model)/tgstep
+            # if tend is close to ~0.5, round down
+            if np.isclose(np.modf(tgend)[0], 0.5):
+                tgend = np.floor(tgend)
+            tg = tgstep*np.arange(tstart/tgstep, tgend, 1)
+            tgtemp = tg.reshape((1, tg.shape[0])).repeat(np.atleast_2d(xg).shape[0], axis=0)
+
+            # need indices for the model output (var) AND separately for drifter tracks
+            # instead of filling var array mask with nan's, extrapolate out nearest
+            # neighbor value. Distance is by number of cells not euclidean distance.
+            # https://stackoverflow.com/questions/3662361/fill-in-missing-values-with-nearest-neighbour-in-python-numpy-masked-arrays
+            ind = ndimage.distance_transform_edt(var.mask, return_distances=False, return_indices=True)
+
+            tgt = tgtemp.flatten()
+            ygt = yg[:,istarttp:iendtp+1].flatten()
+            xgt = xg[:,istarttp:iendtp+1].flatten()
+            varp[:,istarttp:iendtp+1] = ndimage.map_coordinates(var[tuple(ind)], np.array([tgt, ygt, xgt]),
+                                           order=1, mode='nearest').reshape(tgtemp.shape)
+            # plt.pcolormesh(var[0], vmin=varp.min(), vmax=varp.max())
+            # plt.scatter(xg[:,istarttp:iendtp-1:dd], yg[:,istarttp:iendtp-1:dd], s=20,c=varp, linewidth=1, edgecolor='k')
+
+    # apply nans to varp where xg is nan (or <0 which is also out of domain in grid coordinates)
+    ind = np.isnan(xg) + (xg < 0)
+    varp[ind] = np.nan
 
     return varp
 
