@@ -3,7 +3,7 @@ Functions to find helpful calculations based on drifter tracks.
 """
 
 import numpy as np
-from matplotlib.mlab import find
+# from matplotlib.mlab import find
 import netCDF4 as netCDF
 from scipy import ndimage
 import time
@@ -266,7 +266,7 @@ def rel_dispersion(lonp, latp, r=[0, 1], squared=True, spherical=True):
                         spherical=spherical)
         # add in which drifter we are at to shift to correct index and one
         # since starts after comparison point
-        ind = idrifter + 1 + find((dist <= r[1]) * (dist >= r[0]))
+        ind = idrifter + 1 + np.where((dist <= r[1]) * (dist >= r[0]))[0]
         for i in ind:
             pairs.append([min(idrifter, i), max(idrifter, i)])
 

@@ -22,7 +22,7 @@ import time
 from . import op
 import os
 import tracpy
-from matplotlib.mlab import find
+# from matplotlib.mlab import find
 
 
 def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
@@ -72,7 +72,7 @@ def setupROMSfiles(loc, date, ff, tout, time_units, tstride=1):
         dates = netCDF.num2date(nc.variables['ocean_time'][:], time_units,
                                 calendar='proleptic_gregorian')
     # time index with time value just below date (relative to file ifile)
-    istart = find(dates <= date)[-1]
+    istart = np.where(dates <= date)[0][-1]
 
     # Select indices
     if ff == 1:

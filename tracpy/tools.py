@@ -15,7 +15,8 @@ import numpy as np
 from scipy import ndimage
 import time
 import matplotlib.tri as mtri
-from matplotlib.mlab import Path, find
+# from matplotlib.mlab import Path, find
+from matplotlib.path import Path
 
 
 def interpolate2d(x, y, grid, itype, xin=None, yin=None, order=1,
@@ -462,7 +463,7 @@ def make_proj(setup='nwgom', usebasemap=True, **kwargs):
 
     # Set up projection using inputs dictionary
     if usebasemap:
-        from mpl_toolkits.basemap import Basemap
+        # from mpl_toolkits.basemap import Basemap
         proj = Basemap(**inputs)
     else:
         from pyproj import Proj
