@@ -442,6 +442,12 @@ def make_proj(setup='nwgom', usebasemap=True, **kwargs):
 
     elif setup == 'nwgom-pyproj':
 
+        # proj4 string
+        # '+proj=lcc +R=6370997.0 +units=m +lat_0=30.0 +lon_0=-94.0 +lat_1=30.0 +lat_2=30.0 +x_0=466061.13903578784 +y_0=827157.5974829497 '
+        # lcc = cartopy.crs.LambertConformal(central_longitude=-94.0, central_latitude=30,
+        #                                    false_easting=466061.13903578784,
+        #                                    false_northing=827157.5974829497)
+
         inputs = {'proj': 'lcc', 'ellps': 'clrk66', 'datum': 'NAD27',
                   'lat_1': 22.5, 'lat_2': 31.0, 'lat_0': 30, 'lon_0': -94,
                   'x_0': 0, 'y_0': 0}
